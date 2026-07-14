@@ -513,32 +513,46 @@ body {
 .shortcut-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 6px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border);
+    border-radius: 12px;
 }
 
 .shortcut-btn {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px 6px;
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 10px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 40, 40, 0.22);
+    border-radius: 9px;
     color: var(--text);
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
+    backdrop-filter: blur(8px) saturate(140%);
     transition: all 0.15s ease;
+    min-height: 42px;
 }
 
 .shortcut-btn:hover {
-    background: rgba(255, 40, 40, 0.06);
-    border-color: var(--border-strong);
+    background: rgba(255, 40, 40, 0.08);
+    border-color: rgba(255, 60, 60, 0.55);
+    box-shadow: 0 0 10px rgba(255, 40, 40, 0.18);
     transform: translateY(-1px);
 }
 
-.s-icon { font-size: 13px; }
+.shortcut-btn .s-icon {
+    width: 15px;
+    height: 15px;
+    color: var(--red);
+    flex-shrink: 0;
+    display: block;
+}
+
 
 /* ========== Action stack ========== */
 .action-stack {
