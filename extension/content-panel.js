@@ -8,8 +8,8 @@
     if (window.__lovableExtPanelInjected) return;
     window.__lovableExtPanelInjected = true;
 
-    const PANEL_W = 420;
-    const PANEL_H = 640;
+    const PANEL_W = 360;
+    const PANEL_H = 580;
     const BUBBLE_SIZE = 56;
     const STORAGE_KEY = 'lvbl_panel_state_v1';
 
