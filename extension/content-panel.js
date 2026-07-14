@@ -113,6 +113,7 @@
         background: radial-gradient(circle at 30% 30%, #2a171c, #0a0608);
         box-shadow: 0 8px 24px rgba(0,0,0,.5), 0 0 0 2px rgba(255,40,40,.35);
         cursor: grab;
+        touch-action: none;
         display: none;
         align-items: center;
         justify-content: center;
