@@ -58,9 +58,10 @@ export function LicensesTab() {
   const [genNotes, setGenNotes] = useState("");
   const [lastGenerated, setLastGenerated] = useState<any[] | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin", "overview"],
     queryFn: () => getOverview(),
+    retry: 1,
   });
 
   const statusMut = useMutation({
@@ -102,7 +103,19 @@ export function LicensesTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (isLoading || !data) return <div className="p-4">Carregando…</div>;
+  if (isLoading) return <div className="p-4">Carregando…</div>;
+  if (error || !data)
+    return (
+      <Card className="p-6">
+        <div className="text-destructive font-medium">Erro ao carregar dados.</div>
+        <div className="text-xs text-muted-foreground mt-1">
+          {(error as Error)?.message ?? "Desconhecido"}
+        </div>
+        <Button size="sm" className="mt-3" onClick={() => refetch()}>
+          Tentar novamente
+        </Button>
+      </Card>
+    );
 
   const filtered = data.licenses.filter((l: any) => {
     const q = search.trim().toLowerCase();
@@ -110,6 +123,7 @@ export function LicensesTab() {
     return (
       l.license_key.toLowerCase().includes(q) ||
       (l.profiles?.full_name ?? "").toLowerCase().includes(q) ||
+      (l.profiles?.email ?? "").toLowerCase().includes(q) ||
       (l.notes ?? "").toLowerCase().includes(q)
     );
   });
