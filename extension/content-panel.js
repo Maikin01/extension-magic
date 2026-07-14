@@ -72,6 +72,8 @@
         justify-content: space-between;
         padding: 0 10px;
         cursor: grab;
+        touch-action: none;
+        user-select: none;
         user-select: none;
         color: #f4eff0;
         font-size: 12px;
