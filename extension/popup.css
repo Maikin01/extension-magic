@@ -683,3 +683,51 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 40, 40, 0.2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 40, 40, 0.4); }
+
+/* ========== Histórico list ========== */
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 4px;
+}
+
+.hist-item {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--text);
+}
+
+.hist-item.hist-user { border-color: rgba(255, 40, 40, 0.25); }
+.hist-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-mute);
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+}
+.hist-role { font-weight: 700; color: var(--text-dim); }
+.hist-body {
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.4;
+    max-height: 96px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Mic recording state */
+.tool-btn.recording {
+    background: rgba(255, 40, 40, 0.15) !important;
+    border-color: var(--red) !important;
+    color: var(--red) !important;
+    animation: pulse-rec 1s ease-in-out infinite;
+}
+@keyframes pulse-rec {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 40, 40, 0.5); }
+    50% { box-shadow: 0 0 0 6px rgba(255, 40, 40, 0); }
+}
