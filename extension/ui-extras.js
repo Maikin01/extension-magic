@@ -528,6 +528,7 @@
         initShortcuts();
         initActionButtons();
         initMinimizeButton();
+        initThemeToggle();
 
         // User card / histórico dependem do state do popup.js e da licença
         const waitState = setInterval(() => {
