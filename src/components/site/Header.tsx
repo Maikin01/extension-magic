@@ -41,12 +41,12 @@ export function SiteHeader() {
           </span>
         </Link>
         <nav className="flex items-center gap-1 md:gap-2">
-          <Link
-            to="/planos"
+          <a
+            href="/#plans"
             className="rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
           >
             Planos
-          </Link>
+          </a>
           {session ? (
             <>
               <Link

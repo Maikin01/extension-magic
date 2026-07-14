@@ -88,21 +88,23 @@ function Hero() {
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-4">
-            <Link
-              to="/planos"
+            <a
+              href="#plans"
               className="btn-neon group inline-flex h-12 items-center gap-2 rounded-full px-7 text-sm font-bold uppercase tracking-wider text-white"
             >
               Obter acesso
               <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
+            </a>
             <Link
               to="/auth"
+              search={{ claim: "trial" } as any}
               className="inline-flex h-12 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
             >
               <Sparkles className="h-4 w-4 text-primary" />
               Testar grátis
             </Link>
           </div>
+
 
           <div className="mt-10 grid max-w-lg grid-cols-2 gap-3 sm:grid-cols-4">
             {[
@@ -265,13 +267,13 @@ function HowItWorks() {
           <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.35em] text-white/40">
             Comece agora mesmo
           </div>
-          <Link
-            to="/planos"
+          <a
+            href="#plans"
             className="btn-neon inline-flex h-14 items-center gap-3 rounded-2xl px-8 text-sm font-bold uppercase tracking-wider text-white"
           >
             <Download className="h-5 w-5" />
             Baixar extensão grátis
-          </Link>
+          </a>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] text-white/50">
             <span className="flex items-center gap-1.5">
               <Check className="h-3.5 w-3.5 text-primary" /> Grátis para baixar
@@ -284,6 +286,7 @@ function HowItWorks() {
             </span>
           </div>
         </div>
+
       </div>
     </section>
   );
