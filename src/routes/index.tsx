@@ -308,7 +308,7 @@ function Features() {
     },
   ];
   return (
-    <section className="rise-bg border-b border-white/5 py-24">
+    <section className="bg-panel border-b border-white/5 py-24">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-14 max-w-2xl">
           <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
@@ -349,7 +349,7 @@ function Features() {
 
 function Showcase() {
   return (
-    <section className="rise-bg border-b border-white/5 py-24">
+    <section className="bg-deep border-b border-white/5 py-24">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-14 text-center">
           <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
@@ -522,7 +522,7 @@ function HowItWorks() {
     },
   ];
   return (
-    <section className="rise-bg border-b border-white/5 py-24">
+    <section className="bg-panel-alt border-b border-white/5 py-24">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-14 text-center">
           <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
@@ -619,7 +619,7 @@ function Testimonials() {
     },
   ];
   return (
-    <section className="rise-bg border-b border-white/5 py-24">
+    <section className="bg-deep border-b border-white/5 py-24">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-14 max-w-2xl">
           <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
@@ -681,7 +681,7 @@ function PlansPreview() {
   const highlightId = plans.find((p) => /mensal/i.test(p.name))?.id;
 
   return (
-    <section className="rise-bg border-b border-white/5 py-24">
+    <section className="bg-band relative border-b border-white/5 py-24">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-14 text-center">
           <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
@@ -775,7 +775,7 @@ function FAQ() {
     },
   ];
   return (
-    <section className="rise-bg border-b border-white/5 py-24">
+    <section className="bg-panel border-b border-white/5 py-24">
       <div className="mx-auto max-w-3xl px-6">
         <div className="mb-12 text-center">
           <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">

@@ -178,6 +178,36 @@
   mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, black 30%, transparent 80%);
   z-index: 0;
 }
+
+/* Variações de fundo para diferenciar as seções */
+.bg-panel {
+  position: relative;
+  background:
+    radial-gradient(ellipse 50% 60% at 100% 0%, oklch(0.63 0.245 25 / 0.10), transparent 60%),
+    linear-gradient(180deg, #050505 0%, #080606 100%);
+}
+.bg-panel-alt {
+  position: relative;
+  background:
+    radial-gradient(ellipse 45% 55% at 0% 100%, oklch(0.63 0.245 25 / 0.10), transparent 60%),
+    linear-gradient(180deg, #080606 0%, #050505 100%);
+}
+.bg-deep {
+  background: #030303;
+}
+.bg-band {
+  position: relative;
+  background: linear-gradient(180deg, #050505 0%, #0a0505 50%, #050505 100%);
+}
+.bg-band::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(ellipse 60% 50% at 50% 50%, oklch(0.63 0.245 25 / 0.14), transparent 65%);
+}
+.bg-band > * { position: relative; }
 .rise-bg > * {
   position: relative;
   z-index: 1;
