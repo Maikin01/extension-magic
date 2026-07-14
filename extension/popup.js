@@ -396,19 +396,17 @@ attachButton.addEventListener('click', () => {
     fileInput.click();
 });
 
-fileInput.addEventListener('change', async (e) => {
-    const files = Array.from(e.target.files);
-    
+async function processFiles(files) {
     for (const file of files) {
         const attachment = new FileAttachment(file);
         await attachment.generatePreview();
-        
+
         // Add to state
         state.files.push(attachment);
-        
+
         // Show preview
         renderFilePreviews();
-        
+
         // Start upload
         try {
             await attachment.upload(state);
@@ -421,10 +419,60 @@ fileInput.addEventListener('change', async (e) => {
             }, 3000);
         }
     }
-    
+}
+
+fileInput.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files);
+    await processFiles(files);
     // Clear input
     fileInput.value = '';
 });
+
+// ===== Paste (Ctrl+V) support =====
+// Captura imagens coladas em qualquer lugar do popup (inclusive no textarea)
+document.addEventListener('paste', async (e) => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    const files = [];
+    for (const item of items) {
+        if (item.kind === 'file') {
+            const f = item.getAsFile();
+            if (f) files.push(f);
+        }
+    }
+    if (files.length > 0) {
+        e.preventDefault();
+        await processFiles(files);
+    }
+});
+
+// ===== Drag & drop support =====
+const dropZone = document.querySelector('.app-shell') || document.body;
+['dragenter', 'dragover'].forEach((ev) => {
+    dropZone.addEventListener(ev, (e) => {
+        if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drag-over');
+        }
+    });
+});
+['dragleave', 'dragend', 'drop'].forEach((ev) => {
+    dropZone.addEventListener(ev, (e) => {
+        if (ev === 'dragleave' && e.target !== dropZone) return;
+        dropZone.classList.remove('drag-over');
+    });
+});
+dropZone.addEventListener('drop', async (e) => {
+    if (!e.dataTransfer) return;
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length === 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    await processFiles(files);
+});
+
+
 
 function renderFilePreviews() {
     if (state.files.length === 0) {
