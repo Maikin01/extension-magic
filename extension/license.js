@@ -8,7 +8,8 @@ const STORAGE_KEYS = {
     lastCheck: 'lvbl_last_check',
     licenseInfo: 'lvbl_license_info',
 };
-const REVALIDATE_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
+const REVALIDATE_INTERVAL_MS = 30 * 1000; // 30s — precisa ser curto por causa de licenças de teste de 10min
+const WATCHER_INTERVAL_MS = 20 * 1000;    // polling enquanto o chat estiver aberto
 
 // --- utils ----------------------------------------------------------------
 
