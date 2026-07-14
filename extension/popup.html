@@ -184,25 +184,6 @@
     <script src="license.js"></script>
     <script src="popup.js"></script>
     <script src="history.js"></script>
-    <script>
-        // Visual-only: tab switching
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                const target = tab.dataset.tab;
-                document.querySelectorAll('.tab-panel').forEach(p => {
-                    p.classList.toggle('hidden', p.dataset.panel !== target);
-                });
-            });
-        });
-        // Visual-only: lang pills
-        document.querySelectorAll('.lang-pill').forEach(p => {
-            p.addEventListener('click', () => {
-                document.querySelectorAll('.lang-pill').forEach(x => x.classList.remove('active'));
-                p.classList.add('active');
-            });
-        });
-    </script>
+    <script src="ui-extras.js"></script>
 </body>
 </html>
