@@ -156,13 +156,14 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     if (!isAdmin) throw new Error("Acesso negado.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [licenses, users, plans, logs] = await Promise.all([
+    const [licensesRes, profilesRes, authRes, plansRes, logsRes] = await Promise.all([
       supabaseAdmin
         .from("licenses")
-        .select("*, plans(name, slug), profiles(full_name)")
+        .select("*, plans(name, slug)")
         .order("created_at", { ascending: false })
-        .limit(200),
-      supabaseAdmin.from("profiles").select("id, full_name, created_at").limit(200),
+        .limit(500),
+      supabaseAdmin.from("profiles").select("id, full_name, avatar_url"),
+      supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 500 }),
       supabaseAdmin.from("plans").select("*").order("sort_order"),
       supabaseAdmin
         .from("activation_logs")
@@ -170,21 +171,39 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false })
         .limit(50),
     ]);
+    if (licensesRes.error) throw licensesRes.error;
+
+    const profileMap = new Map(
+      (profilesRes.data ?? []).map((p) => [p.id, p]),
+    );
+    const emailMap = new Map(
+      (authRes.data?.users ?? []).map((u) => [u.id, u.email ?? null]),
+    );
+
+    const licenses = (licensesRes.data ?? []).map((l) => ({
+      ...l,
+      profiles: l.user_id
+        ? {
+            full_name: profileMap.get(l.user_id)?.full_name ?? null,
+            email: emailMap.get(l.user_id) ?? null,
+          }
+        : null,
+    }));
 
     const counts = {
-      active: licenses.data?.filter((l) => l.status === "active").length ?? 0,
-      pending: licenses.data?.filter((l) => l.status === "pending").length ?? 0,
-      expired: licenses.data?.filter((l) => l.status === "expired").length ?? 0,
-      revoked: licenses.data?.filter((l) => l.status === "revoked").length ?? 0,
-      suspended: licenses.data?.filter((l) => l.status === "suspended").length ?? 0,
-      total_users: users.data?.length ?? 0,
+      active: licenses.filter((l) => l.status === "active").length,
+      pending: licenses.filter((l) => l.status === "pending").length,
+      expired: licenses.filter((l) => l.status === "expired").length,
+      revoked: licenses.filter((l) => l.status === "revoked").length,
+      suspended: licenses.filter((l) => l.status === "suspended").length,
+      total_users: authRes.data?.users.length ?? 0,
     };
 
     return {
       counts,
-      licenses: licenses.data ?? [],
-      plans: plans.data ?? [],
-      logs: logs.data ?? [],
+      licenses,
+      plans: plansRes.data ?? [],
+      logs: logsRes.data ?? [],
     };
   });
 
