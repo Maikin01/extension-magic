@@ -562,32 +562,36 @@ body {
 }
 
 .action-crimson {
-    background: linear-gradient(180deg, rgba(90, 15, 20, 0.85), rgba(50, 8, 12, 0.85));
+    background: rgba(255, 40, 40, 0.06);
     color: #ffdede;
-    border-color: rgba(255, 40, 40, 0.35);
+    border-color: rgba(255, 40, 40, 0.4);
+    backdrop-filter: blur(6px);
 }
-.action-crimson:hover { background: linear-gradient(180deg, rgba(120, 20, 26, 0.9), rgba(70, 12, 16, 0.9)); box-shadow: 0 0 12px rgba(255, 40, 40, 0.25); }
+.action-crimson:hover { background: rgba(255, 40, 40, 0.14); box-shadow: 0 0 14px rgba(255, 40, 40, 0.28); border-color: rgba(255, 60, 60, 0.6); }
 
 .action-red {
-    background: linear-gradient(180deg, rgba(60, 10, 14, 0.7), rgba(30, 6, 8, 0.7));
+    background: rgba(255, 40, 40, 0.05);
     color: var(--red);
-    border-color: rgba(255, 40, 40, 0.35);
+    border-color: rgba(255, 40, 40, 0.4);
+    backdrop-filter: blur(6px);
 }
-.action-red:hover { background: rgba(255, 40, 40, 0.08); box-shadow: 0 0 10px rgba(255, 40, 40, 0.2); }
+.action-red:hover { background: rgba(255, 40, 40, 0.12); box-shadow: 0 0 12px rgba(255, 40, 40, 0.25); border-color: rgba(255, 60, 60, 0.6); }
 
 .action-blue {
-    background: linear-gradient(180deg, rgba(20, 30, 70, 0.7), rgba(12, 18, 45, 0.7));
+    background: rgba(59, 130, 246, 0.05);
     color: #93c5fd;
     border-color: rgba(59, 130, 246, 0.4);
+    backdrop-filter: blur(6px);
 }
-.action-blue:hover { background: rgba(59, 130, 246, 0.12); box-shadow: 0 0 10px rgba(59, 130, 246, 0.25); }
+.action-blue:hover { background: rgba(59, 130, 246, 0.14); box-shadow: 0 0 12px rgba(59, 130, 246, 0.28); border-color: rgba(96, 165, 250, 0.6); }
 
 .action-gold {
-    background: linear-gradient(180deg, rgba(70, 60, 20, 0.7), rgba(45, 38, 12, 0.7));
+    background: rgba(212, 176, 72, 0.05);
     color: #facc15;
     border-color: rgba(212, 176, 72, 0.45);
+    backdrop-filter: blur(6px);
 }
-.action-gold:hover { background: rgba(212, 176, 72, 0.12); box-shadow: 0 0 10px rgba(212, 176, 72, 0.3); }
+.action-gold:hover { background: rgba(212, 176, 72, 0.14); box-shadow: 0 0 12px rgba(212, 176, 72, 0.3); border-color: rgba(234, 179, 8, 0.65); }
 
 /* ========== Histórico empty ========== */
 .history-empty {
