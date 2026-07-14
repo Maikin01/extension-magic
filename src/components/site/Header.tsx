@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 
@@ -30,16 +30,20 @@ export function SiteHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-lg">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-2 font-semibold">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <span>Lovable</span>
+    <header className="sticky top-0 z-40 w-full border-b border-white/5 bg-black/40 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+        <Link to="/" className="flex items-center gap-2.5 font-semibold">
+          <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/60 shadow-[0_0_24px_oklch(0.63_0.245_25/0.55)]">
+            <span className="text-sm font-black tracking-tighter text-white">R</span>
+          </span>
+          <span className="font-display text-base tracking-tight">
+            RISE <span className="text-gradient-red">LOVABLE</span>
+          </span>
         </Link>
-        <nav className="flex items-center gap-1 md:gap-3">
+        <nav className="flex items-center gap-1 md:gap-2">
           <Link
             to="/planos"
-            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
           >
             Planos
           </Link>
@@ -47,11 +51,16 @@ export function SiteHeader() {
             <>
               <Link
                 to="/dashboard"
-                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
               >
                 Painel
               </Link>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="text-white/70 hover:bg-white/5 hover:text-white"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sair
               </Button>
@@ -59,9 +68,9 @@ export function SiteHeader() {
           ) : (
             <Link
               to="/auth"
-              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              className="btn-neon inline-flex h-9 items-center justify-center rounded-full px-5 text-sm font-bold text-white"
             >
-              Entrar
+              Quero Acesso
             </Link>
           )}
         </nav>
