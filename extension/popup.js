@@ -531,6 +531,15 @@ async function sendMessage() {
                 }
             }
         };
+
+        // Modo Plano (PLAN mode): apenas seta chat_only=true. Não altera auth,
+        // cookies, upload ou o intent fix_error (preserva o truque sem créditos).
+        try {
+            if (localStorage.getItem('lvbl_modo_plano') === '1') {
+                messageBody.chat_only = true;
+            }
+        } catch (_) { /* localStorage indisponível — ignora silenciosamente */ }
+
         
         // Add files if present
         if (state.files.length > 0) {

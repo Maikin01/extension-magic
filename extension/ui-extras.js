@@ -171,11 +171,25 @@
     function initModoPlano() {
         const cb = document.getElementById('modoPlano');
         if (!cb) return;
+        const input = document.getElementById('messageInput');
+
+        const apply = (on) => {
+            document.body.classList.toggle('plan-mode-on', on);
+            if (input) {
+                input.placeholder = on
+                    ? 'Modo PLAN ativo — descreva o plano...'
+                    : 'Digite seu comando...';
+            }
+        };
+
         cb.checked = localStorage.getItem('lvbl_modo_plano') === '1';
+        apply(cb.checked);
         cb.addEventListener('change', () => {
             localStorage.setItem('lvbl_modo_plano', cb.checked ? '1' : '0');
+            apply(cb.checked);
         });
     }
+
 
     // ---------- Áudio: grava e injeta como anexo via fileInput (não altera send) ----------
     function initAudioButton() {
