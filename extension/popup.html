@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lovable</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="app" id="app">
+      <!-- Estado: carregando -->
+      <section class="screen" data-screen="loading">
+        <div class="logo">
+          <div class="logo-mark">✦</div>
+          <span>Lovable</span>
+        </div>
+        <div class="spinner"></div>
+        <p class="muted">Verificando licença…</p>
+      </section>
+
+      <!-- Estado: sem licença (colar chave) -->
+      <section class="screen hidden" data-screen="activate">
+        <div class="logo">
+          <div class="logo-mark">✦</div>
+          <span>Lovable</span>
+        </div>
+        <h1>Ative sua licença</h1>
+        <p class="muted">Cole abaixo a chave que aparece no seu painel.</p>
+
+        <label for="keyInput" class="label">Chave de licença</label>
+        <input
+          id="keyInput"
+          type="text"
+          spellcheck="false"
+          autocomplete="off"
+          placeholder="LVBL-XXXX-XXXX-XXXX-XXXX"
+        />
+
+        <button id="activateBtn" class="btn btn-primary">Ativar</button>
+
+        <div id="activateError" class="alert alert-error hidden"></div>
+
+        <div class="footer-actions">
+          <a id="openSiteFromActivate" href="#" target="_blank">Não tenho uma chave →</a>
+        </div>
+      </section>
+
+      <!-- Estado: licenciado -->
+      <section class="screen hidden" data-screen="licensed">
+        <div class="header-row">
+          <div class="logo">
+            <div class="logo-mark">✦</div>
+            <span>Lovable</span>
+          </div>
+          <span class="badge badge-success">Ativa</span>
+        </div>
+
+        <div class="license-card">
+          <div class="license-label">Plano</div>
+          <div class="license-plan" id="licPlan">—</div>
+          <div class="license-key" id="licKey">—</div>
+        </div>
+
+        <div class="meta-grid">
+          <div>
+            <div class="meta-label">Expira em</div>
+            <div class="meta-value" id="licRemaining">—</div>
+          </div>
+          <div>
+            <div class="meta-label">Data</div>
+            <div class="meta-value" id="licExpiresAt">—</div>
+          </div>
+        </div>
+
+        <div class="features" id="featuresList"></div>
+
+        <div class="btn-row">
+          <button id="openSite" class="btn btn-ghost">Meu painel</button>
+          <button id="logout" class="btn btn-ghost btn-danger">Remover</button>
+        </div>
+
+        <p class="muted small" id="lastCheck">Validado agora</p>
+      </section>
+
+      <!-- Estado: bloqueado -->
+      <section class="screen hidden" data-screen="blocked">
+        <div class="logo">
+          <div class="logo-mark">✦</div>
+          <span>Lovable</span>
+        </div>
+        <div class="badge badge-error">Bloqueada</div>
+        <h1 id="blockedTitle">Licença inválida</h1>
+        <p class="muted" id="blockedReason">Verifique sua chave e tente novamente.</p>
+        <button id="retryBtn" class="btn btn-primary">Colar outra chave</button>
+        <div class="footer-actions">
+          <a id="openSiteFromBlocked" href="#" target="_blank">Comprar novo plano →</a>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
