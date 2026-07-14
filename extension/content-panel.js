@@ -139,9 +139,7 @@
                 <img src="${logoUrl}" onerror="this.src='${iconFallback}'" alt="" />
                 <span>Lovable Chat</span>
             </div>
-            <div class="lb-actions">
-                <button id="lovable-ext-min" title="Minimizar" aria-label="Minimizar">—</button>
-            </div>
+            <div class="lb-actions"></div>
         </div>
         <iframe id="lovable-ext-frame" src="${popupUrl}" allow="clipboard-read; clipboard-write"></iframe>
     `;
@@ -263,10 +261,8 @@
         document.body.appendChild(panel);
         document.body.appendChild(bubble);
 
-        document.getElementById('lovable-ext-min').addEventListener('click', (e) => {
-            e.stopPropagation();
-            minimize();
-        });
+        const minBtn = document.getElementById('lovable-ext-min');
+        if (minBtn) minBtn.addEventListener('click', (e) => { e.stopPropagation(); minimize(); });
 
         makeDraggable(panel, document.getElementById('lovable-ext-dragbar'), 'panel');
         makeDraggable(bubble, bubble, 'bubble');
