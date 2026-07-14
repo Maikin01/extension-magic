@@ -159,55 +159,105 @@ function setError(msg) {
 
 // --- flow -----------------------------------------------------------------
 
-async function tryAutoValidate() {
-    const stored = await chrome.storage.local.get([
-        STORAGE_KEYS.key,
-        STORAGE_KEYS.lastCheck,
+let pollTimer = null;
+let validating = false;
+
+function stopPolling() {
+    if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+    }
+}
+
+function startPolling() {
+    stopPolling();
+    pollTimer = setInterval(() => {
+        revalidateNow({ silent: true });
+    }, POLL_INTERVAL_MS);
+}
+
+async function lockOut(reason, savedKey) {
+    stopPolling();
+    await chrome.storage.local.remove([
         STORAGE_KEYS.licenseInfo,
+        STORAGE_KEYS.lastCheck,
     ]);
-    const savedKey = stored[STORAGE_KEYS.key];
-    if (!savedKey) {
+    // Se a chave foi apagada/revogada no servidor, também removemos a chave salva
+    // para o usuário digitar novamente. Em caso de rede/erro transitório mantemos.
+    const hardReasons = ['not_found', 'revoked', 'suspended', 'expired', 'device_mismatch', 'invalid_key', 'invalid_payload'];
+    if (hardReasons.includes(reason)) {
+        await chrome.storage.local.remove([STORAGE_KEYS.key]);
+        gateInput.value = '';
+    } else if (savedKey) {
+        gateInput.value = savedKey;
+    }
+    showGate();
+    setError(reasonText(reason));
+}
+
+async function revalidateNow({ silent = false } = {}) {
+    if (validating) return;
+    validating = true;
+    try {
+        const stored = await chrome.storage.local.get([
+            STORAGE_KEYS.key,
+            STORAGE_KEYS.licenseInfo,
+            STORAGE_KEYS.lastCheck,
+        ]);
+        const savedKey = stored[STORAGE_KEYS.key];
+        if (!savedKey) {
+            stopPolling();
+            showGate();
+            return;
+        }
+
+        const deviceHash = await getOrCreateDeviceHash();
+        const res = await apiValidate(savedKey, deviceHash);
+
+        if (res.ok && res.data.valid) {
+            await chrome.storage.local.set({
+                [STORAGE_KEYS.lastCheck]: Date.now(),
+                [STORAGE_KEYS.licenseInfo]: res.data,
+            });
+            showChat(res.data);
+            startPolling();
+            return;
+        }
+
+        const reason = res.data?.reason;
+
+        if (reason === 'network') {
+            // Rede: tolerância curta apenas se tivermos uma validação recente bem-sucedida
+            const lastCheck = stored[STORAGE_KEYS.lastCheck] || 0;
+            const withinGrace = Date.now() - lastCheck < OFFLINE_GRACE_MS;
+            if (withinGrace && stored[STORAGE_KEYS.licenseInfo]) {
+                showChat(stored[STORAGE_KEYS.licenseInfo]);
+                startPolling();
+                return;
+            }
+            await lockOut('network', savedKey);
+            return;
+        }
+
+        // Qualquer outra resposta do servidor = trava imediatamente
+        await lockOut(reason || 'invalid_key', savedKey);
+    } finally {
+        validating = false;
+    }
+}
+
+async function tryAutoValidate() {
+    const stored = await chrome.storage.local.get([STORAGE_KEYS.key]);
+    if (!stored[STORAGE_KEYS.key]) {
         showGate();
         return;
     }
-
-    // Mostra chat de cara com info do cache (se houver) e revalida em background
-    if (stored[STORAGE_KEYS.licenseInfo]) {
-        showChat(stored[STORAGE_KEYS.licenseInfo]);
-    } else {
-        gate.style.display = 'flex';
-        chatShell.style.display = 'none';
-        gateStatus.textContent = 'Validando licença...';
-    }
-
-    const lastCheck = stored[STORAGE_KEYS.lastCheck] || 0;
-    const needsCheck = Date.now() - lastCheck > REVALIDATE_INTERVAL_MS || !stored[STORAGE_KEYS.licenseInfo];
-
-    if (!needsCheck) return;
-
-    const deviceHash = await getOrCreateDeviceHash();
-    const res = await apiValidate(savedKey, deviceHash);
-
-    if (res.ok && res.data.valid) {
-        await chrome.storage.local.set({
-            [STORAGE_KEYS.lastCheck]: Date.now(),
-            [STORAGE_KEYS.licenseInfo]: res.data,
-        });
-        showChat(res.data);
-    } else if (res.data.reason === 'network') {
-        // Offline: se tinha info em cache, mantém liberado
-        if (stored[STORAGE_KEYS.licenseInfo]) {
-            showChat(stored[STORAGE_KEYS.licenseInfo]);
-        } else {
-            showGate();
-            setError(reasonText('network'));
-        }
-    } else {
-        await chrome.storage.local.remove([STORAGE_KEYS.licenseInfo]);
-        showGate();
-        gateInput.value = savedKey;
-        setError(reasonText(res.data.reason));
-    }
+    // Não confiar no cache: sempre valida contra o servidor antes de liberar
+    gate.style.display = 'flex';
+    chatShell.style.display = 'none';
+    gateStatus.textContent = 'Validando licença...';
+    await revalidateNow({ silent: false });
+    gateStatus.textContent = '';
 }
 
 async function handleActivate(e) {
@@ -232,12 +282,14 @@ async function handleActivate(e) {
             [STORAGE_KEYS.licenseInfo]: res.data,
         });
         showChat(res.data);
+        startPolling();
     } else {
         setError(reasonText(res.data.reason));
     }
 }
 
 async function handleLogout() {
+    stopPolling();
     await chrome.storage.local.remove([
         STORAGE_KEYS.key,
         STORAGE_KEYS.lastCheck,
@@ -253,6 +305,14 @@ gateForm.addEventListener('submit', handleActivate);
 if (licenseLogoutBtn) licenseLogoutBtn.addEventListener('click', handleLogout);
 const licenseLogoutTopBtn = document.getElementById('licenseLogoutTop');
 if (licenseLogoutTopBtn) licenseLogoutTopBtn.addEventListener('click', handleLogout);
+
+// Revalidação quando a janela volta a ficar visível/focada
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') revalidateNow({ silent: true });
+});
+window.addEventListener('focus', () => revalidateNow({ silent: true }));
+
+
 
 // Auto-uppercase e format helper leve
 gateInput.addEventListener('input', () => {
