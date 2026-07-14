@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/site/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Download, Key, Monitor, Clock, ShieldCheck, ExternalLink } from "lucide-react";
+import { Copy, Download, Key, PlayCircle, Sparkles } from "lucide-react";
 import { getMyDashboard, claimTrialLicense } from "@/lib/license.functions";
 import {
   LICENSE_STATUS_LABEL,
@@ -40,29 +40,41 @@ function DashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-muted/20">
+    <div className="rise-bg min-h-screen">
       <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Painel</h1>
-          <p className="text-muted-foreground">
-            Gerencie sua chave, veja dispositivos autorizados e baixe a extensão.
-          </p>
+      <main className="relative z-10 mx-auto max-w-6xl px-4 py-12">
+        <header className="mb-10 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <span className="chip-neon inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs">
+              <Sparkles className="h-3 w-3" /> Meu painel
+            </span>
+            <h1 className="mt-3 text-4xl font-bold tracking-tight">
+              Bem-vindo ao seu <span className="text-gradient-red">painel</span>
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Baixe a extensão, ative com sua chave e comece a usar sem limites.
+            </p>
+          </div>
         </header>
 
         {isLoading && <Card className="p-6">Carregando…</Card>}
-        {error && <Card className="p-6 text-destructive">Erro: {(error as Error).message}</Card>}
+        {error && (
+          <Card className="p-6 text-destructive">Erro: {(error as Error).message}</Card>
+        )}
 
         {data && !data.currentLicense && (
-          <Card className="p-8 text-center">
-            <Key className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+          <Card className="ring-glow border-primary/30 bg-black/40 p-8 text-center backdrop-blur">
+            <Key className="mx-auto mb-3 h-10 w-10 text-primary" />
             <h2 className="text-lg font-semibold">Você ainda não tem uma licença</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Escolha um plano ou crie uma licença de teste gratuita de 3 dias para começar
-              agora.
+              Escolha um plano ou crie uma licença de teste gratuita de 3 dias.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <Button onClick={() => trialMut.mutate()} disabled={trialMut.isPending}>
+              <Button
+                className="btn-neon"
+                onClick={() => trialMut.mutate()}
+                disabled={trialMut.isPending}
+              >
                 {trialMut.isPending ? "Gerando…" : "Gerar teste grátis (3 dias)"}
               </Button>
               <Button variant="outline" asChild>
@@ -73,16 +85,10 @@ function DashboardPage() {
         )}
 
         {data?.currentLicense && (
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="md:col-span-2 space-y-6">
-              <LicenseCard license={data.currentLicense} />
-              <DevicesCard devices={data.devices} />
-              <LogsCard logs={data.logs} />
-            </div>
-            <aside className="space-y-6">
-              <DownloadCard />
-              <AllLicensesCard licenses={data.licenses} />
-            </aside>
+          <div className="space-y-6">
+            <ExtensionCard />
+            <TutorialsCard />
+            <LicensesCard licenses={data.licenses} current={data.currentLicense} />
           </div>
         )}
       </main>
@@ -90,7 +96,63 @@ function DashboardPage() {
   );
 }
 
-function LicenseCard({ license }: { license: any }) {
+function ExtensionCard() {
+  return (
+    <Card className="ring-glow border-primary/30 bg-black/40 p-8 backdrop-blur">
+      <h2 className="text-xl font-bold text-gradient-red">Extensão Lovable Ilimitado</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Baixe a extensão e ative com sua chave de licença para usar o Lovable sem limites.
+      </p>
+      <Button className="btn-neon mt-5" onClick={downloadExtension}>
+        <Download className="mr-2 h-4 w-4" /> Baixar extensão
+      </Button>
+    </Card>
+  );
+}
+
+function TutorialsCard() {
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <VideoCard title="Como instalar" />
+      <VideoCard title="Como usar" />
+    </div>
+  );
+}
+
+function VideoCard({ title }: { title: string }) {
+  return (
+    <Card className="border-primary/20 bg-black/40 p-6 backdrop-blur">
+      <h3 className="mb-4 text-lg font-semibold text-gradient-red">{title}</h3>
+      <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-primary/20 bg-black/60">
+        <div className="pointer-events-none absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse 60% 40% at 50% 50%, oklch(0.63 0.245 25 / 0.25), transparent 70%)",
+          }}
+        />
+        <div className="relative z-10 flex flex-col items-center gap-3 text-muted-foreground">
+          <PlayCircle className="h-14 w-14" />
+          <span className="text-sm">Vídeo em breve</span>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function LicensesCard({ licenses, current }: { licenses: any[]; current: any }) {
+  return (
+    <Card className="ring-glow border-primary/30 bg-black/40 p-8 backdrop-blur">
+      <h2 className="mb-5 text-xl font-bold text-gradient-red">Minhas licenças</h2>
+      <ul className="space-y-3">
+        {licenses.map((l) => (
+          <LicenseRow key={l.id} license={l} isCurrent={l.id === current?.id} />
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function LicenseRow({ license, isCurrent }: { license: any; isCurrent: boolean }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     await navigator.clipboard.writeText(license.license_key);
@@ -104,133 +166,29 @@ function LicenseCard({ license }: { license: any }) {
       ? "default"
       : status === "pending"
         ? "secondary"
-        : status === "expired" || status === "revoked" || status === "suspended"
-          ? "destructive"
-          : "outline";
+        : "destructive";
 
   return (
-    <Card className="p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">Sua chave</div>
-          <div className="mt-1 text-sm text-muted-foreground">{license.plans?.name}</div>
-        </div>
-        <Badge variant={badgeVariant as any}>{LICENSE_STATUS_LABEL[status] ?? status}</Badge>
+    <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-black/50 p-4">
+      <div className="flex flex-1 items-center gap-3 min-w-0">
+        <code className="truncate font-mono text-sm">{license.license_key}</code>
       </div>
-
-      <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3">
-        <Key className="h-4 w-4 text-muted-foreground" />
-        <code className="flex-1 font-mono text-sm">{license.license_key}</code>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge className="chip-neon border-0" variant={badgeVariant as any}>
+          {license.plans?.name ?? LICENSE_STATUS_LABEL[status] ?? status}
+        </Badge>
+        {license.expires_at && (
+          <span className="text-xs text-muted-foreground">
+            Expira em {formatDateBR(license.expires_at)}
+            {isCurrent && <> · {formatDaysLeft(license.expires_at)}</>}
+          </span>
+        )}
         <Button size="sm" variant="ghost" onClick={copy}>
           <Copy className="h-4 w-4" />
           {copied ? "Copiado" : "Copiar"}
         </Button>
       </div>
-
-      <div className="mt-6 grid grid-cols-3 gap-4 text-sm">
-        <div>
-          <div className="text-xs text-muted-foreground">Ativada em</div>
-          <div className="mt-1 font-medium">{formatDateBR(license.activated_at)}</div>
-        </div>
-        <div>
-          <div className="text-xs text-muted-foreground">Expira em</div>
-          <div className="mt-1 font-medium">{formatDateBR(license.expires_at)}</div>
-        </div>
-        <div>
-          <div className="text-xs text-muted-foreground">Restante</div>
-          <div className="mt-1 font-medium">{formatDaysLeft(license.expires_at)}</div>
-        </div>
-      </div>
-
-      {status === "pending" && (
-        <div className="mt-4 rounded-md bg-primary/5 p-3 text-sm text-muted-foreground">
-          Cole sua chave na extensão para ativá-la. A partir da ativação o tempo começa a contar.
-        </div>
-      )}
-    </Card>
-  );
-}
-
-function DevicesCard({ devices }: { devices: any[] }) {
-  return (
-    <Card className="p-6">
-      <div className="mb-4 flex items-center gap-2">
-        <Monitor className="h-4 w-4 text-muted-foreground" />
-        <h3 className="font-semibold">Dispositivos autorizados</h3>
-      </div>
-      {devices.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Nenhum dispositivo ativado ainda. Cole sua chave na extensão para começar.
-        </p>
-      ) : (
-        <ul className="space-y-3">
-          {devices.map((d) => (
-            <li key={d.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
-              <div>
-                <div className="font-medium">
-                  {d.browser ?? "Navegador"} · {d.os ?? "SO"}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Última vez: {formatDateBR(d.last_seen_at)} · v{d.ext_version ?? "?"}
-                </div>
-              </div>
-              {d.is_revoked && <Badge variant="destructive">Revogado</Badge>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
-  );
-}
-
-function LogsCard({ logs }: { logs: any[] }) {
-  return (
-    <Card className="p-6">
-      <div className="mb-4 flex items-center gap-2">
-        <Clock className="h-4 w-4 text-muted-foreground" />
-        <h3 className="font-semibold">Últimas validações</h3>
-      </div>
-      {logs.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Sem histórico ainda.</p>
-      ) : (
-        <ul className="divide-y">
-          {logs.map((l) => (
-            <li key={l.id} className="flex items-center justify-between py-2 text-sm">
-              <span className="text-muted-foreground">{formatDateBR(l.created_at)}</span>
-              <Badge variant={l.result === "success" ? "default" : "destructive"}>
-                {l.result}
-              </Badge>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
-  );
-}
-
-function DownloadCard() {
-  return (
-    <Card className="p-6">
-      <div className="mb-3 flex items-center gap-2">
-        <Download className="h-4 w-4 text-muted-foreground" />
-        <h3 className="font-semibold">Baixar extensão</h3>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Baixe a versão nova, remova a extensão antiga, extraia o .zip e carregue em
-        <code>chrome://extensions</code> com o modo desenvolvedor ativo.
-      </p>
-      <Button className="mt-4 w-full" onClick={downloadExtension}>
-        <Download className="mr-2 h-4 w-4" /> Baixar .zip
-      </Button>
-      <a
-        className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:underline"
-        href="https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/"
-        target="_blank"
-        rel="noreferrer"
-      >
-        Como instalar <ExternalLink className="h-3 w-3" />
-      </a>
-    </Card>
+    </li>
   );
 }
 
@@ -248,24 +206,4 @@ function downloadExtension() {
       URL.revokeObjectURL(a.href);
     })
     .catch((err) => toast.error(err.message));
-}
-
-function AllLicensesCard({ licenses }: { licenses: any[] }) {
-  if (licenses.length <= 1) return null;
-  return (
-    <Card className="p-6">
-      <div className="mb-3 flex items-center gap-2">
-        <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-        <h3 className="font-semibold">Histórico de licenças</h3>
-      </div>
-      <ul className="space-y-2 text-sm">
-        {licenses.map((l) => (
-          <li key={l.id} className="flex items-center justify-between">
-            <span className="font-mono text-xs">{l.license_key.slice(0, 14)}…</span>
-            <Badge variant="outline">{LICENSE_STATUS_LABEL[l.status] ?? l.status}</Badge>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  );
 }
