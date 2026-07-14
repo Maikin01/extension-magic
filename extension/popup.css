@@ -812,35 +812,98 @@ body.plan-mode-on .toggle-row label[for="modoPlano"]::after {
     letter-spacing: 0.5px;
 }
 
-/* ========== Light theme override ========== */
+/* ========== Light theme (simple / basic) ========== */
 body.theme-light {
-    background: #f4f4f6;
-}
-body.theme-light {
-    --bg-0: #f6f4f5;
+    background: #f5f5f7;
+    --bg-0: #f5f5f7;
     --bg-1: #ffffff;
-    --bg-2: #f0eaec;
+    --bg-2: #eeeef2;
     --surface: #ffffff;
-    --surface-2: #f7f1f3;
-    --surface-3: #efe6e9;
-    --border: rgba(180, 20, 30, 0.18);
-    --border-strong: rgba(180, 20, 30, 0.35);
-    --text: #1a0d11;
-    --text-dim: #4a3f42;
-    --text-mute: #7a6f72;
+    --surface-2: #f4f4f6;
+    --surface-3: #eaeaee;
+    --border: rgba(0, 0, 0, 0.10);
+    --border-strong: rgba(0, 0, 0, 0.18);
+    --text: #111214;
+    --text-dim: #4a4a52;
+    --text-mute: #8a8a92;
 }
 body.theme-light .app-shell {
-    background:
-        radial-gradient(circle at 50% 0%, rgba(255, 60, 60, 0.10), transparent 55%),
-        linear-gradient(180deg, #ffffff 0%, #f4eef0 100%);
-    box-shadow: 0 0 0 1px rgba(180, 20, 30, 0.08), 0 20px 60px rgba(180, 20, 30, 0.08);
+    background: #ffffff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 12px 40px rgba(0, 0, 0, 0.08);
 }
+body.theme-light .app-shell::before { background-image: none; }
 body.theme-light .topbar {
-    background: linear-gradient(180deg, rgba(255, 240, 242, 0.9), rgba(255, 250, 251, 0.6));
+    background: #f7f7f9;
+    border-bottom: 1px solid var(--border);
 }
-body.theme-light .app-shell::before {
-    background-image: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.015) 0 2px, transparent 2px 8px);
+body.theme-light .user-card {
+    background: #ffffff;
+    border-color: var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
+body.theme-light .timer-box,
+body.theme-light .tabs,
+body.theme-light .input-container,
+body.theme-light .input-wrapper,
+body.theme-light .file-preview {
+    background: #ffffff;
+    border-color: var(--border);
+}
+body.theme-light .timer-bar { background: rgba(0, 0, 0, 0.06); }
+body.theme-light .tab.active {
+    color: #b91c1c;
+    background: rgba(220, 38, 38, 0.08);
+    border-color: rgba(220, 38, 38, 0.28);
+    box-shadow: none;
+}
+body.theme-light .shortcut-btn,
+body.theme-light .action-btn,
+body.theme-light .tool-btn,
+body.theme-light .icon-btn {
+    background: #f4f4f6;
+    border: 1px solid var(--border);
+    color: var(--text);
+    backdrop-filter: none;
+}
+body.theme-light .shortcut-btn:hover,
+body.theme-light .action-btn:hover,
+body.theme-light .tool-btn:hover,
+body.theme-light .icon-btn:hover {
+    background: #eaeaee;
+    box-shadow: none;
+}
+body.theme-light .shortcut-grid {
+    background: #f7f7f9;
+    border: 1px solid var(--border);
+}
+body.theme-light .s-icon,
+body.theme-light .action-btn svg { color: var(--text-dim); }
+body.theme-light #messageInput { color: var(--text); }
+body.theme-light #messageInput::placeholder { color: var(--text-mute); }
+body.theme-light .section-title { color: var(--text-dim); }
+body.theme-light .brand-name,
+body.theme-light .user-name { color: var(--text); }
+body.theme-light .msg-bubble,
+body.theme-light .message,
+body.theme-light .chat-message {
+    background: #f4f4f6;
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+body.theme-light .toggle-track { background: #e5e5ea; border-color: var(--border); }
+body.theme-light .btn-outline {
+    background: #ffffff;
+    color: var(--text);
+    border-color: var(--border-strong);
+}
+body.theme-light .btn-outline:hover { background: #f4f4f6; box-shadow: none; }
+body.theme-light .license-input {
+    background: #ffffff;
+    color: var(--text);
+    border-color: var(--border-strong);
+}
+body.theme-light .license-card { background: #ffffff; border-color: var(--border); }
+
 
 /* ========== Drag & drop overlay ========== */
 .app-shell.drag-over {
