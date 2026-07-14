@@ -102,7 +102,7 @@ export const Route = createFileRoute("/api/public/license/validate")({
             await supabaseAdmin
               .from("activation_logs")
               .insert({ ...base, license_id: licId, result, reason: reason ?? null });
-            return jsonWithCors({ valid: false, reason }, status);
+            return jsonWithCors({ valid: false, reason: result, message: reason ?? null }, status);
           }
         } catch (err: any) {
           console.error("[/api/public/license/validate]", err);
