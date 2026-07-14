@@ -367,6 +367,12 @@
                 });
             }
 
+            if (label.includes('baixar') || label.includes('fonte')) {
+                btn.addEventListener('click', () => downloadSourceCode(btn));
+            }
+
+
+
 
             if (label.includes('chat padr')) {
                 btn.addEventListener('click', async () => {
