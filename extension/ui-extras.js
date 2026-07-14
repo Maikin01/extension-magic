@@ -177,7 +177,7 @@
             document.body.classList.toggle('plan-mode-on', on);
             if (input) {
                 input.placeholder = on
-                    ? 'Modo PLAN ativo — descreva o plano...'
+                    ? 'Modo PLAN ativo (gasta 1 crédito) — descreva o plano...'
                     : 'Digite seu comando...';
             }
         };
