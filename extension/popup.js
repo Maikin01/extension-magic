@@ -256,21 +256,29 @@ async function sendPrompt() {
   const txt = $("#promptText").value.trim();
   if (!txt) { toast(t("toast.empty"), "error"); return; }
 
-  // Try to inject into an active Lovable tab; fallback to clipboard.
+  const planMode = $("#planToggle")?.checked === true;
+  const autoSend = $("#autoSendToggle") ? $("#autoSendToggle").checked : true;
+
   let sentToLovable = false;
   try {
-    const tabs = await new Promise((r) => chrome.tabs.query({ active: true, currentWindow: true }, r));
-    const tab = tabs && tabs[0];
-    if (tab && tab.url && /lovable\.(dev|app)/.test(tab.url)) {
+    const tabs = await new Promise((r) =>
+      chrome.tabs.query({ url: ["https://*.lovable.app/*", "https://*.lovable.dev/*"] }, r)
+    );
+    let tab = (tabs || []).find((t) => t.active) || (tabs || [])[0];
+    if (tab && tab.id) {
       try {
-        await chrome.scripting.executeScript({
+        await chrome.tabs.update(tab.id, { active: true });
+        if (tab.windowId) await chrome.windows.update(tab.windowId, { focused: true });
+      } catch (e) {}
+      try {
+        const [res] = await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           func: injectPromptIntoLovable,
-          args: [txt],
+          args: [txt, { planMode, autoSend }],
         });
-        sentToLovable = true;
+        sentToLovable = res && res.result === true;
       } catch (e) {
-        // scripting may fail if permission missing; fallback to clipboard.
+        console.warn("[Lovable Ext] inject failed", e);
       }
     }
   } catch (e) {}
@@ -287,22 +295,97 @@ async function sendPrompt() {
 }
 
 // Injected into the Lovable tab.
-function injectPromptIntoLovable(text) {
-  const findComposer = () =>
-    document.querySelector('textarea[placeholder*="Lovable" i], textarea[placeholder*="Ask" i], textarea, [contenteditable="true"]');
-  const el = findComposer();
-  if (!el) return false;
-  if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
-    setter.call(el, text);
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-  } else {
-    el.textContent = text;
-    el.dispatchEvent(new InputEvent("input", { bubbles: true, data: text }));
+function injectPromptIntoLovable(text, opts) {
+  try {
+    const options = opts || {};
+
+    // 1) Switch to Plan/Chat mode when requested.
+    const wantPlan = options.planMode === true;
+    const modeButtons = Array.from(document.querySelectorAll(
+      'button, [role="button"], [role="tab"], [role="switch"], [role="menuitemradio"]'
+    ));
+    const label = wantPlan ? /plan|planejar|planeamento|plano/i : /chat|build|edit|editar/i;
+    const modeBtn = modeButtons.find((b) =>
+      label.test((b.textContent || "").trim()) ||
+      label.test(b.getAttribute("aria-label") || "") ||
+      label.test(b.getAttribute("data-value") || "")
+    );
+    if (modeBtn) {
+      const pressed = modeBtn.getAttribute("aria-pressed") === "true"
+        || modeBtn.getAttribute("data-state") === "on"
+        || modeBtn.getAttribute("aria-checked") === "true";
+      if (!pressed) modeBtn.click();
+    }
+
+    // 2) Locate composer.
+    const selectors = [
+      'textarea[placeholder*="Lovable" i]',
+      'textarea[placeholder*="Ask" i]',
+      'textarea[placeholder*="message" i]',
+      'div[contenteditable="true"][role="textbox"]',
+      'div[contenteditable="true"].ProseMirror',
+      'div[contenteditable="true"]',
+      'textarea',
+    ];
+    let el = null;
+    for (const sel of selectors) {
+      for (const node of document.querySelectorAll(sel)) {
+        const r = node.getBoundingClientRect();
+        if (r.width > 80 && r.height > 20 && !node.disabled) { el = node; break; }
+      }
+      if (el) break;
+    }
+    if (!el) return false;
+    el.focus();
+
+    // 3) Insert text with native setters (React-safe).
+    if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
+      const proto = el.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+      const setter = Object.getOwnPropertyDescriptor(proto, "value").set;
+      setter.call(el, text);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    } else {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      sel.addRange(range);
+      try { document.execCommand("insertText", false, text); }
+      catch (e) {
+        el.textContent = text;
+        el.dispatchEvent(new InputEvent("input", { bubbles: true, data: text, inputType: "insertText" }));
+      }
+    }
+
+    if (options.autoSend === false) return true;
+
+    // 4) Submit — send button, then Enter fallback.
+    setTimeout(() => {
+      const btns = Array.from(document.querySelectorAll(
+        'button[type="submit"], form button, button[aria-label*="send" i], button[aria-label*="enviar" i], button[data-testid*="send" i]'
+      ));
+      const sendBtn = btns.reverse().find((b) => {
+        if (b.disabled) return false;
+        const r = b.getBoundingClientRect();
+        if (r.width < 12 || r.height < 12) return false;
+        const lbl = ((b.getAttribute("aria-label") || "") + " " + (b.textContent || "")).toLowerCase();
+        return /send|enviar|submit|↵/.test(lbl) || b.querySelector("svg");
+      });
+      if (sendBtn) { sendBtn.click(); return; }
+      const fire = (type) => el.dispatchEvent(new KeyboardEvent(type, {
+        key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true,
+      }));
+      fire("keydown"); fire("keypress"); fire("keyup");
+    }, 120);
+
+    return true;
+  } catch (e) {
+    console.error("[Lovable Ext] inject error", e);
+    return false;
   }
-  el.focus();
-  return true;
 }
+
 
 // ────────────────── Voice ──────────────────
 let recognition = null;
