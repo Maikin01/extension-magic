@@ -238,12 +238,69 @@
         });
     }
 
+    // ---------- Atalhos rápidos (prepara msg no textarea, não envia) ----------
+    const SHORTCUT_PROMPTS = {
+        bugs: 'Analise o código e identifique todos os bugs, erros e falhas. Corrija cada um deles explicando o problema e a solução aplicada.',
+        refatorar: 'Elabore um plano completo de refatoração e otimização do sistema em etapas.',
+        erros: 'Implemente tratamento de erros robusto em todo o código, incluindo try/catch, validações e mensagens de erro amigáveis para o usuário.',
+        otimizar: 'Analise e otimize a performance do sistema, identificando gargalos, melhorando queries, reduzindo re-renders e aplicando boas práticas.',
+        comentarios: 'Adicione comentários claros e documentação em todo o código, explicando a lógica, parâmetros e retornos de cada função.',
+        seo: 'Monte um plano completo de criação e otimização de SEO para este site. Inclua: análise de meta tags (title, description, og:image), estrutura de headings (H1-H6), sitemap.xml, robots.txt, dados estruturados (JSON-LD), performance (Core Web Vitals), acessibilidade, URLs amigáveis, canonical tags, alt text em imagens, lazy loading, e estratégias de link building interno. Implemente todas as melhorias identificadas.',
+        ui: 'Melhore a interface do usuário tornando-a mais moderna, responsiva e acessível, seguindo boas práticas de UX/UI.',
+        componentes: 'Reorganize o código separando em componentes reutilizáveis, bem estruturados e com responsabilidades únicas.',
+        review: 'Faça uma revisão completa do código identificando problemas de qualidade, segurança, performance e sugerindo melhorias.',
+    };
+
+    function initShortcuts() {
+        const input = document.getElementById('messageInput');
+        if (!input) return;
+        const buttons = document.querySelectorAll('.shortcut-btn[data-shortcut]');
+        let activeKey = null;
+
+        function setActive(key) {
+            buttons.forEach((b) => b.classList.toggle('active', b.dataset.shortcut === key));
+        }
+
+        buttons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.shortcut;
+                const prompt = SHORTCUT_PROMPTS[key];
+                if (!prompt) return;
+
+                // Se clicar de novo no mesmo, desmarca e limpa
+                if (activeKey === key) {
+                    input.value = '';
+                    activeKey = null;
+                    setActive(null);
+                } else {
+                    // Substitui SEMPRE o conteúdo — apaga o atalho anterior
+                    input.value = prompt;
+                    activeKey = key;
+                    setActive(key);
+                }
+
+                // Notifica popup.js (auto-resize, contadores etc.)
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.focus();
+            });
+        });
+
+        // Se o usuário editar manualmente e o texto não bater com nenhum atalho, desmarca
+        input.addEventListener('input', () => {
+            if (activeKey && input.value !== SHORTCUT_PROMPTS[activeKey]) {
+                activeKey = null;
+                setActive(null);
+            }
+        });
+    }
+
     // ---------- Init ----------
     function init() {
         initTabs();
         initLangPills();
         initModoPlano();
         initAudioButton();
+        initShortcuts();
 
         // User card / histórico dependem do state do popup.js e da licença
         const waitState = setInterval(() => {
