@@ -14,16 +14,300 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activation_logs: {
+        Row: {
+          browser: string | null
+          created_at: string
+          device_hash: string | null
+          ext_version: string | null
+          id: string
+          ip_address: string | null
+          license_id: string | null
+          license_key_hash: string | null
+          os: string | null
+          reason: string | null
+          result: Database["public"]["Enums"]["activation_result"]
+          user_agent: string | null
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string
+          device_hash?: string | null
+          ext_version?: string | null
+          id?: string
+          ip_address?: string | null
+          license_id?: string | null
+          license_key_hash?: string | null
+          os?: string | null
+          reason?: string | null
+          result: Database["public"]["Enums"]["activation_result"]
+          user_agent?: string | null
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string
+          device_hash?: string | null
+          ext_version?: string | null
+          id?: string
+          ip_address?: string | null
+          license_id?: string | null
+          license_key_hash?: string | null
+          os?: string | null
+          reason?: string | null
+          result?: Database["public"]["Enums"]["activation_result"]
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activation_logs_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
+      devices: {
+        Row: {
+          browser: string | null
+          device_hash: string
+          ext_version: string | null
+          first_seen_at: string
+          id: string
+          is_revoked: boolean
+          last_seen_at: string
+          license_id: string
+          os: string | null
+        }
+        Insert: {
+          browser?: string | null
+          device_hash: string
+          ext_version?: string | null
+          first_seen_at?: string
+          id?: string
+          is_revoked?: boolean
+          last_seen_at?: string
+          license_id: string
+          os?: string | null
+        }
+        Update: {
+          browser?: string | null
+          device_hash?: string
+          ext_version?: string | null
+          first_seen_at?: string
+          id?: string
+          is_revoked?: boolean
+          last_seen_at?: string
+          license_id?: string
+          os?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenses: {
+        Row: {
+          activated_at: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          license_key: string
+          license_key_hash: string
+          notes: string | null
+          plan_id: string
+          status: Database["public"]["Enums"]["license_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          license_key: string
+          license_key_hash: string
+          notes?: string | null
+          plan_id: string
+          status?: Database["public"]["Enums"]["license_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          license_key?: string
+          license_key_hash?: string
+          notes?: string | null
+          plan_id?: string
+          status?: Database["public"]["Enums"]["license_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenses_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_days: number
+          features: Json
+          id: string
+          is_active: boolean
+          max_devices: number
+          name: string
+          price_cents: number
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_days: number
+          features?: Json
+          id?: string
+          is_active?: boolean
+          max_devices?: number
+          name: string
+          price_cents?: number
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          features?: Json
+          id?: string
+          is_active?: boolean
+          max_devices?: number
+          name?: string
+          price_cents?: number
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      activation_result:
+        | "success"
+        | "invalid_key"
+        | "expired"
+        | "revoked"
+        | "suspended"
+        | "device_limit"
+        | "device_mismatch"
+        | "not_found"
+        | "rate_limited"
+        | "error"
+      app_role: "admin" | "user"
+      license_status: "pending" | "active" | "expired" | "suspended" | "revoked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +434,21 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      activation_result: [
+        "success",
+        "invalid_key",
+        "expired",
+        "revoked",
+        "suspended",
+        "device_limit",
+        "device_mismatch",
+        "not_found",
+        "rate_limited",
+        "error",
+      ],
+      app_role: ["admin", "user"],
+      license_status: ["pending", "active", "expired", "suspended", "revoked"],
+    },
   },
 } as const
