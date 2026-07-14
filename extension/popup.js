@@ -757,3 +757,36 @@ window.removeFile = window.removeFile || function(fileId) {
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', initialize);
+// Drag panel from topbar (posts messages to parent content-panel.js)
+(function () {
+    function initDrag() {
+        const bar = document.querySelector('.topbar');
+        if (!bar || window.parent === window) return;
+        bar.style.cursor = 'grab';
+        bar.style.userSelect = 'none';
+        let dragging = false, pid = null;
+        bar.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('button')) return;
+            dragging = true; pid = e.pointerId;
+            bar.style.cursor = 'grabbing';
+            try { bar.setPointerCapture(pid); } catch (_) {}
+            window.parent.postMessage({ __lovableExt: 'dragStart', x: e.clientX, y: e.clientY }, '*');
+            e.preventDefault();
+        });
+        bar.addEventListener('pointermove', (e) => {
+            if (!dragging || e.pointerId !== pid) return;
+            window.parent.postMessage({ __lovableExt: 'dragMove', x: e.clientX, y: e.clientY }, '*');
+        });
+        function end(e) {
+            if (!dragging) return;
+            dragging = false;
+            bar.style.cursor = 'grab';
+            try { bar.releasePointerCapture(pid); } catch (_) {}
+            window.parent.postMessage({ __lovableExt: 'dragEnd' }, '*');
+        }
+        bar.addEventListener('pointerup', end);
+        bar.addEventListener('pointercancel', end);
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initDrag);
+    else initDrag();
+})();
