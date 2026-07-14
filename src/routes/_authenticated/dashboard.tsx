@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site/Header";
 import { Button } from "@/components/ui/button";
@@ -24,20 +24,42 @@ function DashboardPage() {
   const getDash = useServerFn(getMyDashboard);
   const claimTrial = useServerFn(claimTrialLicense);
   const qc = useQueryClient();
+  const autoClaimedRef = useRef(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => getDash(),
+    refetchInterval: 30_000,
   });
 
   const trialMut = useMutation({
     mutationFn: () => claimTrial(),
-    onSuccess: () => {
-      toast.success("Licença de teste criada!");
+    onSuccess: (res: any) => {
+      if (res?.existed) toast.info("Você já tem uma licença de teste ativa.");
+      else toast.success("Licença de teste criada! 10 minutos de acesso.");
       qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
+
+  // Auto-claim quando vier de "Testar grátis" (?claim=trial) e ainda não tiver licença
+  useEffect(() => {
+    if (autoClaimedRef.current) return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("claim") !== "trial") return;
+    if (!data) return;
+    autoClaimedRef.current = true;
+    if (!data.currentLicense) trialMut.mutate();
+    // limpa a query
+    params.delete("claim");
+    const q = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      window.location.pathname + (q ? `?${q}` : ""),
+    );
+  }, [data]);
 
   return (
     <div className="rise-bg min-h-screen">
@@ -67,7 +89,7 @@ function DashboardPage() {
             <Key className="mx-auto mb-3 h-10 w-10 text-primary" />
             <h2 className="text-lg font-semibold">Você ainda não tem uma licença</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Escolha um plano ou crie uma licença de teste gratuita de 3 dias.
+              Gere sua chave de teste gratuita — 10 minutos de acesso.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Button
@@ -75,10 +97,7 @@ function DashboardPage() {
                 onClick={() => trialMut.mutate()}
                 disabled={trialMut.isPending}
               >
-                {trialMut.isPending ? "Gerando…" : "Gerar teste grátis (3 dias)"}
-              </Button>
-              <Button variant="outline" asChild>
-                <Link to="/planos">Ver planos</Link>
+                {trialMut.isPending ? "Gerando…" : "Gerar teste grátis (10 minutos)"}
               </Button>
             </div>
           </Card>
@@ -95,6 +114,7 @@ function DashboardPage() {
     </div>
   );
 }
+
 
 function ExtensionCard() {
   return (
