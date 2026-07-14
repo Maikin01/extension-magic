@@ -63,42 +63,7 @@
         flex-direction: column;
     }
     #lovable-ext-panel.visible { display: flex; }
-    #lovable-ext-dragbar { display: none !important; }
-        height: 32px;
-        background: linear-gradient(180deg, #1a0d11, #0a0608);
-        border-bottom: 1px solid rgba(255,60,60,.18);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 10px;
-        cursor: grab;
-        touch-action: none;
-        user-select: none;
-        user-select: none;
-        color: #f4eff0;
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: .3px;
-    }
-    #lovable-ext-dragbar.dragging { cursor: grabbing; }
-    #lovable-ext-dragbar .lb-title {
-        display: flex; align-items: center; gap: 8px;
-    }
-    #lovable-ext-dragbar .lb-title img { width: 18px; height: 18px; border-radius: 50%; }
-    #lovable-ext-dragbar .lb-actions { display: flex; gap: 4px; }
-    #lovable-ext-dragbar button {
-        background: transparent;
-        border: 1px solid rgba(255,60,60,.2);
-        color: #f4eff0;
-        width: 22px; height: 22px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-        line-height: 1;
-        display: flex; align-items: center; justify-content: center;
-        padding: 0;
-    }
-    #lovable-ext-dragbar button:hover { background: rgba(255,60,60,.15); }
+    #lovable-ext-dragbar, #lovable-ext-dragbar * { display: none !important; }
     #lovable-ext-panel iframe {
         flex: 1;
         border: 0;
