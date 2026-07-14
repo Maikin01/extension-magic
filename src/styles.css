@@ -141,11 +141,99 @@
     border-color: var(--color-border);
   }
 
+  html,
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
 }
+
+/* Fundo estilo adictlovable: preto puro + gradiente radial vermelho + grid sutil */
+.rise-bg {
+  position: relative;
+  background-color: #050505;
+}
+.rise-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(ellipse 80% 55% at 50% -10%, oklch(0.63 0.245 25 / 0.28), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 15% 20%, oklch(0.63 0.245 25 / 0.14), transparent 65%),
+    radial-gradient(ellipse 60% 40% at 90% 30%, oklch(0.55 0.22 18 / 0.12), transparent 65%);
+  z-index: 0;
+}
+.rise-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, black 30%, transparent 80%);
+  z-index: 0;
+}
+.rise-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Botão neon com glow forte */
+.btn-neon {
+  background: linear-gradient(180deg, oklch(0.68 0.24 25), oklch(0.55 0.24 25));
+  box-shadow:
+    0 0 0 1px oklch(0.75 0.22 25 / 0.6),
+    0 10px 40px -8px oklch(0.63 0.245 25 / 0.65),
+    0 0 60px oklch(0.63 0.245 25 / 0.35),
+    inset 0 1px 0 oklch(1 0 0 / 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.btn-neon:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow:
+    0 0 0 1px oklch(0.8 0.22 25 / 0.8),
+    0 14px 50px -6px oklch(0.63 0.245 25 / 0.85),
+    0 0 90px oklch(0.63 0.245 25 / 0.5),
+    inset 0 1px 0 oklch(1 0 0 / 0.3);
+}
+
+/* Text gradient vermelho neon */
+.text-gradient-red {
+  background: linear-gradient(90deg, oklch(0.72 0.24 22), oklch(0.55 0.24 25), oklch(0.72 0.24 22));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 22px oklch(0.63 0.245 25 / 0.45));
+}
+
+/* Ring glow para cards destacados / mockup */
+.ring-glow {
+  box-shadow:
+    0 0 0 1px oklch(0.63 0.245 25 / 0.35),
+    0 0 40px oklch(0.63 0.245 25 / 0.25),
+    0 30px 80px -20px oklch(0.63 0.245 25 / 0.4);
+}
+
+/* Pill / chip com borda neon suave */
+.chip-neon {
+  background: oklch(0.63 0.245 25 / 0.08);
+  border: 1px solid oklch(0.63 0.245 25 / 0.35);
+  color: oklch(0.85 0.15 25);
+  box-shadow: 0 0 24px oklch(0.63 0.245 25 / 0.15);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.63 0.245 25 / 0.6); }
+  50% { box-shadow: 0 0 0 6px oklch(0.63 0.245 25 / 0); }
+}
+.dot-pulse { animation: pulse-glow 2s infinite; }
+
 
 /* Ocultar completamente o badge "Made with Lovable" injetado no site publicado */
 #lovable-badge,
