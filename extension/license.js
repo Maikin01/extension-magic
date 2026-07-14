@@ -138,13 +138,10 @@ function showGate() {
     setTimeout(() => gateInput?.focus(), 50);
 }
 
-function showChat(info) {
+function showChat(_info) {
     gate.style.display = 'none';
     chatShell.style.display = 'flex';
-    licenseInfoBar.style.display = 'flex';
-    if (info) {
-        licenseInfoText.textContent = `${info.plan_name || 'Plano'} · expira ${formatExpires(info.expires_at)}`;
-    }
+    if (licenseInfoBar) licenseInfoBar.style.display = 'none';
 }
 
 function setBusy(busy, label) {
@@ -251,7 +248,9 @@ async function handleLogout() {
 
 // bootstrap
 gateForm.addEventListener('submit', handleActivate);
-licenseLogoutBtn.addEventListener('click', handleLogout);
+if (licenseLogoutBtn) licenseLogoutBtn.addEventListener('click', handleLogout);
+const licenseLogoutTopBtn = document.getElementById('licenseLogoutTop');
+if (licenseLogoutTopBtn) licenseLogoutTopBtn.addEventListener('click', handleLogout);
 
 // Auto-uppercase e format helper leve
 gateInput.addEventListener('input', () => {
