@@ -423,7 +423,7 @@ function Plans() {
   const highlightSlug = "monthly";
 
   return (
-    <section className="bg-panel border-b border-white/5 py-24">
+    <section id="plans" className="bg-panel scroll-mt-20 border-b border-white/5 py-24">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-16 text-center">
           <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.35em] text-primary">
@@ -440,6 +440,10 @@ function Plans() {
           {plans.slice(0, 6).map((plan) => {
             const highlight = plan.slug === highlightSlug;
             const features = (plan.features as string[]) ?? [];
+            const isTrial = plan.slug === "trial";
+            const durationLabel = isTrial
+              ? "10 minutos"
+              : `${plan.duration_days} ${plan.duration_days === 1 ? "dia" : "dias"}`;
             return (
               <Card
                 key={plan.id}
@@ -456,11 +460,12 @@ function Plans() {
                 )}
 
                 <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary">
-                  {plan.duration_days} {plan.duration_days === 1 ? "dia" : "dias"}
+                  {durationLabel}
                   {" · "}
                   {plan.max_devices} disp.
                 </div>
                 <h3 className="font-display text-2xl font-extrabold">{plan.name}</h3>
+
 
                 <div className="my-6 flex items-baseline gap-1">
                   {plan.price_cents === 0 ? (
@@ -496,21 +501,33 @@ function Plans() {
                   ))}
                 </ul>
 
-                <Link
-                  to="/planos"
-                  className={`inline-flex h-12 items-center justify-center rounded-xl text-xs font-bold uppercase tracking-widest transition ${
-                    highlight
-                      ? "btn-neon text-white"
-                      : "border border-white/10 bg-white/5 text-white hover:border-primary/40 hover:bg-white/10"
-                  }`}
-                >
-                  {plan.price_cents === 0 ? "Testar grátis" : `Assinar ${plan.name}`}
-                </Link>
+                {isTrial ? (
+                  <Link
+                    to="/auth"
+                    search={{ claim: "trial" } as any}
+                    className={`inline-flex h-12 items-center justify-center rounded-xl text-xs font-bold uppercase tracking-widest transition ${
+                      highlight
+                        ? "btn-neon text-white"
+                        : "border border-white/10 bg-white/5 text-white hover:border-primary/40 hover:bg-white/10"
+                    }`}
+                  >
+                    Testar grátis
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex h-12 cursor-not-allowed items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-xs font-bold uppercase tracking-widest text-white/40"
+                  >
+                    Em breve
+                  </button>
+                )}
               </Card>
             );
           })}
         </div>
       </div>
+
     </section>
   );
 }
