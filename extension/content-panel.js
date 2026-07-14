@@ -232,11 +232,39 @@
         makeDraggable(panel, document.getElementById('lovable-ext-dragbar'), 'panel');
         makeDraggable(bubble, bubble, 'bubble');
 
-        // Minimize requests coming from inside the iframe
+        // Messages coming from inside the iframe (minimize + drag via topbar)
+        let iframeDrag = null;
         window.addEventListener('message', (ev) => {
             if (!ev.data || typeof ev.data !== 'object') return;
-            if (ev.data.__lovableExt === 'minimize') minimize();
-            if (ev.data.__lovableExt === 'expand') expand();
+            const d = ev.data;
+            if (d.__lovableExt === 'minimize') minimize();
+            if (d.__lovableExt === 'expand') expand();
+            if (d.__lovableExt === 'dragStart') {
+                const rect = panel.getBoundingClientRect();
+                const frameRect = panel.querySelector('iframe').getBoundingClientRect();
+                iframeDrag = {
+                    origX: rect.left, origY: rect.top,
+                    startX: frameRect.left + d.x, startY: frameRect.top + d.y,
+                };
+                panel.querySelector('iframe').style.pointerEvents = 'none';
+            }
+            if (d.__lovableExt === 'dragMove' && iframeDrag) {
+                const frameRect = panel.querySelector('iframe').getBoundingClientRect();
+                const cx = frameRect.left + d.x;
+                const cy = frameRect.top + d.y;
+                const w = panel.offsetWidth, h = panel.offsetHeight;
+                const nx = clamp(iframeDrag.origX + (cx - iframeDrag.startX), 4, window.innerWidth - w - 4);
+                const ny = clamp(iframeDrag.origY + (cy - iframeDrag.startY), 4, window.innerHeight - h - 4);
+                panel.style.left = nx + 'px';
+                panel.style.top = ny + 'px';
+            }
+            if (d.__lovableExt === 'dragEnd' && iframeDrag) {
+                iframeDrag = null;
+                panel.querySelector('iframe').style.pointerEvents = '';
+                const rect = panel.getBoundingClientRect();
+                state.panel = { x: rect.left, y: rect.top };
+                saveState();
+            }
         });
 
         window.addEventListener('resize', render);
