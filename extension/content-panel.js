@@ -186,45 +186,62 @@
         state.minimized = false; saveState(); render();
     }
 
-    // ---------- Dragging ----------
+    // ---------- Dragging (pointer events + rAF + pointer capture) ----------
     function makeDraggable(el, handle, kind) {
-        let dragging = false, startX = 0, startY = 0, origX = 0, origY = 0, moved = false;
-        handle.addEventListener('mousedown', (e) => {
-            if (e.button !== 0) return;
+        let dragging = false, pointerId = null;
+        let startX = 0, startY = 0, origX = 0, origY = 0;
+        let curX = 0, curY = 0, moved = false, rafId = 0;
+
+        const iframe = el.querySelector('iframe');
+
+        function onFrame() {
+            rafId = 0;
+            if (!dragging) return;
+            const w = el.offsetWidth, h = el.offsetHeight;
+            const nx = clamp(origX + (curX - startX), 4, window.innerWidth - w - 4);
+            const ny = clamp(origY + (curY - startY), 4, window.innerHeight - h - 4);
+            el.style.left = nx + 'px';
+            el.style.top = ny + 'px';
+        }
+
+        handle.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0 && e.pointerType === 'mouse') return;
             if (e.target.closest('button')) return;
-            dragging = true; moved = false;
-            startX = e.clientX; startY = e.clientY;
+            dragging = true; moved = false; pointerId = e.pointerId;
+            startX = curX = e.clientX; startY = curY = e.clientY;
             const rect = el.getBoundingClientRect();
             origX = rect.left; origY = rect.top;
             handle.classList.add('dragging');
             el.classList.add('dragging');
+            // block iframe from stealing pointer events during panel drag
+            if (iframe) iframe.style.pointerEvents = 'none';
+            try { handle.setPointerCapture(pointerId); } catch (_) {}
             e.preventDefault();
         });
-        window.addEventListener('mousemove', (e) => {
-            if (!dragging) return;
-            const dx = e.clientX - startX, dy = e.clientY - startY;
-            if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
-            const w = el.offsetWidth, h = el.offsetHeight;
-            const nx = clamp(origX + dx, 4, window.innerWidth - w - 4);
-            const ny = clamp(origY + dy, 4, window.innerHeight - h - 4);
-            el.style.left = nx + 'px';
-            el.style.top = ny + 'px';
+
+        handle.addEventListener('pointermove', (e) => {
+            if (!dragging || e.pointerId !== pointerId) return;
+            curX = e.clientX; curY = e.clientY;
+            if (Math.abs(curX - startX) + Math.abs(curY - startY) > 3) moved = true;
+            if (!rafId) rafId = requestAnimationFrame(onFrame);
         });
-        window.addEventListener('mouseup', (e) => {
-            if (!dragging) return;
+
+        function endDrag(e) {
+            if (!dragging || (e && e.pointerId !== pointerId)) return;
             dragging = false;
+            if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
             handle.classList.remove('dragging');
             el.classList.remove('dragging');
+            if (iframe) iframe.style.pointerEvents = '';
+            try { handle.releasePointerCapture(pointerId); } catch (_) {}
             const rect = el.getBoundingClientRect();
             state[kind] = { x: rect.left, y: rect.top };
             saveState();
             if (kind === 'bubble' && !moved) {
-                // treat as click -> expand at bubble position
                 const br = bubble.getBoundingClientRect();
                 const panelH = PANEL_H + 32;
                 let px = br.left;
                 let py = br.top;
-                // if not enough room to the right/below, flip so panel stays on screen
                 if (px + PANEL_W + 8 > window.innerWidth) px = br.right - PANEL_W;
                 if (py + panelH + 8 > window.innerHeight) py = br.bottom - panelH;
                 px = clamp(px, 8, Math.max(8, window.innerWidth - PANEL_W - 8));
@@ -233,7 +250,9 @@
                 saveState();
                 expand();
             }
-        });
+        }
+        handle.addEventListener('pointerup', endDrag);
+        handle.addEventListener('pointercancel', endDrag);
     }
 
     // ---------- Init ----------
