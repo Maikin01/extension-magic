@@ -496,9 +496,16 @@ function renderFilePreviews() {
             <div style="font-size: 10px; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                 ${file.file_name}
             </div>
-            <button class="remove-file" onclick="window.removeFile('${file.id}')">×</button>
+            <button class="remove-file" data-file-id="${file.id}" type="button">×</button>
         </div>
     `).join('');
+    filePreview.querySelectorAll('.remove-file').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.removeFile(btn.getAttribute('data-file-id'));
+        });
+    });
 }
 
 window.removeFile = function(fileId) {
