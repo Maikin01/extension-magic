@@ -219,7 +219,18 @@
             state[kind] = { x: rect.left, y: rect.top };
             saveState();
             if (kind === 'bubble' && !moved) {
-                // treat as click -> expand
+                // treat as click -> expand at bubble position
+                const br = bubble.getBoundingClientRect();
+                const panelH = PANEL_H + 32;
+                let px = br.left;
+                let py = br.top;
+                // if not enough room to the right/below, flip so panel stays on screen
+                if (px + PANEL_W + 8 > window.innerWidth) px = br.right - PANEL_W;
+                if (py + panelH + 8 > window.innerHeight) py = br.bottom - panelH;
+                px = clamp(px, 8, Math.max(8, window.innerWidth - PANEL_W - 8));
+                py = clamp(py, 8, Math.max(8, window.innerHeight - panelH - 8));
+                state.panel = { x: px, y: py };
+                saveState();
                 expand();
             }
         });
