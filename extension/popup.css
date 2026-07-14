@@ -669,17 +669,65 @@ body {
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 5px 9px;
+    padding: 4px 6px 4px 4px;
     font-size: 11px;
     color: var(--text-dim);
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
+    max-width: 160px;
+    overflow: hidden;
 }
 
-.preview-item .remove-file { cursor: pointer; color: var(--red); font-weight: 700; }
+.preview-item img {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+    display: block;
+}
 
-.upload-progress { height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+.preview-item .file-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.04);
+    border-radius: 6px;
+    flex-shrink: 0;
+    font-size: 16px;
+}
+
+.preview-item .upload-progress {
+    font-size: 10px;
+    color: var(--text-mute);
+    background: none;
+    height: auto;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.preview-item .remove-file {
+    cursor: pointer;
+    color: var(--red);
+    font-weight: 700;
+    background: rgba(0,0,0,0.5);
+    border: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.preview-item .remove-file:hover { background: var(--red); color: #fff; }
+
 .upload-progress-bar { height: 100%; background: linear-gradient(90deg, var(--red), #ff6b6b); transition: width 0.2s ease; }
 
 /* ========== Scrollbar ========== */
