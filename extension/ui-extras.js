@@ -519,6 +519,23 @@
         });
     }
 
+    // ---------- Bubble ripple effect on buttons ----------
+    function initBubbleFx() {
+        const selector = '.btn-primary, .btn-send, .btn-outline, .action-btn, .shortcut-btn, .tab, .tool-btn, .icon-btn';
+        document.querySelectorAll(selector).forEach((el) => {
+            el.classList.add('bubble');
+            el.addEventListener('click', (e) => {
+                const rect = el.getBoundingClientRect();
+                el.style.setProperty('--bx', (e.clientX - rect.left) + 'px');
+                el.style.setProperty('--by', (e.clientY - rect.top) + 'px');
+                el.classList.remove('bubble-anim');
+                // force reflow to restart animation
+                void el.offsetWidth;
+                el.classList.add('bubble-anim');
+            });
+        });
+    }
+
     // ---------- Init ----------
     function init() {
         initTabs();
@@ -529,6 +546,8 @@
         initActionButtons();
         initMinimizeButton();
         initThemeToggle();
+        initBubbleFx();
+
 
         // User card / histórico dependem do state do popup.js e da licença
         const waitState = setInterval(() => {
