@@ -564,20 +564,21 @@ function FinalCTA() {
         </p>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <Link
-            to="/planos"
+          <a
+            href="#plans"
             className="btn-neon group inline-flex h-14 items-center gap-2 rounded-2xl px-8 text-sm font-bold uppercase tracking-wider text-white"
           >
             Ativar Rise Lovable agora
             <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
-          <Link
-            to="/planos"
+          </a>
+          <a
+            href="#plans"
             className="inline-flex h-14 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-8 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
           >
             Ver todos os planos
-          </Link>
+          </a>
         </div>
+
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[11px] font-bold uppercase tracking-widest text-white/50">
           <span className="flex items-center gap-2">
@@ -614,7 +615,7 @@ function Footer() {
           <span>© {new Date().getFullYear()}</span>
         </div>
         <div className="flex items-center gap-6">
-          <Link to="/planos" className="hover:text-white">Planos</Link>
+          <a href="/#plans" className="hover:text-white">Planos</a>
           <Link to="/auth" className="hover:text-white">Entrar</Link>
         </div>
       </div>
