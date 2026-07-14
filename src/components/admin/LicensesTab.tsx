@@ -393,3 +393,19 @@ function Stat({ label, value }: { label: string; value: number }) {
     </Card>
   );
 }
+
+function statusVariant(
+  status: string,
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "active":
+      return "default";
+    case "pending":
+      return "secondary";
+    case "revoked":
+    case "suspended":
+      return "destructive";
+    default:
+      return "outline";
+  }
+}
