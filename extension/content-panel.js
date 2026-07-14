@@ -63,27 +63,7 @@
         flex-direction: column;
     }
     #lovable-ext-panel.visible { display: flex; }
-    #lovable-ext-dragbar {
-        height: 18px;
-        cursor: grab;
-        background: linear-gradient(180deg, rgba(255,60,60,0.18), rgba(0,0,0,0.6));
-        border-bottom: 1px solid rgba(255,60,60,0.25);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        touch-action: none;
-        user-select: none;
-    }
-    #lovable-ext-dragbar::before {
-        content: '';
-        width: 42px;
-        height: 4px;
-        border-radius: 2px;
-        background: rgba(255,255,255,0.35);
-    }
-    #lovable-ext-dragbar.dragging { cursor: grabbing; }
-    #lovable-ext-dragbar .lb-title, #lovable-ext-dragbar .lb-actions { display: none !important; }
+    #lovable-ext-dragbar, #lovable-ext-dragbar * { display: none !important; }
     #lovable-ext-panel iframe {
         flex: 1;
         border: 0;
@@ -252,11 +232,39 @@
         makeDraggable(panel, document.getElementById('lovable-ext-dragbar'), 'panel');
         makeDraggable(bubble, bubble, 'bubble');
 
-        // Minimize requests coming from inside the iframe
+        // Messages coming from inside the iframe (minimize + drag via topbar)
+        let iframeDrag = null;
         window.addEventListener('message', (ev) => {
             if (!ev.data || typeof ev.data !== 'object') return;
-            if (ev.data.__lovableExt === 'minimize') minimize();
-            if (ev.data.__lovableExt === 'expand') expand();
+            const d = ev.data;
+            if (d.__lovableExt === 'minimize') minimize();
+            if (d.__lovableExt === 'expand') expand();
+            if (d.__lovableExt === 'dragStart') {
+                const rect = panel.getBoundingClientRect();
+                const frameRect = panel.querySelector('iframe').getBoundingClientRect();
+                iframeDrag = {
+                    origX: rect.left, origY: rect.top,
+                    startX: frameRect.left + d.x, startY: frameRect.top + d.y,
+                };
+                panel.querySelector('iframe').style.pointerEvents = 'none';
+            }
+            if (d.__lovableExt === 'dragMove' && iframeDrag) {
+                const frameRect = panel.querySelector('iframe').getBoundingClientRect();
+                const cx = frameRect.left + d.x;
+                const cy = frameRect.top + d.y;
+                const w = panel.offsetWidth, h = panel.offsetHeight;
+                const nx = clamp(iframeDrag.origX + (cx - iframeDrag.startX), 4, window.innerWidth - w - 4);
+                const ny = clamp(iframeDrag.origY + (cy - iframeDrag.startY), 4, window.innerHeight - h - 4);
+                panel.style.left = nx + 'px';
+                panel.style.top = ny + 'px';
+            }
+            if (d.__lovableExt === 'dragEnd' && iframeDrag) {
+                iframeDrag = null;
+                panel.querySelector('iframe').style.pointerEvents = '';
+                const rect = panel.getBoundingClientRect();
+                state.panel = { x: rect.left, y: rect.top };
+                saveState();
+            }
         });
 
         window.addEventListener('resize', render);
