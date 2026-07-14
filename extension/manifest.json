@@ -33,8 +33,23 @@
   "content_scripts": [
     {
       "matches": ["https://lovable.dev/*", "https://*.lovable.dev/*"],
-      "js": ["content-standard-chat.js"],
+      "js": ["content-standard-chat.js", "content-panel.js"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "popup.html",
+        "popup.css",
+        "popup.js",
+        "license.js",
+        "history.js",
+        "ui-extras.js",
+        "icons/*",
+        "vendor/*"
+      ],
+      "matches": ["https://*.lovable.dev/*", "https://lovable.dev/*"]
     }
   ],
   "icons": {

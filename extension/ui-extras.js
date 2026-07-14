@@ -480,6 +480,21 @@
         });
     }
 
+    // ---------- Minimize (quando rodando dentro do painel flutuante) ----------
+    function initMinimizeButton() {
+        const btn = document.querySelector('.topbar .icon-btn[title="Minimizar"]');
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ __lovableExt: 'minimize' }, '*');
+                    return;
+                }
+            } catch (_) {}
+            try { window.close(); } catch (_) {}
+        });
+    }
+
     // ---------- Init ----------
     function init() {
         initTabs();
@@ -488,6 +503,7 @@
         initAudioButton();
         initShortcuts();
         initActionButtons();
+        initMinimizeButton();
 
         // User card / histórico dependem do state do popup.js e da licença
         const waitState = setInterval(() => {
