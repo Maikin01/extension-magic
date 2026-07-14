@@ -500,6 +500,8 @@ body {
 .footer-link { display: inline-flex; align-items: center; gap: 5px; color: var(--text-dim); text-decoration: none; transition: color 0.15s; }
 .footer-link:hover { color: var(--text); }
 .footer-version { font-weight: 600; color: var(--text-dim); letter-spacing: 0.3px; }
+.footer-status { text-align: center; font-size: 10.5px; color: var(--text-mute); padding: 2px 0 6px; }
+.action-stack[hidden] { display: none !important; }
 
 /* ========== Status bar ========== */
 .status-bar { padding: 3px 12px; font-size: 10px; color: var(--text-mute); text-align: center; min-height: 0; }
