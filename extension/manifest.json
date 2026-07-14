@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Lovable Chat Assistant",
+  "name": "Rise Lovable",
   "version": "1.0.0",
-  "description": "Chat extension for Lovable.dev projects",
+  "description": "Rise Lovable — assistente para Lovable.dev",
   "permissions": [
     "activeTab",
     "cookies",
