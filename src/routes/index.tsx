@@ -88,21 +88,23 @@ function Hero() {
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-4">
-            <Link
-              to="/planos"
+            <a
+              href="#plans"
               className="btn-neon group inline-flex h-12 items-center gap-2 rounded-full px-7 text-sm font-bold uppercase tracking-wider text-white"
             >
               Obter acesso
               <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
+            </a>
             <Link
               to="/auth"
+              search={{ claim: "trial" } as any}
               className="inline-flex h-12 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
             >
               <Sparkles className="h-4 w-4 text-primary" />
               Testar grátis
             </Link>
           </div>
+
 
           <div className="mt-10 grid max-w-lg grid-cols-2 gap-3 sm:grid-cols-4">
             {[
@@ -265,13 +267,13 @@ function HowItWorks() {
           <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.35em] text-white/40">
             Comece agora mesmo
           </div>
-          <Link
-            to="/planos"
+          <a
+            href="#plans"
             className="btn-neon inline-flex h-14 items-center gap-3 rounded-2xl px-8 text-sm font-bold uppercase tracking-wider text-white"
           >
             <Download className="h-5 w-5" />
             Baixar extensão grátis
-          </Link>
+          </a>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] text-white/50">
             <span className="flex items-center gap-1.5">
               <Check className="h-3.5 w-3.5 text-primary" /> Grátis para baixar
@@ -284,6 +286,7 @@ function HowItWorks() {
             </span>
           </div>
         </div>
+
       </div>
     </section>
   );
@@ -420,7 +423,7 @@ function Plans() {
   const highlightSlug = "monthly";
 
   return (
-    <section className="bg-panel border-b border-white/5 py-24">
+    <section id="plans" className="bg-panel scroll-mt-20 border-b border-white/5 py-24">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-16 text-center">
           <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.35em] text-primary">
@@ -437,6 +440,10 @@ function Plans() {
           {plans.slice(0, 6).map((plan) => {
             const highlight = plan.slug === highlightSlug;
             const features = (plan.features as string[]) ?? [];
+            const isTrial = plan.slug === "trial";
+            const durationLabel = isTrial
+              ? "10 minutos"
+              : `${plan.duration_days} ${plan.duration_days === 1 ? "dia" : "dias"}`;
             return (
               <Card
                 key={plan.id}
@@ -453,11 +460,12 @@ function Plans() {
                 )}
 
                 <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary">
-                  {plan.duration_days} {plan.duration_days === 1 ? "dia" : "dias"}
+                  {durationLabel}
                   {" · "}
                   {plan.max_devices} disp.
                 </div>
                 <h3 className="font-display text-2xl font-extrabold">{plan.name}</h3>
+
 
                 <div className="my-6 flex items-baseline gap-1">
                   {plan.price_cents === 0 ? (
@@ -493,21 +501,33 @@ function Plans() {
                   ))}
                 </ul>
 
-                <Link
-                  to="/planos"
-                  className={`inline-flex h-12 items-center justify-center rounded-xl text-xs font-bold uppercase tracking-widest transition ${
-                    highlight
-                      ? "btn-neon text-white"
-                      : "border border-white/10 bg-white/5 text-white hover:border-primary/40 hover:bg-white/10"
-                  }`}
-                >
-                  {plan.price_cents === 0 ? "Testar grátis" : `Assinar ${plan.name}`}
-                </Link>
+                {isTrial ? (
+                  <Link
+                    to="/auth"
+                    search={{ claim: "trial" } as any}
+                    className={`inline-flex h-12 items-center justify-center rounded-xl text-xs font-bold uppercase tracking-widest transition ${
+                      highlight
+                        ? "btn-neon text-white"
+                        : "border border-white/10 bg-white/5 text-white hover:border-primary/40 hover:bg-white/10"
+                    }`}
+                  >
+                    Testar grátis
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex h-12 cursor-not-allowed items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-xs font-bold uppercase tracking-widest text-white/40"
+                  >
+                    Em breve
+                  </button>
+                )}
               </Card>
             );
           })}
         </div>
       </div>
+
     </section>
   );
 }
@@ -544,20 +564,21 @@ function FinalCTA() {
         </p>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <Link
-            to="/planos"
+          <a
+            href="#plans"
             className="btn-neon group inline-flex h-14 items-center gap-2 rounded-2xl px-8 text-sm font-bold uppercase tracking-wider text-white"
           >
             Ativar Rise Lovable agora
             <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
-          <Link
-            to="/planos"
+          </a>
+          <a
+            href="#plans"
             className="inline-flex h-14 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-8 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
           >
             Ver todos os planos
-          </Link>
+          </a>
         </div>
+
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[11px] font-bold uppercase tracking-widest text-white/50">
           <span className="flex items-center gap-2">
@@ -594,7 +615,7 @@ function Footer() {
           <span>© {new Date().getFullYear()}</span>
         </div>
         <div className="flex items-center gap-6">
-          <Link to="/planos" className="hover:text-white">Planos</Link>
+          <a href="/#plans" className="hover:text-white">Planos</a>
           <Link to="/auth" className="hover:text-white">Entrar</Link>
         </div>
       </div>

@@ -28,14 +28,18 @@ function AuthPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const claim = params.get("claim");
+    const dest = claim === "trial" ? "/dashboard?claim=trial" : "/dashboard";
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard", replace: true });
+      if (data.session) navigate({ to: dest, replace: true });
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) navigate({ to: "/dashboard", replace: true });
+      if (event === "SIGNED_IN" && session) navigate({ to: dest, replace: true });
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 px-4 py-12">

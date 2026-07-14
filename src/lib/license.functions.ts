@@ -65,14 +65,21 @@ export const claimTrialLicense = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { generateLicenseKey, hashLicenseKey } = await import("@/lib/license.server");
 
-    // Já tem trial?
+    // Já tem trial ativa/pendente NÃO expirada? Se sim, retorna a existente.
     const { data: existing } = await supabase
       .from("licenses")
-      .select("id, plans!inner(slug)")
+      .select("*, plans!inner(slug)")
       .eq("user_id", userId)
       .eq("plans.slug", "trial")
+      .in("status", ["active", "pending"])
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
-    if (existing) throw new Error("Você já criou uma licença de teste.");
+    if (existing) {
+      const stillValid =
+        !existing.expires_at || new Date(existing.expires_at).getTime() > Date.now();
+      if (stillValid) return { license: existing, existed: true };
+    }
 
     const { data: plan, error: planErr } = await supabaseAdmin
       .from("plans")
@@ -80,6 +87,10 @@ export const claimTrialLicense = createServerFn({ method: "POST" })
       .eq("slug", "trial")
       .single();
     if (planErr || !plan) throw new Error("Plano de teste não encontrado.");
+
+    const now = new Date();
+    // Trial fixo: 10 minutos de acesso, contando a partir da criação.
+    const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
 
     // Tenta até 5x caso colisão de chave
     for (let i = 0; i < 5; i++) {
@@ -92,15 +103,18 @@ export const claimTrialLicense = createServerFn({ method: "POST" })
           plan_id: plan.id,
           license_key: key,
           license_key_hash: hash,
-          status: "pending",
+          status: "active",
+          activated_at: now.toISOString(),
+          expires_at: expiresAt.toISOString(),
         })
         .select()
         .single();
-      if (!error && data) return { license: data };
+      if (!error && data) return { license: data, existed: false };
       if (error && !error.message.includes("duplicate")) throw error;
     }
     throw new Error("Não foi possível gerar uma chave única. Tente novamente.");
   });
+
 
 /**
  * Cria licença manualmente com plano escolhido (temporário, enquanto pagamentos

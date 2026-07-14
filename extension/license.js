@@ -8,7 +8,8 @@ const STORAGE_KEYS = {
     lastCheck: 'lvbl_last_check',
     licenseInfo: 'lvbl_license_info',
 };
-const REVALIDATE_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
+const REVALIDATE_INTERVAL_MS = 30 * 1000; // 30s — precisa ser curto por causa de licenças de teste de 10min
+const WATCHER_INTERVAL_MS = 20 * 1000;    // polling enquanto o chat estiver aberto
 
 // --- utils ----------------------------------------------------------------
 
@@ -131,18 +132,68 @@ const licenseInfoBar = document.getElementById('licenseInfoBar');
 const licenseInfoText = document.getElementById('licenseInfoText');
 const licenseLogoutBtn = document.getElementById('licenseLogout');
 
+let watcherIntervalId = null;
+let watcherExpiryTimeoutId = null;
+
+function stopWatcher() {
+    if (watcherIntervalId) { clearInterval(watcherIntervalId); watcherIntervalId = null; }
+    if (watcherExpiryTimeoutId) { clearTimeout(watcherExpiryTimeoutId); watcherExpiryTimeoutId = null; }
+}
+
+async function forceRevalidate(reason) {
+    const stored = await chrome.storage.local.get([STORAGE_KEYS.key]);
+    const savedKey = stored[STORAGE_KEYS.key];
+    if (!savedKey) return kickToGate(reason);
+    const deviceHash = await getOrCreateDeviceHash();
+    const res = await apiValidate(savedKey, deviceHash);
+    if (res.ok && res.data.valid) {
+        await chrome.storage.local.set({
+            [STORAGE_KEYS.lastCheck]: Date.now(),
+            [STORAGE_KEYS.licenseInfo]: res.data,
+        });
+        scheduleWatcher(res.data);
+    } else if (res.data.reason === 'network') {
+        // offline: mantém, tenta de novo no próximo tick
+    } else {
+        kickToGate(res.data.reason || reason);
+    }
+}
+
+async function kickToGate(reason) {
+    stopWatcher();
+    await chrome.storage.local.remove([STORAGE_KEYS.licenseInfo, STORAGE_KEYS.lastCheck]);
+    showGate();
+    setError(reasonText(reason || 'expired'));
+}
+
+function scheduleWatcher(info) {
+    stopWatcher();
+    watcherIntervalId = setInterval(() => { forceRevalidate('expired'); }, WATCHER_INTERVAL_MS);
+    if (info && info.expires_at) {
+        const ms = new Date(info.expires_at).getTime() - Date.now();
+        if (ms > 0 && ms < 24 * 60 * 60 * 1000) {
+            watcherExpiryTimeoutId = setTimeout(() => { forceRevalidate('expired'); }, ms + 500);
+        } else if (ms <= 0) {
+            kickToGate('expired');
+        }
+    }
+}
+
 function showGate() {
+    stopWatcher();
     gate.style.display = 'flex';
     chatShell.style.display = 'none';
     licenseInfoBar.style.display = 'none';
     setTimeout(() => gateInput?.focus(), 50);
 }
 
-function showChat(_info) {
+function showChat(info) {
     gate.style.display = 'none';
     chatShell.style.display = 'flex';
     if (licenseInfoBar) licenseInfoBar.style.display = 'none';
+    scheduleWatcher(info);
 }
+
 
 function setBusy(busy, label) {
     gateSubmit.disabled = busy;
