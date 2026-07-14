@@ -4,10 +4,11 @@
 // for renomeado no Lovable.
 
 export const CONFIG = {
-  // URL de produção (usada quando o site está publicado):
-  API_BASE_URL: "https://project--2566d124-3802-48ac-bdb7-78e7db243db8.lovable.app",
-  // URL de preview (build de desenvolvimento no Lovable):
-  API_BASE_URL_DEV: "https://project--2566d124-3802-48ac-bdb7-78e7db243db8-dev.lovable.app",
+  // URL ativa da API. Enquanto o site não estiver publicado, usamos a URL de
+  // preview (-dev). Depois de publicar, troque para a URL de produção abaixo.
+  API_BASE_URL: "https://project--2566d124-3802-48ac-bdb7-78e7db243db8-dev.lovable.app",
+  // Produção (usar depois de publicar):
+  API_BASE_URL_PROD: "https://project--2566d124-3802-48ac-bdb7-78e7db243db8.lovable.app",
   // Intervalo entre validações periódicas (em minutos).
   REVALIDATE_MINUTES: 60,
   // Se a extensão ficar offline, tolera N horas antes de bloquear.
