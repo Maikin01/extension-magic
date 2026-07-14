@@ -298,13 +298,24 @@ export function LicensesTab() {
                     </div>
                   </td>
                   <td className="py-2 pr-3">
-                    {l.profiles?.full_name ?? (
+                    {l.profiles ? (
+                      <div className="flex flex-col leading-tight">
+                        <span className="text-sm">
+                          {l.profiles.full_name || "(sem nome)"}
+                        </span>
+                        {l.profiles.email && (
+                          <span className="text-xs text-muted-foreground">
+                            {l.profiles.email}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
                       <span className="text-muted-foreground italic">avulsa</span>
                     )}
                   </td>
                   <td className="py-2 pr-3">{l.plans?.name ?? "—"}</td>
                   <td className="py-2 pr-3">
-                    <Badge variant="outline">
+                    <Badge variant={statusVariant(l.status)}>
                       {LICENSE_STATUS_LABEL[l.status] ?? l.status}
                     </Badge>
                   </td>
