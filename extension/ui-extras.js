@@ -342,9 +342,8 @@
 
     // ---------- Remover Marca de Água (prefill + envio automático) ----------
     const WATERMARK_PROMPT =
-        'Remova completamente a marca d\'água/badge "Edit with Lovable" (ou similar) do site. ' +
-        'Procure e apague qualquer componente, link, ícone flutuante ou script que a renderize. ' +
-        'Se estiver controlada por variável de configuração, desative-a. Não altere mais nada além disso.';
+        'use css para ocultar completamente o badge lovable (Made with Lovable)';
+
 
     function triggerExtensionSend(promptText) {
         const input = document.getElementById('messageInput');
