@@ -142,3 +142,18 @@
     color: var(--color-foreground);
   }
 }
+
+/* Ocultar completamente o badge "Made with Lovable" injetado no site publicado */
+#lovable-badge,
+[id^="lovable-badge"],
+[class*="lovable-badge"],
+a[href*="lovable.dev"][target="_blank"],
+a[href*="lovable.app"][aria-label*="Lovable" i],
+iframe[src*="lovable.dev/badge"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
