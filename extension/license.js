@@ -8,7 +8,9 @@ const STORAGE_KEYS = {
     lastCheck: 'lvbl_last_check',
     licenseInfo: 'lvbl_license_info',
 };
-const REVALIDATE_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
+const REVALIDATE_INTERVAL_MS = 30 * 1000; // 30s — validação rígida
+const POLL_INTERVAL_MS = 30 * 1000; // poll periódico enquanto o popup está aberto
+const OFFLINE_GRACE_MS = 5 * 60 * 1000; // tolerância curta quando não há rede
 
 // --- utils ----------------------------------------------------------------
 
