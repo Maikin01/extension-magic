@@ -340,6 +340,66 @@
         });
     }
 
+    // ---------- Remover Marca de Água (prefill + envio automático) ----------
+    const WATERMARK_PROMPT =
+        'Remova completamente a marca d\'água/badge "Edit with Lovable" (ou similar) do site. ' +
+        'Procure e apague qualquer componente, link, ícone flutuante ou script que a renderize. ' +
+        'Se estiver controlada por variável de configuração, desative-a. Não altere mais nada além disso.';
+
+    function triggerExtensionSend(promptText) {
+        const input = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendButton');
+        if (!input || !sendBtn) return;
+        input.value = promptText;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        // pequeno delay para o popup.js atualizar estado antes de disparar
+        setTimeout(() => sendBtn.click(), 60);
+    }
+
+    function initActionButtons() {
+        const buttons = document.querySelectorAll('.action-stack .action-btn');
+        buttons.forEach((btn) => {
+            const label = (btn.textContent || '').trim().toLowerCase();
+
+            if (label.includes('marca')) {
+                btn.addEventListener('click', () => {
+                    if (!confirm('Enviar prompt para remover a marca d\'água do site?')) return;
+                    triggerExtensionSend(WATERMARK_PROMPT);
+                });
+            }
+
+            if (label.includes('chat padr')) {
+                btn.addEventListener('click', async () => {
+                    try {
+                        const cur = await chrome.storage.local.get(['lvbl_use_standard_chat']);
+                        const next = !cur.lvbl_use_standard_chat;
+                        await chrome.storage.local.set({ lvbl_use_standard_chat: next });
+                        btn.classList.toggle('is-active', next);
+                        btn.textContent = next ? 'Chat Padrão ATIVO ✓' : 'Usar Chat Padrão';
+                        if (next) {
+                            alert(
+                                'Chat Padrão ATIVO.\n\n' +
+                                'Abra o chat do lovable.dev normalmente. Suas mensagens serão enviadas ' +
+                                'pelo mesmo método da extensão (sem consumir créditos).\n\n' +
+                                'Um aviso aparecerá no site a cada envio.'
+                            );
+                        }
+                    } catch (e) {
+                        console.warn('[ui-extras] toggle chat padrão failed:', e);
+                    }
+                });
+
+                // sincroniza estado inicial do botão
+                chrome.storage.local.get(['lvbl_use_standard_chat'], (v) => {
+                    if (v.lvbl_use_standard_chat) {
+                        btn.classList.add('is-active');
+                        btn.textContent = 'Chat Padrão ATIVO ✓';
+                    }
+                });
+            }
+        });
+    }
+
     // ---------- Init ----------
     function init() {
         initTabs();
@@ -347,6 +407,7 @@
         initModoPlano();
         initAudioButton();
         initShortcuts();
+        initActionButtons();
 
         // User card / histórico dependem do state do popup.js e da licença
         const waitState = setInterval(() => {
