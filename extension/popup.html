@@ -15,44 +15,84 @@
             </div>
         </div>
 
-        <div class="chat-container" id="chatContainer">
-            <div class="messages" id="messages">
-                <!-- Messages will be rendered here -->
-            </div>
-        </div>
+        <!-- License Gate -->
+        <div class="license-gate" id="licenseGate" style="display: none;">
+            <div class="license-card">
+                <div class="license-icon">🔐</div>
+                <h2>Ative sua licença</h2>
+                <p class="license-sub">Cole abaixo a chave que você recebeu no site para liberar o chat.</p>
 
-        <div class="file-preview" id="filePreview" style="display: none;">
-            <!-- File previews will be shown here -->
-        </div>
-
-        <div class="input-container">
-            <div class="input-wrapper">
-                <textarea 
-                    id="messageInput" 
-                    placeholder="Digite sua mensagem..."
-                    rows="3"
-                ></textarea>
-                <div class="button-group">
-                    <button id="attachButton" class="attach-btn" title="Anexar arquivo">
-                        📎
-                    </button>
-                    <input 
-                        type="file" 
-                        id="fileInput" 
-                        multiple 
-                        accept="image/*,.pdf,.doc,.docx,.txt,.js,.ts,.jsx,.tsx,.json,.css,.html"
-                        style="display: none;"
+                <form id="licenseForm" class="license-form" autocomplete="off">
+                    <input
+                        id="licenseKeyInput"
+                        type="text"
+                        placeholder="LVBL-XXXX-XXXX-XXXX-XXXX"
+                        spellcheck="false"
+                        autocapitalize="characters"
+                        maxlength="64"
                     />
-                    <button id="sendButton" class="send-btn" title="Enviar mensagem">
-                        ➤
-                    </button>
+                    <button type="submit" id="licenseSubmit" class="license-btn">Ativar</button>
+                </form>
+
+                <div id="licenseError" class="license-error" style="display:none;"></div>
+                <div id="licenseStatus" class="license-status"></div>
+
+                <div class="license-footer">
+                    <span>Não tem uma chave?</span>
+                    <a href="https://vamos-extend-buddy.lovable.app/planos" target="_blank" rel="noopener">Ver planos</a>
                 </div>
             </div>
         </div>
 
-        <div class="status-bar" id="statusBar"></div>
+        <!-- License info bar (mostra quando ativada) -->
+        <div class="license-info-bar" id="licenseInfoBar" style="display:none;">
+            <span class="license-info-dot"></span>
+            <span id="licenseInfoText">Licença ativa</span>
+            <button id="licenseLogout" class="license-logout" title="Sair da licença">Sair</button>
+        </div>
+
+        <!-- Chat original — NÃO modificar IDs/estrutura interna -->
+        <div class="chat-shell" id="chatShell" style="display:none;">
+            <div class="chat-container" id="chatContainer">
+                <div class="messages" id="messages">
+                    <!-- Messages will be rendered here -->
+                </div>
+            </div>
+
+            <div class="file-preview" id="filePreview" style="display: none;">
+                <!-- File previews will be shown here -->
+            </div>
+
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea
+                        id="messageInput"
+                        placeholder="Digite sua mensagem..."
+                        rows="3"
+                    ></textarea>
+                    <div class="button-group">
+                        <button id="attachButton" class="attach-btn" title="Anexar arquivo">
+                            📎
+                        </button>
+                        <input
+                            type="file"
+                            id="fileInput"
+                            multiple
+                            accept="image/*,.pdf,.doc,.docx,.txt,.js,.ts,.jsx,.tsx,.json,.css,.html"
+                            style="display: none;"
+                        />
+                        <button id="sendButton" class="send-btn" title="Enviar mensagem">
+                            ➤
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-bar" id="statusBar"></div>
+        </div>
     </div>
 
+    <script src="license.js"></script>
     <script src="popup.js"></script>
 </body>
 </html>

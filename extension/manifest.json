@@ -15,7 +15,9 @@
     "https://lovable.dev/*",
     "https://storage.googleapis.com/*",
     "https://*.storage.googleapis.com/*",
-    "https://*.googleapis.com/*"
+    "https://*.googleapis.com/*",
+    "https://vamos-extend-buddy.lovable.app/*",
+    "https://*.lovable.app/*"
   ],
   "action": {
     "default_popup": "popup.html",
