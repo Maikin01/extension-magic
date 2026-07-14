@@ -1,13 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Lovable — Extension",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Extensão premium Lovable com sistema de licenciamento profissional.",
   "permissions": [
     "storage",
     "alarms",
     "activeTab",
-    "tabs"
+    "tabs",
+    "scripting",
+    "clipboardWrite"
   ],
   "host_permissions": [
     "https://*.lovable.app/*",
