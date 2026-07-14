@@ -14,7 +14,7 @@
     const STORAGE_KEY = 'lvbl_panel_state_v1';
 
     const popupUrl = chrome.runtime.getURL('popup.html');
-    const logoUrl = chrome.runtime.getURL('icons/throne-mascot.png');
+    const logoUrl = chrome.runtime.getURL('icons/logo.png');
     const iconFallback = chrome.runtime.getURL('icons/icon48.png');
 
     // ---------- State ----------
