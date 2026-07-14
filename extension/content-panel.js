@@ -54,7 +54,7 @@
     }
     #lovable-ext-panel {
         width: ${PANEL_W}px;
-        height: ${PANEL_H + 32}px;
+        height: ${PANEL_H}px;
         background: #000;
         border-radius: 16px;
         box-shadow: 0 20px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,60,60,.18);
@@ -63,7 +63,7 @@
         flex-direction: column;
     }
     #lovable-ext-panel.visible { display: flex; }
-    #lovable-ext-dragbar {
+    #lovable-ext-dragbar { display: none !important; }
         height: 32px;
         background: linear-gradient(180deg, #1a0d11, #0a0608);
         border-bottom: 1px solid rgba(255,60,60,.18);
