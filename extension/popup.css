@@ -747,3 +747,33 @@ body.plan-mode-on .toggle-row label[for="modoPlano"]::after {
     font-size: 10px;
     letter-spacing: 0.5px;
 }
+
+/* ========== Light theme override ========== */
+body.theme-light {
+    background: #f4f4f6;
+}
+body.theme-light {
+    --bg-0: #f6f4f5;
+    --bg-1: #ffffff;
+    --bg-2: #f0eaec;
+    --surface: #ffffff;
+    --surface-2: #f7f1f3;
+    --surface-3: #efe6e9;
+    --border: rgba(180, 20, 30, 0.18);
+    --border-strong: rgba(180, 20, 30, 0.35);
+    --text: #1a0d11;
+    --text-dim: #4a3f42;
+    --text-mute: #7a6f72;
+}
+body.theme-light .app-shell {
+    background:
+        radial-gradient(circle at 50% 0%, rgba(255, 60, 60, 0.10), transparent 55%),
+        linear-gradient(180deg, #ffffff 0%, #f4eef0 100%);
+    box-shadow: 0 0 0 1px rgba(180, 20, 30, 0.08), 0 20px 60px rgba(180, 20, 30, 0.08);
+}
+body.theme-light .topbar {
+    background: linear-gradient(180deg, rgba(255, 240, 242, 0.9), rgba(255, 250, 251, 0.6));
+}
+body.theme-light .app-shell::before {
+    background-image: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.015) 0 2px, transparent 2px 8px);
+}
