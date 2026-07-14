@@ -261,10 +261,8 @@
         document.body.appendChild(panel);
         document.body.appendChild(bubble);
 
-        document.getElementById('lovable-ext-min').addEventListener('click', (e) => {
-            e.stopPropagation();
-            minimize();
-        });
+        const minBtn = document.getElementById('lovable-ext-min');
+        if (minBtn) minBtn.addEventListener('click', (e) => { e.stopPropagation(); minimize(); });
 
         makeDraggable(panel, document.getElementById('lovable-ext-dragbar'), 'panel');
         makeDraggable(bubble, bubble, 'bubble');
