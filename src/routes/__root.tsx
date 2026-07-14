@@ -79,21 +79,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable — Extensão premium com sistema de licenças" },
+      { title: "Lovable — Sistema de licenciamento profissional para extensões" },
       {
         name: "description",
         content:
-          "Assine um plano, receba sua chave e libere a extensão Lovable no seu navegador. Validação em tempo real, controle total de dispositivos.",
+          "Assine, receba sua chave e libere a extensão Lovable em segundos. Validação em tempo real, dispositivos controlados, planos flexíveis.",
       },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable — Extensão premium" },
+      { property: "og:title", content: "Lovable — Sistema de licenciamento profissional para extensões" },
       {
         property: "og:description",
         content:
-          "Assine, ative sua chave e libere a extensão Lovable com validação profissional em tempo real.",
+          "Assine, receba sua chave e libere a extensão Lovable em segundos. Validação em tempo real, dispositivos controlados, planos flexíveis.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Lovable — Sistema de licenciamento profissional para extensões" },
+      { name: "twitter:description", content: "Assine, receba sua chave e libere a extensão Lovable em segundos. Validação em tempo real, dispositivos controlados, planos flexíveis." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b5546c95-b19c-42a0-af90-61093837a36d/id-preview-0f432973--2566d124-3802-48ac-bdb7-78e7db243db8.lovable.app-1784009166350.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b5546c95-b19c-42a0-af90-61093837a36d/id-preview-0f432973--2566d124-3802-48ac-bdb7-78e7db243db8.lovable.app-1784009166350.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
