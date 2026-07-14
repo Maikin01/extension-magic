@@ -355,6 +355,80 @@
         setTimeout(() => sendBtn.click(), 60);
     }
 
+    // ---------- Baixar Código Fonte (via API git/files) ----------
+    async function downloadSourceCode(btn) {
+        const st = window.state || (typeof state !== 'undefined' ? state : null);
+        if (!st || !st.projectId || !st.token) {
+            alert('Abra a extensão em uma página de projeto do lovable.dev e faça login primeiro.');
+            return;
+        }
+        if (typeof JSZip === 'undefined') {
+            alert('Biblioteca JSZip não carregou. Recarregue a extensão.');
+            return;
+        }
+        const orig = btn.textContent;
+        const setLabel = (t) => { btn.textContent = t; };
+        btn.disabled = true;
+        try {
+            const headers = {
+                'Authorization': `Bearer ${st.token}`,
+                'Origin': 'https://lovable.dev',
+                'Referer': 'https://lovable.dev/',
+            };
+            setLabel('Listando arquivos...');
+            const listRes = await fetch(
+                `https://api.lovable.dev/projects/${st.projectId}/git/files?ref=main`,
+                { headers, credentials: 'include' }
+            );
+            if (!listRes.ok) {
+                const t = await listRes.text().catch(() => '');
+                throw new Error(`Falha ao listar arquivos (${listRes.status}) ${t.slice(0, 200)}`);
+            }
+            const data = await listRes.json();
+            const files = Array.isArray(data.files) ? data.files : [];
+            if (!files.length) throw new Error('Nenhum arquivo retornado pelo projeto.');
+
+            const zip = new JSZip();
+            let done = 0;
+            let idx = 0;
+            const CONCURRENCY = 6;
+            async function worker() {
+                while (idx < files.length) {
+                    const f = files[idx++];
+                    const url = `https://api.lovable.dev/projects/${st.projectId}/git/file?path=${encodeURIComponent(f.path)}&ref=main`;
+                    const r = await fetch(url, { headers, credentials: 'include' });
+                    if (!r.ok) throw new Error(`Falha em ${f.path} (${r.status})`);
+                    const buf = await r.arrayBuffer();
+                    zip.file(f.path, buf);
+                    done++;
+                    setLabel(`Baixando ${done}/${files.length}...`);
+                }
+            }
+            await Promise.all(
+                Array.from({ length: Math.min(CONCURRENCY, files.length) }, worker)
+            );
+
+            setLabel('Compactando .zip...');
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `lovable-${st.projectId}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 8000);
+
+            setLabel('✓ Baixado');
+            setTimeout(() => { setLabel(orig); btn.disabled = false; }, 2500);
+        } catch (err) {
+            console.error('[baixar-fonte] failed', err);
+            alert('Falha ao baixar código: ' + err.message);
+            setLabel(orig);
+            btn.disabled = false;
+        }
+    }
+
     function initActionButtons() {
         const buttons = document.querySelectorAll('.action-stack .action-btn');
         buttons.forEach((btn) => {
