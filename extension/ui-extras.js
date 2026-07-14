@@ -167,27 +167,59 @@
             .join('');
     }
 
-    // ---------- MODO PLANO (visual + persistência) ----------
+    // ---------- MODO PLANO (visual + preparação do prompt sem alterar envio) ----------
     function initModoPlano() {
         const cb = document.getElementById('modoPlano');
         if (!cb) return;
         const input = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendButton');
+        const UI_KEY = 'lvbl_modo_plano_ui';
+        const LEGACY_SEND_KEY = 'lvbl_modo_plano';
+        const PLAN_PREFIX = 'MODO PLANEJAR ATIVADO: responda criando um plano claro e objetivo antes de qualquer implementação. Não execute alterações ainda; organize etapas, riscos e próximos passos.';
+
+        const keepNormalSendPath = () => {
+            try {
+                // Mantém o envio no mesmo caminho normal da extensão, sem acionar
+                // o antigo desvio chat_only que consumia créditos.
+                localStorage.removeItem(LEGACY_SEND_KEY);
+            } catch (_) {}
+        };
+
+        const alreadyPrepared = (text) => text.trim().startsWith(PLAN_PREFIX);
+
+        const preparePlanPrompt = () => {
+            if (!cb.checked || !input) return;
+            keepNormalSendPath();
+            const raw = input.value.trim();
+            if (!raw || alreadyPrepared(raw)) return;
+            input.value = `${PLAN_PREFIX}\n\nPedido do usuário:\n${raw}`;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        };
 
         const apply = (on) => {
+            keepNormalSendPath();
             document.body.classList.toggle('plan-mode-on', on);
             if (input) {
                 input.placeholder = on
-                    ? 'Modo PLAN ativo (gasta 1 crédito) — descreva o plano...'
+                    ? 'Modo PLANEJAR ativo — envio normal da extensão...'
                     : 'Digite seu comando...';
             }
         };
 
-        cb.checked = localStorage.getItem('lvbl_modo_plano') === '1';
+        keepNormalSendPath();
+        cb.checked = localStorage.getItem(UI_KEY) === '1';
         apply(cb.checked);
         cb.addEventListener('change', () => {
-            localStorage.setItem('lvbl_modo_plano', cb.checked ? '1' : '0');
+            localStorage.setItem(UI_KEY, cb.checked ? '1' : '0');
             apply(cb.checked);
         });
+
+        if (sendBtn) sendBtn.addEventListener('click', preparePlanPrompt, true);
+        if (input) {
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey) preparePlanPrompt();
+            }, true);
+        }
     }
 
 
