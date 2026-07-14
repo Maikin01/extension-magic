@@ -216,8 +216,8 @@ function DownloadCard() {
         <h3 className="font-semibold">Baixar extensão</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        Baixe a versão nova, remova a extensão antiga, extraia o .zip e carregue em
-        <code>chrome://extensions</code> com o modo desenvolvedor ativo.
+        Baixe o arquivo .zip, extraia e carregue em <code>chrome://extensions</code> com o modo
+        desenvolvedor ativo.
       </p>
       <Button className="mt-4 w-full" onClick={downloadExtension}>
         <Download className="mr-2 h-4 w-4" /> Baixar .zip
@@ -235,7 +235,7 @@ function DownloadCard() {
 }
 
 function downloadExtension() {
-  fetch("/lovable-extension-v1.0.2.zip")
+  fetch("/lovable-extension.zip")
     .then((r) => {
       if (!r.ok) throw new Error("Download indisponível — publique o site para gerar o zip.");
       return r.blob();
@@ -243,7 +243,7 @@ function downloadExtension() {
     .then((blob) => {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "lovable-extension-v1.0.2.zip";
+      a.download = "lovable-extension.zip";
       a.click();
       URL.revokeObjectURL(a.href);
     })

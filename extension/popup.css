@@ -33,13 +33,7 @@ body.light {
     --text-muted: #8a7378;
 }
 
-html,
-body {
-    width: 400px;
-    height: 590px;
-    max-width: 400px;
-    max-height: 590px;
-}
+html, body { width: 420px; height: 640px; }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

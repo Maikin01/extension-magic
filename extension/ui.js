@@ -1,31 +1,5 @@
 // UI-only interactions (não toca em lógica de envio)
 (function () {
-    function storageGet(keys) {
-        return new Promise((resolve) => {
-            try {
-                const maybePromise = chrome.storage.local.get(keys, (result) => resolve(result || {}));
-                if (maybePromise && typeof maybePromise.then === 'function') {
-                    maybePromise.then((result) => resolve(result || {})).catch(() => resolve({}));
-                }
-            } catch {
-                resolve({});
-            }
-        });
-    }
-
-    function storageSet(value) {
-        return new Promise((resolve) => {
-            try {
-                const maybePromise = chrome.storage.local.set(value, () => resolve());
-                if (maybePromise && typeof maybePromise.then === 'function') {
-                    maybePromise.then(resolve).catch(resolve);
-                }
-            } catch {
-                resolve();
-            }
-        });
-    }
-
     // ===== Tabs =====
     const tabs = document.querySelectorAll('.tab');
     const panels = {
@@ -55,17 +29,17 @@
 
     // ===== Theme toggle =====
     const themeBtn = document.getElementById('themeToggle');
-    storageGet('lvbl_theme').then((r) => {
+    chrome.storage.local.get('lvbl_theme').then((r) => {
         if (r.lvbl_theme === 'light') {
             document.body.classList.add('light');
-            if (themeBtn) themeBtn.textContent = '☀️';
+            themeBtn.textContent = '☀️';
         }
     });
     themeBtn?.addEventListener('click', async () => {
         document.body.classList.toggle('light');
         const isLight = document.body.classList.contains('light');
         themeBtn.textContent = isLight ? '☀️' : '🌙';
-        await storageSet({ lvbl_theme: isLight ? 'light' : 'dark' });
+        await chrome.storage.local.set({ lvbl_theme: isLight ? 'light' : 'dark' });
     });
 
     // ===== Shortcut prompts =====
@@ -139,7 +113,7 @@
         empty.style.display = 'none';
         list.innerHTML = msgs.slice().reverse().map((m) => {
             const t = new Date(m.timestamp || Date.now()).toLocaleString('pt-BR');
-            const content = (m.content || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+            const content = (m.content || '').replace(/</g, '&lt;');
             return `<div class="history-item">${content}<div class="h-time">${t}</div></div>`;
         }).join('');
     }
