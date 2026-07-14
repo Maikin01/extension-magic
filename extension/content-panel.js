@@ -139,9 +139,7 @@
                 <img src="${logoUrl}" onerror="this.src='${iconFallback}'" alt="" />
                 <span>Lovable Chat</span>
             </div>
-            <div class="lb-actions">
-                <button id="lovable-ext-min" title="Minimizar" aria-label="Minimizar">—</button>
-            </div>
+            <div class="lb-actions"></div>
         </div>
         <iframe id="lovable-ext-frame" src="${popupUrl}" allow="clipboard-read; clipboard-write"></iframe>
     `;
