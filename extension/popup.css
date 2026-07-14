@@ -122,10 +122,10 @@ body {
     justify-content: space-between;
     gap: 8px;
     padding: 11px 14px;
-    background: linear-gradient(180deg, rgba(38, 10, 16, 0.95), rgba(20, 6, 10, 0.4));
-    border-bottom: 1px solid var(--border);
-    backdrop-filter: blur(10px);
+    background: transparent;
+    border-bottom: none;
 }
+
 
 .brand {
     display: flex;
