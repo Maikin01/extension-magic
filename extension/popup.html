@@ -1,103 +1,58 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lovable</title>
-    <link rel="stylesheet" href="popup.css" />
-  </head>
-  <body>
-    <div class="app" id="app">
-      <!-- Estado: carregando -->
-      <section class="screen" data-screen="loading">
-        <div class="logo">
-          <div class="logo-mark">✦</div>
-          <span>Lovable</span>
-        </div>
-        <div class="spinner"></div>
-        <p class="muted">Verificando licença…</p>
-      </section>
-
-      <!-- Estado: sem licença (colar chave) -->
-      <section class="screen hidden" data-screen="activate">
-        <div class="logo">
-          <div class="logo-mark">✦</div>
-          <span>Lovable</span>
-        </div>
-        <h1>Ative sua licença</h1>
-        <p class="muted">Cole abaixo a chave que aparece no seu painel.</p>
-
-        <label for="keyInput" class="label">Chave de licença</label>
-        <input
-          id="keyInput"
-          type="text"
-          spellcheck="false"
-          autocomplete="off"
-          placeholder="LVBL-XXXX-XXXX-XXXX-XXXX"
-        />
-
-        <button id="activateBtn" class="btn btn-primary">Ativar</button>
-
-        <div id="activateError" class="alert alert-error hidden"></div>
-
-        <div class="footer-actions">
-          <a id="openSiteFromActivate" href="#" target="_blank">Não tenho uma chave →</a>
-        </div>
-      </section>
-
-      <!-- Estado: licenciado -->
-      <section class="screen hidden" data-screen="licensed">
-        <div class="header-row">
-          <div class="logo">
-            <div class="logo-mark">✦</div>
-            <span>Lovable</span>
-          </div>
-          <span class="badge badge-success">Ativa</span>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lovable Chat</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Lovable Chat</h1>
+            <div class="project-info">
+                <span id="projectId">Carregando...</span>
+            </div>
         </div>
 
-        <div class="license-card">
-          <div class="license-label">Plano</div>
-          <div class="license-plan" id="licPlan">—</div>
-          <div class="license-key" id="licKey">—</div>
+        <div class="chat-container" id="chatContainer">
+            <div class="messages" id="messages">
+                <!-- Messages will be rendered here -->
+            </div>
         </div>
 
-        <div class="meta-grid">
-          <div>
-            <div class="meta-label">Expira em</div>
-            <div class="meta-value" id="licRemaining">—</div>
-          </div>
-          <div>
-            <div class="meta-label">Data</div>
-            <div class="meta-value" id="licExpiresAt">—</div>
-          </div>
+        <div class="file-preview" id="filePreview" style="display: none;">
+            <!-- File previews will be shown here -->
         </div>
 
-        <div class="features" id="featuresList"></div>
-
-        <div class="btn-row">
-          <button id="openSite" class="btn btn-ghost">Meu painel</button>
-          <button id="logout" class="btn btn-ghost btn-danger">Remover</button>
+        <div class="input-container">
+            <div class="input-wrapper">
+                <textarea 
+                    id="messageInput" 
+                    placeholder="Digite sua mensagem..."
+                    rows="3"
+                ></textarea>
+                <div class="button-group">
+                    <button id="attachButton" class="attach-btn" title="Anexar arquivo">
+                        📎
+                    </button>
+                    <input 
+                        type="file" 
+                        id="fileInput" 
+                        multiple 
+                        accept="image/*,.pdf,.doc,.docx,.txt,.js,.ts,.jsx,.tsx,.json,.css,.html"
+                        style="display: none;"
+                    />
+                    <button id="sendButton" class="send-btn" title="Enviar mensagem">
+                        ➤
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <p class="muted small" id="lastCheck">Validado agora</p>
-      </section>
-
-      <!-- Estado: bloqueado -->
-      <section class="screen hidden" data-screen="blocked">
-        <div class="logo">
-          <div class="logo-mark">✦</div>
-          <span>Lovable</span>
-        </div>
-        <div class="badge badge-error">Bloqueada</div>
-        <h1 id="blockedTitle">Licença inválida</h1>
-        <p class="muted" id="blockedReason">Verifique sua chave e tente novamente.</p>
-        <button id="retryBtn" class="btn btn-primary">Colar outra chave</button>
-        <div class="footer-actions">
-          <a id="openSiteFromBlocked" href="#" target="_blank">Comprar novo plano →</a>
-        </div>
-      </section>
+        <div class="status-bar" id="statusBar"></div>
     </div>
 
-    <script type="module" src="popup.js"></script>
-  </body>
+    <script src="popup.js"></script>
+</body>
 </html>
