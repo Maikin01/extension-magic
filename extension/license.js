@@ -12,6 +12,55 @@ const REVALIDATE_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
 
 // --- utils ----------------------------------------------------------------
 
+function storageGet(keys) {
+    return new Promise((resolve) => {
+        try {
+            const maybePromise = chrome.storage.local.get(keys, (result) => {
+                if (chrome.runtime?.lastError) {
+                    console.warn('[license] storage get failed:', chrome.runtime.lastError.message);
+                    resolve({});
+                    return;
+                }
+                resolve(result || {});
+            });
+            if (maybePromise && typeof maybePromise.then === 'function') {
+                maybePromise.then((result) => resolve(result || {})).catch(() => resolve({}));
+            }
+        } catch (e) {
+            console.warn('[license] storage get failed:', e);
+            resolve({});
+        }
+    });
+}
+
+function storageSet(value) {
+    return new Promise((resolve) => {
+        try {
+            const maybePromise = chrome.storage.local.set(value, () => resolve());
+            if (maybePromise && typeof maybePromise.then === 'function') {
+                maybePromise.then(resolve).catch(resolve);
+            }
+        } catch (e) {
+            console.warn('[license] storage set failed:', e);
+            resolve();
+        }
+    });
+}
+
+function storageRemove(keys) {
+    return new Promise((resolve) => {
+        try {
+            const maybePromise = chrome.storage.local.remove(keys, () => resolve());
+            if (maybePromise && typeof maybePromise.then === 'function') {
+                maybePromise.then(resolve).catch(resolve);
+            }
+        } catch (e) {
+            console.warn('[license] storage remove failed:', e);
+            resolve();
+        }
+    });
+}
+
 function lHex(bytes) {
     const a = new Uint8Array(bytes);
     crypto.getRandomValues(a);
@@ -19,10 +68,10 @@ function lHex(bytes) {
 }
 
 async function getOrCreateDeviceHash() {
-    const stored = await chrome.storage.local.get(STORAGE_KEYS.deviceHash);
+    const stored = await storageGet(STORAGE_KEYS.deviceHash);
     if (stored[STORAGE_KEYS.deviceHash]) return stored[STORAGE_KEYS.deviceHash];
     const hash = `dev_${lHex(24)}`;
-    await chrome.storage.local.set({ [STORAGE_KEYS.deviceHash]: hash });
+    await storageSet({ [STORAGE_KEYS.deviceHash]: hash });
     return hash;
 }
 
@@ -161,7 +210,7 @@ function setError(msg) {
 // --- flow -----------------------------------------------------------------
 
 async function tryAutoValidate() {
-    const stored = await chrome.storage.local.get([
+    const stored = await storageGet([
         STORAGE_KEYS.key,
         STORAGE_KEYS.lastCheck,
         STORAGE_KEYS.licenseInfo,
@@ -190,7 +239,7 @@ async function tryAutoValidate() {
     const res = await apiValidate(savedKey, deviceHash);
 
     if (res.ok && res.data.valid) {
-        await chrome.storage.local.set({
+        await storageSet({
             [STORAGE_KEYS.lastCheck]: Date.now(),
             [STORAGE_KEYS.licenseInfo]: res.data,
         });
@@ -204,7 +253,7 @@ async function tryAutoValidate() {
             setError(reasonText('network'));
         }
     } else {
-        await chrome.storage.local.remove([STORAGE_KEYS.licenseInfo]);
+        await storageRemove([STORAGE_KEYS.licenseInfo]);
         showGate();
         gateInput.value = savedKey;
         setError(reasonText(res.data.reason));
@@ -227,7 +276,7 @@ async function handleActivate(e) {
     setBusy(false);
 
     if (res.ok && res.data.valid) {
-        await chrome.storage.local.set({
+        await storageSet({
             [STORAGE_KEYS.key]: key,
             [STORAGE_KEYS.lastCheck]: Date.now(),
             [STORAGE_KEYS.licenseInfo]: res.data,
@@ -239,7 +288,7 @@ async function handleActivate(e) {
 }
 
 async function handleLogout() {
-    await chrome.storage.local.remove([
+    await storageRemove([
         STORAGE_KEYS.key,
         STORAGE_KEYS.lastCheck,
         STORAGE_KEYS.licenseInfo,
@@ -260,4 +309,7 @@ gateInput.addEventListener('input', () => {
     gateInput.setSelectionRange(p, p);
 });
 
-tryAutoValidate();
+tryAutoValidate().catch((error) => {
+    console.warn('[license] bootstrap failed:', error);
+    showGate();
+});
