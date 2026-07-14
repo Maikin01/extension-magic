@@ -1,7 +1,8 @@
 // content-shield.js
-// Quando o "Escudo" está ativo, injeta uma barreira visual sobre o chat nativo
-// do lovable.dev impedindo o usuário de digitar/enviar por lá. O objetivo é
-// forçar o uso do chat da extensão. Desativado = comportamento normal.
+// Quando o "Escudo" está ativo, desenha uma barreira visual (position: fixed)
+// sobre o composer do chat nativo do lovable.dev, impedindo digitação/envio.
+// A barreira é ancorada nas coordenadas do textarea e reposicionada a cada
+// frame, o que evita depender de ancestrais com layout específico.
 
 (function () {
     'use strict';
@@ -11,6 +12,8 @@
     const STYLE_ID = 'rise-infinity-shield-style';
 
     let enabled = false;
+    let rafId = null;
+    let overlayEl = null;
 
     function ensureStyle() {
         if (document.getElementById(STYLE_ID)) return;
@@ -18,8 +21,7 @@
         s.id = STYLE_ID;
         s.textContent = `
             #${OVERLAY_ID} {
-                position: absolute;
-                inset: 0;
+                position: fixed;
                 z-index: 2147483000;
                 display: flex;
                 flex-direction: column;
@@ -37,42 +39,32 @@
                 cursor: not-allowed;
                 user-select: none;
                 pointer-events: auto;
+                box-shadow: 0 10px 30px rgba(0,0,0,.45);
             }
-            #${OVERLAY_ID} .ri-shield-icon {
-                width: 34px; height: 34px;
-                color: #a78bfa;
-            }
-            #${OVERLAY_ID} .ri-shield-title {
-                color: #c4b5fd;
-                font-size: 14px;
-                display: flex; align-items: center; gap: 6px;
-            }
-            #${OVERLAY_ID} .ri-shield-sub {
-                color: #d1d5db;
-                font-weight: 500;
-                font-size: 12px;
-                opacity: .9;
-            }
-            .ri-shield-host { position: relative !important; }
+            #${OVERLAY_ID} .ri-shield-icon { width: 34px; height: 34px; color: #a78bfa; }
+            #${OVERLAY_ID} .ri-shield-title { color: #c4b5fd; font-size: 14px; display:flex; align-items:center; gap:6px; }
+            #${OVERLAY_ID} .ri-shield-sub { color: #d1d5db; font-weight: 500; font-size: 12px; opacity:.9; }
         `;
         document.documentElement.appendChild(s);
     }
 
-    function findComposerContainer() {
-        // Procura a última textarea visível (o composer do chat) e sobe até um
-        // ancestral com aparência de "caixa" (form ou div com padding/border).
+    function findComposerRect() {
+        // Escolhe a última textarea visível na página (composer costuma ser essa).
         const textareas = Array.from(document.querySelectorAll('textarea'))
-            .filter((t) => t.offsetParent !== null);
+            .filter((t) => {
+                const r = t.getBoundingClientRect();
+                return r.width > 0 && r.height > 0 && t.offsetParent !== null;
+            });
         const ta = textareas[textareas.length - 1];
         if (!ta) return null;
-        let node = ta.closest('form') || ta.parentElement;
-        // sobe alguns níveis para pegar a caixa inteira do composer
-        for (let i = 0; i < 4 && node && node.parentElement; i++) {
+        // Sobe até um contêiner "caixa" (form ou div maior) para cobrir botões.
+        let node = ta.closest('form') || ta.parentElement || ta;
+        for (let i = 0; i < 5 && node && node.parentElement; i++) {
             const r = node.getBoundingClientRect();
-            if (r.height >= 90 && r.width >= 240) break;
+            if (r.height >= 90 && r.width >= 260) break;
             node = node.parentElement;
         }
-        return node;
+        return { rect: node.getBoundingClientRect(), textarea: ta, host: node };
     }
 
     function buildOverlay() {
@@ -83,30 +75,21 @@
             <div class="ri-shield-title">🛡 Protegido pelo Rise Infinity</div>
             <div class="ri-shield-sub">Use a extensão para enviar prompts</div>
         `;
-        // Bloqueia qualquer interação
-        ['click', 'mousedown', 'keydown', 'pointerdown', 'touchstart'].forEach((evt) => {
+        ['click', 'mousedown', 'keydown', 'pointerdown', 'touchstart', 'wheel'].forEach((evt) => {
             el.addEventListener(evt, (e) => { e.stopPropagation(); e.preventDefault(); }, true);
         });
         return el;
     }
 
-    function apply() {
-        if (!enabled) return remove();
-        ensureStyle();
-        const host = findComposerContainer();
+    function disableComposerControls(host) {
         if (!host) return;
-        // Já existe um overlay? Verifica se ainda está no host certo.
-        const existing = document.getElementById(OVERLAY_ID);
-        if (existing && existing.parentElement === host) return;
-        if (existing) existing.remove();
-
-        host.classList.add('ri-shield-host');
-        host.appendChild(buildOverlay());
-
-        // Desabilita textareas e botões de envio dentro do host
         host.querySelectorAll('textarea, button, [contenteditable="true"]').forEach((el) => {
+            if (el.getAttribute('data-ri-shield-disabled') === '1') return;
             el.setAttribute('data-ri-shield-disabled', '1');
-            if ('disabled' in el) el.disabled = true;
+            if ('disabled' in el && !el.disabled) {
+                el.setAttribute('data-ri-was-enabled', '1');
+                el.disabled = true;
+            }
             if (el.getAttribute('contenteditable') === 'true') {
                 el.setAttribute('data-ri-prev-ce', 'true');
                 el.setAttribute('contenteditable', 'false');
@@ -114,16 +97,13 @@
         });
     }
 
-    function remove() {
-        const el = document.getElementById(OVERLAY_ID);
-        if (el) {
-            const host = el.parentElement;
-            if (host) host.classList.remove('ri-shield-host');
-            el.remove();
-        }
+    function reenableControls() {
         document.querySelectorAll('[data-ri-shield-disabled="1"]').forEach((el) => {
             el.removeAttribute('data-ri-shield-disabled');
-            if ('disabled' in el) el.disabled = false;
+            if (el.getAttribute('data-ri-was-enabled') === '1') {
+                if ('disabled' in el) el.disabled = false;
+                el.removeAttribute('data-ri-was-enabled');
+            }
             if (el.getAttribute('data-ri-prev-ce') === 'true') {
                 el.setAttribute('contenteditable', 'true');
                 el.removeAttribute('data-ri-prev-ce');
@@ -131,23 +111,51 @@
         });
     }
 
-    // Observa a página para reaplicar quando o chat re-renderiza
-    const mo = new MutationObserver(() => { if (enabled) apply(); });
-    mo.observe(document.documentElement, { childList: true, subtree: true });
+    function tick() {
+        if (!enabled) { rafId = null; return; }
+        ensureStyle();
+        const found = findComposerRect();
+        if (!found) {
+            if (overlayEl) overlayEl.style.display = 'none';
+            rafId = requestAnimationFrame(tick);
+            return;
+        }
+        if (!overlayEl || !document.body.contains(overlayEl)) {
+            overlayEl = buildOverlay();
+            document.body.appendChild(overlayEl);
+        }
+        const r = found.rect;
+        overlayEl.style.display = 'flex';
+        overlayEl.style.left = `${r.left}px`;
+        overlayEl.style.top = `${r.top}px`;
+        overlayEl.style.width = `${r.width}px`;
+        overlayEl.style.height = `${r.height}px`;
+        disableComposerControls(found.host);
+        rafId = requestAnimationFrame(tick);
+    }
 
-    // Estado inicial + reação a mudanças no toggle
+    function start() {
+        if (rafId != null) return;
+        rafId = requestAnimationFrame(tick);
+    }
+    function stop() {
+        if (rafId != null) { cancelAnimationFrame(rafId); rafId = null; }
+        if (overlayEl) { overlayEl.remove(); overlayEl = null; }
+        reenableControls();
+    }
+
     try {
         chrome.storage.local.get([FLAG_KEY], (v) => {
             enabled = !!v[FLAG_KEY];
-            apply();
+            if (enabled) start();
         });
         chrome.storage.onChanged.addListener((changes, area) => {
             if (area === 'local' && FLAG_KEY in changes) {
                 enabled = !!changes[FLAG_KEY].newValue;
-                if (enabled) apply(); else remove();
+                if (enabled) start(); else stop();
             }
         });
     } catch (_) {}
 
-    console.log('[lvbl-shield] content script loaded');
+    console.log('[lvbl-shield] content script loaded (fixed-overlay mode)');
 })();
