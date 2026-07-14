@@ -248,7 +248,9 @@ async function handleLogout() {
 
 // bootstrap
 gateForm.addEventListener('submit', handleActivate);
-licenseLogoutBtn.addEventListener('click', handleLogout);
+if (licenseLogoutBtn) licenseLogoutBtn.addEventListener('click', handleLogout);
+const licenseLogoutTopBtn = document.getElementById('licenseLogoutTop');
+if (licenseLogoutTopBtn) licenseLogoutTopBtn.addEventListener('click', handleLogout);
 
 // Auto-uppercase e format helper leve
 gateInput.addEventListener('input', () => {
