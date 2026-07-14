@@ -241,20 +241,13 @@
             if (d.__lovableExt === 'expand') expand();
             if (d.__lovableExt === 'dragStart') {
                 const rect = panel.getBoundingClientRect();
-                const frameRect = panel.querySelector('iframe').getBoundingClientRect();
-                iframeDrag = {
-                    origX: rect.left, origY: rect.top,
-                    startX: frameRect.left + d.x, startY: frameRect.top + d.y,
-                };
+                iframeDrag = { origX: rect.left, origY: rect.top, startX: d.x, startY: d.y };
                 panel.querySelector('iframe').style.pointerEvents = 'none';
             }
             if (d.__lovableExt === 'dragMove' && iframeDrag) {
-                const frameRect = panel.querySelector('iframe').getBoundingClientRect();
-                const cx = frameRect.left + d.x;
-                const cy = frameRect.top + d.y;
                 const w = panel.offsetWidth, h = panel.offsetHeight;
-                const nx = clamp(iframeDrag.origX + (cx - iframeDrag.startX), 4, window.innerWidth - w - 4);
-                const ny = clamp(iframeDrag.origY + (cy - iframeDrag.startY), 4, window.innerHeight - h - 4);
+                const nx = clamp(iframeDrag.origX + (d.x - iframeDrag.startX), 4, window.innerWidth - w - 4);
+                const ny = clamp(iframeDrag.origY + (d.y - iframeDrag.startY), 4, window.innerHeight - h - 4);
                 panel.style.left = nx + 'px';
                 panel.style.top = ny + 'px';
             }

@@ -777,12 +777,12 @@ document.addEventListener('DOMContentLoaded', initialize);
             dragging = true; pid = e.pointerId;
             bar.style.cursor = 'grabbing';
             try { bar.setPointerCapture(pid); } catch (_) {}
-            window.parent.postMessage({ __lovableExt: 'dragStart', x: e.clientX, y: e.clientY }, '*');
+            window.parent.postMessage({ __lovableExt: 'dragStart', x: e.screenX, y: e.screenY }, '*');
             e.preventDefault();
         });
         bar.addEventListener('pointermove', (e) => {
             if (!dragging || e.pointerId !== pid) return;
-            window.parent.postMessage({ __lovableExt: 'dragMove', x: e.clientX, y: e.clientY }, '*');
+            window.parent.postMessage({ __lovableExt: 'dragMove', x: e.screenX, y: e.screenY }, '*');
         });
         function end(e) {
             if (!dragging) return;
