@@ -3,35 +3,28 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Suspense } from "react";
 import { SiteHeader } from "@/components/site/Header";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  CheckCircle2,
-  Key,
-  Shield,
-  Zap,
   ChevronRight,
   Sparkles,
-  Infinity as InfinityIcon,
   Cpu,
   Mic,
-  History,
-  Code2,
-  Lock,
-  Rocket,
-  Star,
-  Users,
-  Timer,
-  MonitorSmartphone,
+  Infinity as InfinityIcon,
+  Shield,
   Wand2,
   BrainCircuit,
+  MousePointerClick,
+  UploadCloud,
+  Zap,
+  Eraser,
   MessageSquare,
+  Bot,
+  Puzzle,
+  StickyNote,
+  Boxes,
+  Check,
+  Download,
+  CheckCircle2,
 } from "lucide-react";
 import { getPublicPlans } from "@/lib/license.functions";
 import { formatPrice } from "@/lib/license-utils";
@@ -39,11 +32,11 @@ import { formatPrice } from "@/lib/license-utils";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Rise Lovable — Licenciamento profissional para a extensão" },
+      { title: "Rise Lovable — Domine o Lovable em outro nível" },
       {
         name: "description",
         content:
-          "A extensão definitiva para power-users do Lovable.dev. Chaves únicas, validação em tempo real e planos flexíveis com controle total de dispositivos.",
+          "A extensão definitiva para power-users do Lovable.dev. Sidebar IA, prompt por voz, uso ilimitado e licenças validadas em tempo real.",
       },
     ],
   }),
@@ -56,16 +49,11 @@ function LandingPage() {
       <SiteHeader />
       <main>
         <Hero />
-        <Marquee />
-        <Features />
-        <Showcase />
         <HowItWorks />
-        <Stats />
-        <Testimonials />
-        <Suspense fallback={<PlansPlaceholder />}>
-          <PlansPreview />
+        <Features />
+        <Suspense fallback={<div className="py-24 text-center text-white/50">Carregando planos…</div>}>
+          <Plans />
         </Suspense>
-        <FAQ />
         <FinalCTA />
       </main>
       <Footer />
@@ -74,7 +62,7 @@ function LandingPage() {
 }
 
 /* ------------------------------------------------------------------ */
-/* HERO                                                                */
+/* 1. HERO                                                             */
 /* ------------------------------------------------------------------ */
 
 function Hero() {
@@ -83,11 +71,8 @@ function Hero() {
       <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-20 md:py-28 lg:grid-cols-2 lg:gap-16">
         <div>
           <div className="chip-neon mb-8 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-            </span>
-            Ferramenta secreta dos usuários avançados
+            <Sparkles className="h-3 w-3" />
+            Ferramenta secreta dos usuários avançados de IA
           </div>
 
           <h1 className="font-display text-5xl font-extrabold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
@@ -137,7 +122,7 @@ function Hero() {
           </div>
         </div>
 
-        {/* Right — extension mockup */}
+        {/* Mockup */}
         <div className="relative mx-auto w-full max-w-md">
           <div className="pointer-events-none absolute -inset-10 -z-0 rounded-[40px] bg-primary/25 blur-[90px]" />
           <div className="ring-glow relative overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0a]">
@@ -201,17 +186,6 @@ function Hero() {
                   Enviar
                 </button>
               </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                {["Anexar", "Voz", "Código"].map((k) => (
-                  <div
-                    key={k}
-                    className="rounded-lg border border-white/5 bg-white/[0.02] py-2 text-center text-[10px] font-semibold text-white/70"
-                  >
-                    {k}
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -224,13 +198,6 @@ function Hero() {
               <div className="text-white/50">Validada em tempo real</div>
             </div>
           </div>
-
-          <div className="absolute -right-4 top-8 flex items-center gap-2 rounded-2xl border border-white/10 bg-black/70 px-3 py-2 backdrop-blur-xl">
-            <BrainCircuit className="h-4 w-4 text-primary" />
-            <div className="text-[10px] font-semibold uppercase tracking-widest">
-              IA · GPT-5 Ready
-            </div>
-          </div>
         </div>
       </div>
     </section>
@@ -238,322 +205,84 @@ function Hero() {
 }
 
 /* ------------------------------------------------------------------ */
-/* MARQUEE — logos / palavras-chave                                    */
-/* ------------------------------------------------------------------ */
-
-function Marquee() {
-  const items = [
-    "SIDEBAR IA",
-    "PROMPT POR VOZ",
-    "HISTÓRICO INFINITO",
-    "MULTI-CONTA",
-    "AUTOMAÇÃO",
-    "COMANDOS RÁPIDOS",
-    "CHAT AVANÇADO",
-    "ANEXOS",
-    "MODO PRO",
-    "GPT-5 READY",
-  ];
-  return (
-    <section className="border-b border-white/5 bg-black/60">
-      <div className="mx-auto max-w-7xl overflow-hidden px-6 py-6">
-        <div className="flex items-center gap-8 whitespace-nowrap text-[11px] font-black uppercase tracking-[0.35em] text-white/30">
-          {[...items, ...items].map((w, i) => (
-            <span key={i} className="flex items-center gap-8">
-              {w}
-              <span className="h-1 w-1 rounded-full bg-primary/60" />
-            </span>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* FEATURES                                                            */
-/* ------------------------------------------------------------------ */
-
-function Features() {
-  const items = [
-    {
-      icon: Key,
-      title: "Chaves únicas por usuário",
-      desc: "Formato LVBL-XXXX-XXXX-XXXX-XXXX, geradas com criptografia forte e vinculadas à sua conta.",
-    },
-    {
-      icon: Shield,
-      title: "Validação server-side",
-      desc: "A extensão nunca decide sozinha se você tem acesso — toda validação passa pelo nosso servidor.",
-    },
-    {
-      icon: MonitorSmartphone,
-      title: "Controle total de dispositivos",
-      desc: "Veja em quais navegadores sua chave está ativa e revogue com um clique.",
-    },
-    {
-      icon: Zap,
-      title: "Respostas em tempo real",
-      desc: "Revalidação a cada 30 segundos. Se algo mudar, a extensão trava na hora.",
-    },
-    {
-      icon: Lock,
-      title: "Anti-fraude nativo",
-      desc: "Fingerprint de dispositivo, rate-limit e detecção automática de compartilhamento.",
-    },
-    {
-      icon: Rocket,
-      title: "Feito para produtividade",
-      desc: "Sidebar de IA, prompts por voz, histórico e comandos rápidos direto no Lovable.",
-    },
-  ];
-  return (
-    <section className="bg-panel border-b border-white/5 py-24">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-14 max-w-2xl">
-          <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
-            Por que Rise Lovable
-          </div>
-          <h2 className="font-display text-4xl font-extrabold tracking-tight md:text-5xl">
-            Rígido, rápido e{" "}
-            <span className="text-gradient-red">à prova de fraude.</span>
-          </h2>
-          <p className="mt-4 max-w-xl text-white/60">
-            Cada detalhe da Rise Lovable foi pensado para quem trabalha sério
-            com Lovable.dev — do licenciamento à experiência dentro do editor.
-          </p>
-        </div>
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {items.map((it) => (
-            <Card
-              key={it.title}
-              className="group relative overflow-hidden border-white/5 bg-white/[0.02] p-6 backdrop-blur-sm transition-all hover:border-primary/40 hover:bg-white/[0.04]"
-            >
-              <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-primary/15 opacity-0 blur-3xl transition-opacity group-hover:opacity-100" />
-              <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary shadow-[0_0_24px_oklch(0.63_0.245_25/0.25)]">
-                <it.icon className="h-5 w-5" />
-              </div>
-              <h3 className="font-display text-lg font-bold">{it.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-white/60">{it.desc}</p>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* SHOWCASE — feature cards com visuais diferentes                     */
-/* ------------------------------------------------------------------ */
-
-function Showcase() {
-  return (
-    <section className="bg-deep border-b border-white/5 py-24">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-14 text-center">
-          <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
-            Recursos exclusivos
-          </div>
-          <h2 className="font-display text-4xl font-extrabold tracking-tight md:text-5xl">
-            Um arsenal dentro do{" "}
-            <span className="text-gradient-red">seu navegador.</span>
-          </h2>
-        </div>
-
-        <div className="grid gap-5 lg:grid-cols-6">
-          {/* Big card — Sidebar IA */}
-          <Card className="ring-glow relative overflow-hidden border-white/5 bg-gradient-to-br from-black to-[#170606] p-8 lg:col-span-4">
-            <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-primary/25 blur-3xl" />
-            <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
-              <BrainCircuit className="mr-1 h-3 w-3" /> Sidebar IA
-            </div>
-            <h3 className="font-display text-3xl font-extrabold tracking-tight">
-              Um copiloto encaixado ao Lovable.
-            </h3>
-            <p className="mt-3 max-w-md text-sm text-white/60">
-              Chat lateral, comandos rápidos, histórico persistente e ações
-              contextuais. Tudo com um clique — sem sair do editor.
-            </p>
-
-            <div className="mt-8 grid grid-cols-2 gap-3">
-              {[
-                { icon: MessageSquare, label: "Chat com contexto" },
-                { icon: History, label: "Histórico infinito" },
-                { icon: Wand2, label: "Ações rápidas" },
-                { icon: Code2, label: "Injetar código" },
-              ].map((r) => (
-                <div
-                  key={r.label}
-                  className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 text-xs"
-                >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary">
-                    <r.icon className="h-4 w-4" />
-                  </div>
-                  <span className="font-semibold text-white/80">{r.label}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Voice */}
-          <Card className="relative overflow-hidden border-white/5 bg-white/[0.02] p-8 lg:col-span-2">
-            <div className="pointer-events-none absolute -bottom-16 -right-16 h-52 w-52 rounded-full bg-primary/20 blur-3xl" />
-            <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
-              <Mic className="mr-1 h-3 w-3" /> Prompt por voz
-            </div>
-            <h3 className="font-display text-2xl font-extrabold tracking-tight">
-              Fale. A IA escuta.
-            </h3>
-            <p className="mt-3 text-sm text-white/60">
-              Transcrição em tempo real direto para o prompt do Lovable.
-            </p>
-
-            <div className="mt-8 flex items-end gap-1">
-              {[24, 40, 16, 52, 32, 60, 20, 44, 28, 48, 18, 36].map((h, i) => (
-                <span
-                  key={i}
-                  className="w-1.5 rounded-full bg-gradient-to-t from-primary/40 to-primary"
-                  style={{ height: `${h}px` }}
-                />
-              ))}
-            </div>
-          </Card>
-
-          {/* Multi devices */}
-          <Card className="relative overflow-hidden border-white/5 bg-white/[0.02] p-8 lg:col-span-2">
-            <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
-              <MonitorSmartphone className="mr-1 h-3 w-3" /> Multi-dispositivo
-            </div>
-            <h3 className="font-display text-2xl font-extrabold tracking-tight">
-              Sua licença, seus aparelhos.
-            </h3>
-            <p className="mt-3 text-sm text-white/60">
-              Ative em vários navegadores conforme seu plano. Revogue quando
-              quiser.
-            </p>
-            <div className="mt-6 space-y-2">
-              {["Chrome · Desktop", "Edge · Notebook", "Brave · Home"].map(
-                (d, i) => (
-                  <div
-                    key={d}
-                    className="flex items-center justify-between rounded-lg border border-white/5 bg-black/40 px-3 py-2 text-[11px]"
-                  >
-                    <span className="font-mono text-white/70">{d}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest ${
-                        i === 0
-                          ? "bg-primary/20 text-primary"
-                          : "bg-white/5 text-white/50"
-                      }`}
-                    >
-                      {i === 0 ? "Ativo" : "Ocioso"}
-                    </span>
-                  </div>
-                ),
-              )}
-            </div>
-          </Card>
-
-          {/* Security */}
-          <Card className="ring-glow relative overflow-hidden border-white/5 bg-gradient-to-tr from-black to-[#170606] p-8 lg:col-span-4">
-            <div className="pointer-events-none absolute -left-16 -top-16 h-72 w-72 rounded-full bg-primary/25 blur-3xl" />
-            <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
-              <Lock className="mr-1 h-3 w-3" /> Segurança
-            </div>
-            <h3 className="font-display text-3xl font-extrabold tracking-tight">
-              Licenciamento nível empresarial.
-            </h3>
-            <p className="mt-3 max-w-md text-sm text-white/60">
-              Revalidação constante, detecção de compartilhamento, revogação
-              instantânea. Se sua chave for cortada, a extensão trava — sem
-              refresh, sem drama.
-            </p>
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              {[
-                { label: "Revalidação", value: "30s" },
-                { label: "Uptime", value: "99,9%" },
-                { label: "Latência", value: "<120ms" },
-              ].map((s) => (
-                <div
-                  key={s.label}
-                  className="rounded-xl border border-white/5 bg-black/40 p-4"
-                >
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                    {s.label}
-                  </div>
-                  <div className="mt-1 font-display text-2xl font-extrabold text-gradient-red">
-                    {s.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* HOW IT WORKS                                                        */
+/* 2. COMO FUNCIONA                                                    */
 /* ------------------------------------------------------------------ */
 
 function HowItWorks() {
   const steps = [
     {
       n: "01",
-      icon: Users,
-      title: "Crie sua conta",
-      desc: "Cadastre-se em segundos. Sem cartão, sem fricção.",
+      title: "Baixe o instalador",
+      desc: "Um clique no botão, download imediato. Sem cadastro, sem espera, sem loja de extensões.",
     },
     {
       n: "02",
-      icon: Key,
-      title: "Escolha um plano",
-      desc: "Do teste grátis ao anual — pague só pelo que usar.",
+      title: "Instale no navegador",
+      desc: "Ative o modo desenvolvedor, arraste o ZIP e pronto. Funciona em Chrome, Edge, Brave, Opera, Arc.",
     },
     {
       n: "03",
-      icon: Rocket,
-      title: "Ative a extensão",
-      desc: "Cole sua chave, valide e comece a usar em segundos.",
+      title: "Pronto pra usar",
+      desc: "Abra o Lovable, ative a extensão com sua Key e envie quantos comandos quiser. Sem gastar créditos.",
     },
   ];
+
   return (
     <section className="bg-panel-alt border-b border-white/5 py-24">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-14 text-center">
-          <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
+        <div className="mb-16 text-center">
+          <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.35em] text-primary">
             Como funciona
           </div>
           <h2 className="font-display text-4xl font-extrabold tracking-tight md:text-5xl">
-            3 passos.{" "}
-            <span className="text-gradient-red">Zero complicação.</span>
+            Instale, ative e domine em
+            <br />
+            menos de <span className="text-gradient-red">60 segundos.</span>
           </h2>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          {steps.map((s, i) => (
-            <div key={s.n} className="relative">
-              {i < steps.length - 1 && (
-                <div className="pointer-events-none absolute left-full top-10 hidden h-px w-full -translate-x-1/2 bg-gradient-to-r from-primary/40 to-transparent md:block" />
-              )}
-              <Card className="relative overflow-hidden border-white/5 bg-white/[0.02] p-7 backdrop-blur-sm">
-                <div className="mb-6 flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold uppercase tracking-widest text-primary">
-                    Passo {s.n}
-                  </span>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary">
-                    <s.icon className="h-5 w-5" />
-                  </div>
-                </div>
-                <h3 className="font-display text-xl font-bold">{s.title}</h3>
-                <p className="mt-2 text-sm text-white/60">{s.desc}</p>
-              </Card>
+        <div className="relative grid gap-6 md:grid-cols-3">
+          {/* linha conectora */}
+          <div className="pointer-events-none absolute left-[10%] right-[10%] top-[62px] hidden h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent md:block" />
+
+          {steps.map((s) => (
+            <div
+              key={s.n}
+              className="relative rounded-2xl border border-white/5 bg-white/[0.02] p-8 text-center backdrop-blur-sm transition hover:border-primary/30"
+            >
+              <div className="ring-glow mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-2xl border border-primary/40 bg-black">
+                <span className="font-display text-3xl font-black text-gradient-red">
+                  {s.n}
+                </span>
+              </div>
+              <h3 className="font-display text-xl font-bold">{s.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-white/60">{s.desc}</p>
             </div>
           ))}
+        </div>
+
+        <div className="mt-16 text-center">
+          <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.35em] text-white/40">
+            Comece agora mesmo
+          </div>
+          <Link
+            to="/planos"
+            className="btn-neon inline-flex h-14 items-center gap-3 rounded-2xl px-8 text-sm font-bold uppercase tracking-wider text-white"
+          >
+            <Download className="h-5 w-5" />
+            Baixar extensão grátis
+          </Link>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] text-white/50">
+            <span className="flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5 text-primary" /> Grátis para baixar
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5 text-primary" /> Última versão v20.5.2
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5 text-primary" /> Chrome · Edge · Brave · Opera · Arc
+            </span>
+          </div>
         </div>
       </div>
     </section>
@@ -561,100 +290,116 @@ function HowItWorks() {
 }
 
 /* ------------------------------------------------------------------ */
-/* STATS                                                               */
+/* 3. RECURSOS CORE (bento grid 12)                                    */
 /* ------------------------------------------------------------------ */
 
-function Stats() {
-  const stats = [
-    { icon: Users, label: "Usuários ativos", value: "12.500+" },
-    { icon: Zap, label: "Prompts processados", value: "3,8M" },
-    { icon: Timer, label: "Tempo médio de setup", value: "38s" },
-    { icon: Star, label: "Satisfação", value: "4,9 / 5" },
-  ];
-  return (
-    <section className="border-b border-white/5 bg-black py-16">
-      <div className="mx-auto grid max-w-7xl gap-4 px-6 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((s) => (
-          <div
-            key={s.label}
-            className="relative overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] p-6"
-          >
-            <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/15 blur-3xl" />
-            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary">
-              <s.icon className="h-5 w-5" />
-            </div>
-            <div className="font-display text-3xl font-extrabold tracking-tight">
-              {s.value}
-            </div>
-            <div className="mt-1 text-xs font-semibold uppercase tracking-widest text-white/40">
-              {s.label}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* TESTIMONIALS                                                        */
-/* ------------------------------------------------------------------ */
-
-function Testimonials() {
+function Features() {
   const items = [
     {
-      name: "Rafael M.",
-      role: "Founder · SaaS",
-      text: "Depois da Rise Lovable eu economizo pelo menos 2h por dia. A sidebar de IA sozinha já paga o plano anual.",
+      icon: Wand2,
+      title: "Reescrever",
+      desc: "Refine seus prompts com IA antes de enviar. Transforme ideias soltas em comandos cirúrgicos que geram resultados perfeitos na primeira tentativa.",
     },
     {
-      name: "Larissa P.",
-      role: "Product Designer",
-      text: "Prompt por voz muda o jogo. Uso enquanto desenho no Figma e a coisa flui igual conversa.",
+      icon: BrainCircuit,
+      title: "Modo Pensar",
+      desc: "Ative o raciocínio profundo da IA com um clique. Ideal para arquiteturas complexas, debugging avançado e decisões técnicas críticas.",
     },
     {
-      name: "Diego S.",
-      role: "Dev Freelancer",
-      text: "Testei outras extensões e todas caíram. Essa nunca dá pau, valida na hora e é rápida absurda.",
+      icon: MousePointerClick,
+      title: "Seletor de Elementos",
+      desc: "Clique em qualquer elemento da tela e edite-o instantaneamente. Sem digitar caminhos, sem perder tempo descrevendo o que você quer alterar.",
+    },
+    {
+      icon: Mic,
+      title: "Comando de Voz",
+      desc: "Fale seus prompts naturalmente. A transcrição em tempo real captura suas ideias enquanto você pensa, acelerando seu fluxo criativo.",
+    },
+    {
+      icon: UploadCloud,
+      title: "Upload de Arquivos & Imagens",
+      desc: "Envie imagens, PDFs e referências de design direto no chat. A IA usa esses arquivos para construir interfaces fiéis ao seu desejo.",
+    },
+    {
+      icon: Zap,
+      title: "Funções Especiais",
+      desc: "Atalhos, automações e ações rápidas integradas ao Lovable. Acelere tarefas repetitivas e mantenha o foco no que importa: criar.",
+    },
+    {
+      icon: Eraser,
+      title: "Remoção de Marca D'água",
+      desc: "Entregue projetos 100% limpos para seus clientes. Sem branding externo, sem identificação de terceiros — apenas a sua marca.",
+    },
+    {
+      icon: MessageSquare,
+      title: "Chat Ao Vivo (Anti-Créditos)",
+      desc: "Envie comandos diretamente pelo chat oficial do Lovable. Nossa tecnologia intercepta as mensagens e processa tudo sem tocar nos créditos.",
+    },
+    {
+      icon: Bot,
+      title: "Assistente Alexa",
+      desc: "IA dedicada que responde dúvidas, sugere prompts e guia seu projeto do zero ao deploy. Como ter um sênior ao seu lado 24/7.",
+    },
+    {
+      icon: Puzzle,
+      title: "Sistema de Skills",
+      desc: "Ative skills especialistas (SEO, Performance, UI/UX, Copy) ou crie as suas próprias. Transforme a IA num especialista em segundos.",
+    },
+    {
+      icon: StickyNote,
+      title: "Notas Flutuantes",
+      desc: "Anotações rápidas fixadas na tela que permanecem mesmo após fechar o navegador. Ideal para guardar prompts, ideias e referências.",
+    },
+    {
+      icon: Boxes,
+      title: "Seleção de Agente",
+      desc: "Escolha qual IA processa seus comandos: Claude Opus 4.8, Gemini PRO 3.2 ou GPT 5.5. Use o modelo certo para cada tipo de tarefa.",
     },
   ];
+
   return (
     <section className="bg-deep border-b border-white/5 py-24">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-14 max-w-2xl">
-          <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
-            Quem usa, aprova
+        <div className="mb-14 grid gap-6 md:grid-cols-2 md:items-end">
+          <div>
+            <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.35em] text-primary">
+              Recursos Core
+            </div>
+            <h2 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl">
+              Tecnologia de elite para
+              <br />
+              performance absoluta.
+            </h2>
           </div>
-          <h2 className="font-display text-4xl font-extrabold tracking-tight md:text-5xl">
-            Feedback de{" "}
-            <span className="text-gradient-red">quem já rodou.</span>
-          </h2>
+          <p className="text-sm leading-relaxed text-white/50 md:text-right">
+            Desenvolvemos a Rise Lovable para ser o núcleo operacional
+            <br className="hidden md:block" />
+            do seu fluxo no Lovable. Sem ruído, apenas resultados.
+          </p>
         </div>
-        <div className="grid gap-5 md:grid-cols-3">
-          {items.map((t) => (
-            <Card
-              key={t.name}
-              className="relative overflow-hidden border-white/5 bg-white/[0.02] p-6 backdrop-blur-sm"
-            >
-              <div className="mb-4 flex gap-1 text-primary">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-current" />
-                ))}
-              </div>
-              <p className="text-sm leading-relaxed text-white/80">
-                “{t.text}”
-              </p>
-              <div className="mt-6 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-xs font-black">
-                  {t.name.charAt(0)}
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {items.map((it, i) => {
+            const num = String(i + 1).padStart(2, "0");
+            return (
+              <Card
+                key={it.title}
+                className="group relative overflow-hidden border-white/5 bg-white/[0.015] p-6 transition-all hover:border-primary/40 hover:bg-white/[0.04]"
+              >
+                <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-primary/15 opacity-0 blur-3xl transition-opacity group-hover:opacity-100" />
+                <div className="mb-6 flex items-start justify-between">
+                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary shadow-[0_0_20px_oklch(0.63_0.245_25/0.2)]">
+                    <it.icon className="h-4.5 w-4.5" />
+                  </div>
+                  <span className="font-display text-2xl font-black text-white/10">
+                    {num}
+                  </span>
                 </div>
-                <div className="text-xs">
-                  <div className="font-semibold">{t.name}</div>
-                  <div className="text-white/50">{t.role}</div>
-                </div>
-              </div>
-            </Card>
-          ))}
+                <h3 className="font-display text-lg font-bold">{it.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-white/55">{it.desc}</p>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -662,184 +407,171 @@ function Testimonials() {
 }
 
 /* ------------------------------------------------------------------ */
-/* PLANS                                                               */
+/* 4. PLANOS                                                           */
 /* ------------------------------------------------------------------ */
 
-function PlansPlaceholder() {
-  return (
-    <div className="py-24 text-center text-sm text-white/40">Carregando planos…</div>
-  );
-}
-
-function PlansPreview() {
+function Plans() {
   const getPlans = useServerFn(getPublicPlans);
   const { data: plans } = useSuspenseQuery({
     queryKey: ["plans", "public"],
     queryFn: () => getPlans(),
   });
 
-  const highlightId = plans.find((p) => /mensal/i.test(p.name))?.id;
+  const highlightSlug = "monthly";
 
   return (
-    <section className="bg-band relative border-b border-white/5 py-24">
+    <section className="bg-panel border-b border-white/5 py-24">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-14 text-center">
-          <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
+        <div className="mb-16 text-center">
+          <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.35em] text-primary">
             Planos
           </div>
-          <h2 className="font-display text-4xl font-extrabold tracking-tight md:text-5xl">
-            Escolha seu <span className="text-gradient-red">plano</span>
+          <h2 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl">
+            Escolha o plano que combina
+            <br />
+            com <span className="text-gradient-red">seu ritmo.</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-white/60">
-            Do teste grátis ao anual — sem letra miúda, cancela quando quiser.
-          </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-          {plans.map((p) => {
-            const isFree = p.price_cents === 0;
-            const isHighlight = p.id === highlightId;
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {plans.slice(0, 6).map((plan) => {
+            const highlight = plan.slug === highlightSlug;
+            const features = (plan.features as string[]) ?? [];
             return (
               <Card
-                key={p.id}
-                className={`relative flex flex-col overflow-hidden border-white/5 bg-white/[0.02] p-5 backdrop-blur-sm transition ${
-                  isHighlight
-                    ? "ring-glow border-primary/50"
-                    : "hover:border-primary/30 hover:bg-white/[0.04]"
+                key={plan.id}
+                className={`relative flex flex-col overflow-hidden p-8 transition-all ${
+                  highlight
+                    ? "ring-glow border-primary/50 bg-gradient-to-b from-[#180606] to-black"
+                    : "border-white/5 bg-white/[0.02] hover:border-primary/30"
                 }`}
               >
-                {isHighlight && (
-                  <span className="absolute right-3 top-3 rounded-full bg-primary px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-white shadow-[0_0_18px_oklch(0.63_0.245_25/0.7)]">
-                    Popular
-                  </span>
+                {highlight && (
+                  <div className="absolute -top-px left-1/2 -translate-x-1/2 rounded-b-full bg-gradient-to-r from-primary to-primary/60 px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-[0_0_20px_oklch(0.63_0.245_25/0.6)]">
+                    Mais popular
+                  </div>
                 )}
-                <div className="text-[11px] font-bold uppercase tracking-widest text-white/50">
-                  {p.name}
+
+                <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary">
+                  {plan.duration_days} {plan.duration_days === 1 ? "dia" : "dias"}
+                  {" · "}
+                  {plan.max_devices} disp.
                 </div>
-                <div className="mt-3 font-display text-3xl font-extrabold">
-                  {isFree ? (
-                    <span className="text-gradient-red">Grátis</span>
+                <h3 className="font-display text-2xl font-extrabold">{plan.name}</h3>
+
+                <div className="my-6 flex items-baseline gap-1">
+                  {plan.price_cents === 0 ? (
+                    <span className="font-display text-5xl font-black">Grátis</span>
                   ) : (
-                    formatPrice(p.price_cents)
+                    <>
+                      <span className="text-sm font-bold text-white/60">R$</span>
+                      <span className="font-display text-5xl font-black tracking-tight">
+                        {formatPrice(plan.price_cents).replace(/^R\$\s?/, "")}
+                      </span>
+                    </>
                   )}
                 </div>
-                <div className="mt-1 text-xs text-white/50">
-                  {p.duration_days} {p.duration_days === 1 ? "dia" : "dias"}
-                </div>
-                <div className="mt-4 flex items-center gap-1.5 text-xs text-white/60">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                  {p.max_devices} disp.
-                </div>
+
+                {plan.description && (
+                  <p className="mb-6 text-sm text-white/55">{plan.description}</p>
+                )}
+
+                <ul className="mb-8 flex-1 space-y-2.5 text-sm">
+                  <li className="flex items-center gap-2.5">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-primary">
+                      <Check className="h-3 w-3" />
+                    </div>
+                    Acesso ilimitado
+                  </li>
+                  {features.map((f) => (
+                    <li key={f} className="flex items-center gap-2.5">
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-primary">
+                        <Check className="h-3 w-3" />
+                      </div>
+                      {FEATURE_LABEL[f] ?? f}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  to="/planos"
+                  className={`inline-flex h-12 items-center justify-center rounded-xl text-xs font-bold uppercase tracking-widest transition ${
+                    highlight
+                      ? "btn-neon text-white"
+                      : "border border-white/10 bg-white/5 text-white hover:border-primary/40 hover:bg-white/10"
+                  }`}
+                >
+                  {plan.price_cents === 0 ? "Testar grátis" : `Assinar ${plan.name}`}
+                </Link>
               </Card>
             );
           })}
         </div>
-
-        <div className="mt-10 text-center">
-          <Button asChild className="btn-neon rounded-full px-6 font-bold uppercase tracking-wider">
-            <Link to="/planos">
-              Comparar planos completos <ChevronRight className="ml-1 h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
       </div>
     </section>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* FAQ                                                                 */
-/* ------------------------------------------------------------------ */
-
-function FAQ() {
-  const items = [
-    {
-      q: "Em quantos navegadores posso ativar minha chave?",
-      a: "Depende do plano. O teste grátis libera 1 dispositivo; os planos pagos vão de 2 a 5. Você pode revogar dispositivos a qualquer momento no painel.",
-    },
-    {
-      q: "O que acontece se minha chave for revogada?",
-      a: "A extensão trava na hora. Nossa validação server-side roda a cada 30 segundos e ao abrir o popup — não tem como continuar usando com uma chave cancelada.",
-    },
-    {
-      q: "Posso cancelar quando quiser?",
-      a: "Sim. Você pode cancelar dentro do painel e continuar usando até o final do período pago. Sem multa, sem burocracia.",
-    },
-    {
-      q: "A extensão funciona em qual navegador?",
-      a: "Qualquer navegador baseado em Chromium — Chrome, Edge, Brave, Opera, Arc, Vivaldi.",
-    },
-    {
-      q: "Meus dados ficam salvos onde?",
-      a: "Tudo criptografado no nosso backend. A extensão nunca decide sozinha se você tem acesso: cada validação passa pelo servidor.",
-    },
-  ];
-  return (
-    <section className="bg-panel border-b border-white/5 py-24">
-      <div className="mx-auto max-w-3xl px-6">
-        <div className="mb-12 text-center">
-          <div className="chip-neon mb-4 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
-            FAQ
-          </div>
-          <h2 className="font-display text-4xl font-extrabold tracking-tight md:text-5xl">
-            Dúvidas <span className="text-gradient-red">frequentes.</span>
-          </h2>
-        </div>
-
-        <Accordion type="single" collapsible className="space-y-3">
-          {items.map((it, i) => (
-            <AccordionItem
-              key={i}
-              value={`item-${i}`}
-              className="overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] px-5 backdrop-blur-sm data-[state=open]:border-primary/40"
-            >
-              <AccordionTrigger className="text-left font-semibold hover:no-underline">
-                {it.q}
-              </AccordionTrigger>
-              <AccordionContent className="text-sm text-white/60">
-                {it.a}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </div>
-    </section>
-  );
-}
+const FEATURE_LABEL: Record<string, string> = {
+  unlimited: "Recursos ilimitados",
+  key_daily: "Chaves diárias",
+  key_weekly: "Chaves semanais",
+  key_monthly: "Chaves mensais",
+};
 
 /* ------------------------------------------------------------------ */
-/* FINAL CTA                                                           */
+/* 5. CTA FINAL                                                        */
 /* ------------------------------------------------------------------ */
 
 function FinalCTA() {
   return (
-    <section className="rise-bg relative overflow-hidden py-28">
-      <div className="pointer-events-none absolute inset-x-0 top-1/2 -z-0 mx-auto h-72 w-[70%] -translate-y-1/2 rounded-full bg-primary/25 blur-[120px]" />
-      <div className="relative mx-auto max-w-3xl px-6 text-center">
-        <div className="chip-neon mb-6 inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
-          <Sparkles className="mr-1 h-3 w-3" /> Última chamada
+    <section className="bg-band py-28">
+      <div className="mx-auto max-w-4xl px-6 text-center">
+        <div className="chip-neon mb-8 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary dot-pulse" />
+          Última chamada
         </div>
-        <h2 className="font-display text-4xl font-extrabold tracking-tight md:text-6xl">
-          Pronto pra ativar a{" "}
-          <span className="text-gradient-red">extensão?</span>
+
+        <h2 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight md:text-6xl">
+          Pare de queimar créditos.
+          <br />
+          <span className="text-gradient-red">Comece a dominar.</span>
         </h2>
-        <p className="mx-auto mt-6 max-w-xl text-white/60">
-          Crie sua conta, escolha um plano e receba sua chave imediatamente.
-          Setup em menos de um minuto.
+
+        <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-white/60 md:text-base">
+          15 dias de garantia. Setup em 60 segundos. Sem cartão, sem enrolação.
+          Se não gostar, devolvemos cada centavo.
         </p>
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <Link
-            to="/auth"
-            className="btn-neon inline-flex h-12 items-center gap-2 rounded-full px-8 text-sm font-bold uppercase tracking-wider text-white"
+            to="/planos"
+            className="btn-neon group inline-flex h-14 items-center gap-2 rounded-2xl px-8 text-sm font-bold uppercase tracking-wider text-white"
           >
-            Começar agora <ChevronRight className="h-4 w-4" />
+            Ativar Rise Lovable agora
+            <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
           <Link
             to="/planos"
-            className="inline-flex h-12 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/10"
+            className="inline-flex h-14 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-8 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
           >
-            Ver planos
+            Ver todos os planos
           </Link>
+        </div>
+
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[11px] font-bold uppercase tracking-widest text-white/50">
+          <span className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            Garantia 15 dias
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            Suporte humano
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            Setup em 60s
+          </span>
         </div>
       </div>
     </section>
@@ -852,50 +584,19 @@ function FinalCTA() {
 
 function Footer() {
   return (
-    <footer className="border-t border-white/5 bg-black">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 md:grid-cols-4">
-        <div className="md:col-span-2">
-          <Link to="/" className="flex items-center gap-2.5 font-semibold">
-            <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/60 shadow-[0_0_24px_oklch(0.63_0.245_25/0.55)]">
-              <span className="text-sm font-black tracking-tighter text-white">
-                R
-              </span>
-            </span>
-            <span className="font-display text-base tracking-tight">
-              RISE <span className="text-gradient-red">LOVABLE</span>
-            </span>
-          </Link>
-          <p className="mt-4 max-w-sm text-sm text-white/50">
-            A extensão definitiva para quem leva Lovable.dev a sério. Feita por
-            power-users, para power-users.
-          </p>
+    <footer className="border-t border-white/5 bg-black py-10">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 text-xs text-white/40 md:flex-row">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/60 text-[10px] font-black text-white">
+            R
+          </span>
+          <span className="font-semibold text-white/70">Rise Lovable</span>
+          <span>© {new Date().getFullYear()}</span>
         </div>
-
-        <div>
-          <div className="mb-4 text-xs font-bold uppercase tracking-widest text-white/40">
-            Produto
-          </div>
-          <ul className="space-y-2 text-sm text-white/70">
-            <li><Link to="/planos" className="hover:text-white">Planos</Link></li>
-            <li><Link to="/auth" className="hover:text-white">Entrar</Link></li>
-            <li><Link to="/auth" className="hover:text-white">Criar conta</Link></li>
-          </ul>
+        <div className="flex items-center gap-6">
+          <Link to="/planos" className="hover:text-white">Planos</Link>
+          <Link to="/auth" className="hover:text-white">Entrar</Link>
         </div>
-
-        <div>
-          <div className="mb-4 text-xs font-bold uppercase tracking-widest text-white/40">
-            Suporte
-          </div>
-          <ul className="space-y-2 text-sm text-white/70">
-            <li>Central de ajuda</li>
-            <li>Contato</li>
-            <li>Status</li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="border-t border-white/5 py-6 text-center text-xs text-white/40">
-        © {new Date().getFullYear()} Rise Lovable. Todos os direitos reservados.
       </div>
     </footer>
   );
