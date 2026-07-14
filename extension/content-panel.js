@@ -137,7 +137,7 @@
         <div id="lovable-ext-dragbar">
             <div class="lb-title">
                 <img src="${logoUrl}" onerror="this.src='${iconFallback}'" alt="" />
-                <span>Lovable Chat</span>
+                <span>Rise Lovable</span>
             </div>
             <div class="lb-actions"></div>
         </div>
@@ -146,8 +146,8 @@
 
     const bubble = document.createElement('div');
     bubble.id = 'lovable-ext-bubble';
-    bubble.title = 'Abrir Lovable Chat';
-    bubble.innerHTML = `<img src="${logoUrl}" onerror="this.src='${iconFallback}'" alt="Lovable Chat" />`;
+    bubble.title = 'Abrir Rise Lovable';
+    bubble.innerHTML = `<img src="${logoUrl}" onerror="this.src='${iconFallback}'" alt="Rise Lovable" />`;
 
     // ---------- Positioning ----------
     function applyPanelPos() {
