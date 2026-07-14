@@ -526,29 +526,29 @@ body {
     justify-content: flex-start;
     gap: 8px;
     padding: 10px 10px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 40, 40, 0.22);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 9px;
     color: var(--text);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    backdrop-filter: blur(8px) saturate(140%);
+    backdrop-filter: blur(10px) saturate(140%);
     transition: all 0.15s ease;
     min-height: 42px;
 }
 
 .shortcut-btn:hover {
-    background: rgba(255, 40, 40, 0.08);
-    border-color: rgba(255, 60, 60, 0.55);
-    box-shadow: 0 0 10px rgba(255, 40, 40, 0.18);
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     transform: translateY(-1px);
 }
 
 .shortcut-btn .s-icon {
     width: 15px;
     height: 15px;
-    color: var(--red);
+    color: var(--text-dim);
     flex-shrink: 0;
     display: block;
 }
