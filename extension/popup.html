@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lovable Chat</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Lovable Chat</h1>
+            <div class="project-info">
+                <span id="projectId">Carregando...</span>
+            </div>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="messages" id="messages">
+                <!-- Messages will be rendered here -->
+            </div>
+        </div>
+
+        <div class="file-preview" id="filePreview" style="display: none;">
+            <!-- File previews will be shown here -->
+        </div>
+
+        <div class="input-container">
+            <div class="input-wrapper">
+                <textarea 
+                    id="messageInput" 
+                    placeholder="Digite sua mensagem..."
+                    rows="3"
+                ></textarea>
+                <div class="button-group">
+                    <button id="attachButton" class="attach-btn" title="Anexar arquivo">
+                        📎
+                    </button>
+                    <input 
+                        type="file" 
+                        id="fileInput" 
+                        multiple 
+                        accept="image/*,.pdf,.doc,.docx,.txt,.js,.ts,.jsx,.tsx,.json,.css,.html"
+                        style="display: none;"
+                    />
+                    <button id="sendButton" class="send-btn" title="Enviar mensagem">
+                        ➤
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar" id="statusBar"></div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
