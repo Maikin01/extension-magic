@@ -1,4 +1,5 @@
 // Configuração da extensão Lovable.
+
 // IMPORTANTE: quando publicar o site, garanta que API_BASE_URL aponta para
 // a URL de produção estável. Estas URLs são fixas e não mudam se o projeto
 // for renomeado no Lovable.
