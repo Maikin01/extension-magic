@@ -367,25 +367,6 @@
                 });
             }
 
-            if (label.includes('escudo')) {
-                const applyShieldLabel = (on) => {
-                    btn.classList.toggle('is-active', on);
-                    btn.textContent = on ? 'Escudo ATIVO ✓' : 'Ativar Escudo';
-                };
-                btn.addEventListener('click', async () => {
-                    try {
-                        const cur = await chrome.storage.local.get(['lvbl_shield_active']);
-                        const next = !cur.lvbl_shield_active;
-                        await chrome.storage.local.set({ lvbl_shield_active: next });
-                        applyShieldLabel(next);
-                    } catch (e) {
-                        console.warn('[ui-extras] toggle escudo failed:', e);
-                    }
-                });
-                chrome.storage.local.get(['lvbl_shield_active'], (v) => {
-                    applyShieldLabel(!!v.lvbl_shield_active);
-                });
-            }
 
             if (label.includes('chat padr')) {
                 btn.addEventListener('click', async () => {
