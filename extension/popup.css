@@ -21,8 +21,8 @@
 }
 
 body {
-    width: 420px;
-    height: 640px;
+    width: 360px;
+    height: 620px;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #05030a;
     color: var(--text);
