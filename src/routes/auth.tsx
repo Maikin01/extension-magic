@@ -73,11 +73,12 @@ function AuthPage() {
     const go = () => {
       if (redirected) return;
       redirected = true;
-      // usa navigate (client-side) para evitar full reload / loops
-      if (dest.startsWith("/")) {
+      if (dest.includes("checkout=")) {
+        window.location.replace(dest);
+      } else if (dest.startsWith("/")) {
         navigate({ to: dest, replace: true } as any);
       } else {
-        window.location.replace(dest);
+        navigate({ to: "/dashboard", replace: true });
       }
     };
 
