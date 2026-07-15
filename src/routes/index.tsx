@@ -407,11 +407,32 @@ function Plans() {
     const { data } = await supabase.auth.getUser();
     if (!data.user) {
       toast.info("Crie sua conta para comprar — sua chave fica salva no painel.");
-      navigate({ to: "/auth", search: { next: "/#plans", plan: plan.slug } as any });
+      navigate({
+        to: "/auth",
+        search: { next: `/?checkout=${plan.slug}#plans`, plan: plan.slug } as any,
+      });
       return;
     }
     setCheckoutPlan(plan);
   }
+
+  // Auto-abre o checkout ao voltar da verificação de email (?checkout=<slug>)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("checkout");
+    if (!slug || !plans) return;
+    const plan = plans.find((p) => p.slug === slug);
+    if (!plan || plan.price_cents === 0) return;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      setCheckoutPlan({ slug: plan.slug, name: plan.name, price_cents: plan.price_cents });
+      // limpa o query param sem recarregar
+      const url = new URL(window.location.href);
+      url.searchParams.delete("checkout");
+      window.history.replaceState({}, "", url.pathname + url.search + "#plans");
+    });
+  }, [plans]);
 
   const highlightSlug = "monthly";
 
