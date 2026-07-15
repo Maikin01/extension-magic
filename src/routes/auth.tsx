@@ -23,6 +23,7 @@ export const Route = createFileRoute("/auth")({
 
 const emailSchema = z.string().trim().email("Email inválido").max(255);
 const passwordSchema = z.string().min(6, "Mínimo de 6 caracteres").max(72);
+const PENDING_CHECKOUT_KEY = "rise_lovable_pending_checkout";
 type AuthTab = "login" | "signup";
 type AuthParams = { next: string; plan: string | null; initialTab: AuthTab };
 
@@ -63,7 +64,8 @@ function AuthPage() {
     setAuthParams(currentParams);
     setActiveTab(currentParams.initialTab);
     if (currentParams.plan) {
-      window.sessionStorage.setItem("rise_lovable_pending_checkout", currentParams.plan);
+      window.localStorage.setItem(PENDING_CHECKOUT_KEY, currentParams.plan);
+      window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, currentParams.plan);
     }
 
     const next = currentParams.next;
@@ -204,7 +206,8 @@ function SignupForm({ next, plan }: { next: string; plan: string | null }) {
     setLoading(true);
     const safeNext = sanitizeNextPath(next);
     if (plan) {
-      window.sessionStorage.setItem("rise_lovable_pending_checkout", plan);
+      window.localStorage.setItem(PENDING_CHECKOUT_KEY, plan);
+      window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, plan);
     }
     const { error } = await supabase.auth.signUp({
       email: emailR.data,
@@ -267,7 +270,8 @@ function GoogleButton({ next, plan }: { next: string; plan: string | null }) {
     setLoading(true);
     const safeNext = sanitizeNextPath(next);
     if (plan) {
-      window.sessionStorage.setItem("rise_lovable_pending_checkout", plan);
+      window.localStorage.setItem(PENDING_CHECKOUT_KEY, plan);
+      window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, plan);
     }
     const redirectSearch = new URLSearchParams({ next: safeNext });
     if (plan) redirectSearch.set("plan", plan);
