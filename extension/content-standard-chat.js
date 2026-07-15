@@ -217,14 +217,44 @@
         return all.reverse().find((t) => t.offsetParent !== null) || null;
     }
 
+    function looksLikeNativeUploadMessage(msg) {
+        return /analise\s+o\s+arquivo\s+no\s+link|prompt-images\/uploads|\/storage\/v1\/object\/public\/prompt-images/i.test(msg || '');
+    }
+
+    function getComposerScope(ta) {
+        if (!ta || !ta.parentElement) return null;
+        let cur = ta;
+        for (let i = 0; i < 8 && cur; i += 1) {
+            const hasComposerInput = cur.querySelector && cur.querySelector('textarea');
+            const hasAttachmentSignal = cur.querySelector && cur.querySelector([
+                'img[src^="blob:"]',
+                'img[src^="data:"]',
+                'a[href*="prompt-images"]',
+                '[data-testid*="attachment" i]',
+                '[data-testid*="file-preview" i]',
+                '[data-testid*="upload" i]',
+                '[aria-label*="remove" i]',
+                '[aria-label*="remover" i]',
+                '[class*="attachment" i]',
+                '[class*="file-preview" i]',
+                '[class*="upload" i]',
+            ].join(','));
+            if (hasComposerInput && hasAttachmentSignal) return cur;
+            cur = cur.parentElement;
+        }
+        return (ta.closest && ta.closest('form')) || ta.parentElement;
+    }
+
     // Detecta se o composer tem anexos (imagens/arquivos). Quando tiver, NÃO
-    // interceptamos — deixamos o envio nativo passar para preservar as imagens
-    // (o payload da extensão usa files:[] e perderia os anexos).
+    // interceptamos — deixamos o envio nativo passar para preservar as imagens.
+    // O payload gratuito da extensão usa files:[]; se interceptar upload, a
+    // imagem vira só texto/link e quebra a análise.
     function composerHasAttachments(ta) {
         try {
-            const root = (ta && ta.closest && (ta.closest('form') || ta.closest('[class*="composer" i]'))) || document;
+            const root = getComposerScope(ta);
+            if (!root) return false;
             // thumbnails de imagem anexada
-            if (root.querySelector('img[src^="blob:"], img[src^="data:"]')) return true;
+            if (root.querySelector('img[src^="blob:"], img[src^="data:"], a[href*="prompt-images"]')) return true;
             // botões de remover anexo (padrão comum: "Remove file", "Remover")
             const removeBtns = root.querySelectorAll('button[aria-label*="remove" i], button[aria-label*="remover" i]');
             for (const b of removeBtns) {
@@ -232,7 +262,7 @@
                 if (lbl.includes('file') || lbl.includes('image') || lbl.includes('anexo') || lbl.includes('arquivo') || lbl.includes('imagem')) return true;
             }
             // atributo data-* comum em previews
-            if (root.querySelector('[data-testid*="attachment" i], [data-testid*="file-preview" i], [class*="attachment" i] img')) return true;
+            if (root.querySelector('[data-testid*="attachment" i], [data-testid*="file-preview" i], [data-testid*="upload" i], [class*="attachment" i], [class*="file-preview" i], [class*="upload" i]')) return true;
         } catch (_) {}
         return false;
     }
@@ -243,10 +273,9 @@
         if (!ta) return;
         const msg = (ta.value || '').trim();
         if (!msg) return;
-        // Se há imagens/arquivos anexados, deixa o envio nativo cuidar disso
-        // (nosso payload perderia os anexos).
-        if (composerHasAttachments(ta)) {
-            showToast('🖼 Anexo detectado — enviando pelo fluxo nativo (consome créditos)');
+        // Se há imagens/arquivos anexados, ou se o Lovable já transformou o
+        // anexo em "Analise o arquivo no link...", deixa o envio nativo cuidar.
+        if (composerHasAttachments(ta) || looksLikeNativeUploadMessage(msg)) {
             return;
         }
         // bloqueia o envio nativo (que gastaria créditos)
