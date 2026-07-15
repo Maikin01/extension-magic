@@ -161,7 +161,10 @@ function SignupForm() {
         emailRedirectTo: (() => {
           const p = new URLSearchParams(window.location.search);
           const next = p.get("next");
-          return `${window.location.origin}${next ? decodeURIComponent(next) : "/dashboard"}`;
+          // Sempre volta para /auth para que a sessão seja detectada (tokens no hash)
+          // e só então redireciona para o destino final (ex.: /#plans).
+          const dest = next ?? "/dashboard";
+          return `${window.location.origin}/auth?next=${encodeURIComponent(dest)}`;
         })(),
         data: { full_name: name.trim() },
       },
