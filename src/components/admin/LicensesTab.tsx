@@ -86,15 +86,23 @@ export function LicensesTab() {
   });
 
   const genMut = useMutation({
-    mutationFn: () =>
-      generate({
+    mutationFn: () => {
+      let custom_duration_minutes: number | null = null;
+      if (useCustomDuration) {
+        const mult =
+          customDurationUnit === "minutes" ? 1 : customDurationUnit === "hours" ? 60 : 60 * 24;
+        custom_duration_minutes = Math.max(1, Math.floor(customDurationValue * mult));
+      }
+      return generate({
         data: {
           plan_slug: genPlan,
           count: genCount,
           email: genEmail.trim() || null,
           notes: genNotes.trim() || null,
+          custom_duration_minutes,
         },
-      }),
+      });
+    },
     onSuccess: (res) => {
       toast.success(`${res.licenses.length} chave(s) geradas`);
       setLastGenerated(res.licenses);
