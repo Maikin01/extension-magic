@@ -158,7 +158,11 @@ function SignupForm() {
       email: emailR.data,
       password: passR.data,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: (() => {
+          const p = new URLSearchParams(window.location.search);
+          const next = p.get("next");
+          return `${window.location.origin}${next ? decodeURIComponent(next) : "/dashboard"}`;
+        })(),
         data: { full_name: name.trim() },
       },
     });
