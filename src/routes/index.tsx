@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { SiteHeader } from "@/components/site/Header";
 import { Card } from "@/components/ui/card";
 import {
@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { getPublicPlans } from "@/lib/license.functions";
 import { formatPrice } from "@/lib/license-utils";
+import { PixCheckoutDialog } from "@/components/checkout/PixCheckoutDialog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
