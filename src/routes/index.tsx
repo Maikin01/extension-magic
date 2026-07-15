@@ -404,17 +404,16 @@ function Plans() {
   >(null);
 
   async function handleSubscribe(plan: { slug: string; name: string; price_cents: number }) {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
       toast.info("Crie sua conta para comprar — sua chave fica salva no painel.");
-      navigate({
-        to: "/auth",
-        search: { next: `/?checkout=${plan.slug}#plans`, plan: plan.slug } as any,
-      });
+      const next = encodeURIComponent(`/?checkout=${plan.slug}#plans`);
+      window.location.href = `/auth?next=${next}&plan=${plan.slug}`;
       return;
     }
     setCheckoutPlan(plan);
   }
+
 
   // Auto-abre o checkout ao voltar da verificação de email (?checkout=<slug>)
   useEffect(() => {
