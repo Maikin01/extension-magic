@@ -322,7 +322,7 @@ export function LicensesTab() {
                     Fechar
                   </Button>
                   <Button
-                    disabled={!genPlan || genMut.isPending}
+                    disabled={(!genPlan && !useCustomDuration) || genMut.isPending}
                     onClick={() => genMut.mutate()}
                   >
                     {genMut.isPending ? "Gerando…" : "Gerar"}
