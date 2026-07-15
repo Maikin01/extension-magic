@@ -39,7 +39,7 @@ function useCountdown(target: string | null | undefined) {
 }
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Painel — Lovable" }] }),
+  head: () => ({ meta: [{ title: "Painel — Rise Lovable" }] }),
   component: DashboardPage,
 });
 
