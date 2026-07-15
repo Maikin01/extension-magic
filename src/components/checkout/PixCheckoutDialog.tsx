@@ -27,6 +27,7 @@ export function PixCheckoutDialog({
   const [step, setStep] = useState<Step>("form");
   const [name, setName] = useState("");
   const [wpp, setWpp] = useState("");
+  const [cpf, setCpf] = useState("");
   const [loading, setLoading] = useState(false);
   const [pix, setPix] = useState<Awaited<ReturnType<typeof createPix>> | null>(null);
   const [licenseKey, setLicenseKey] = useState<string | null>(null);
