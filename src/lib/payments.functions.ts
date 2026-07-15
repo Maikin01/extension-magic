@@ -22,7 +22,7 @@ export const createPixCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => createPixSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { userId } = context;
+    const { userId, claims } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { createPixPayment } = await import("@/lib/mercadopago.server");
 
@@ -35,6 +35,13 @@ export const createPixCheckout = createServerFn({ method: "POST" })
     if (planErr || !plan) throw new Error("Plano não encontrado.");
     if (plan.price_cents <= 0) throw new Error("Este plano é gratuito, não requer pagamento.");
 
+    // E-mail real do usuário logado (obrigatório pelo antifraude do MP)
+    const buyerEmail =
+      (claims as any)?.email ??
+      (await supabaseAdmin.auth.admin.getUserById(userId)).data.user?.email ??
+      null;
+    if (!buyerEmail) throw new Error("E-mail do usuário não encontrado. Faça login novamente.");
+
     // Cria linha em payments antes de chamar MP para ter external_reference
     const { data: payment, error: payErr } = await supabaseAdmin
       .from("payments")
@@ -44,7 +51,7 @@ export const createPixCheckout = createServerFn({ method: "POST" })
         amount_cents: plan.price_cents,
         buyer_name: data.buyer_name.trim(),
         buyer_whatsapp: digits(data.buyer_whatsapp),
-        buyer_email: syntheticEmail(data.buyer_whatsapp),
+        buyer_email: buyerEmail,
         status: "pending",
       })
       .select()
@@ -59,6 +66,8 @@ export const createPixCheckout = createServerFn({ method: "POST" })
         description: `Rise Lovable — ${plan.name}`,
         buyerName: data.buyer_name,
         buyerEmail: payment.buyer_email!,
+        buyerWhatsapp: payment.buyer_whatsapp ?? undefined,
+        buyerCpf: data.buyer_cpf,
         externalReference: payment.id,
         notificationUrl,
         expiresInMinutes: 30,
