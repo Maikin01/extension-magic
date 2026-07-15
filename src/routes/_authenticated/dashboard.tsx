@@ -286,7 +286,7 @@ function LicenseRow({ license, isCurrent }: { license: any; isCurrent: boolean }
 }
 
 function downloadExtension() {
-  fetch("/lovable-extension-v1.0.2.zip")
+  fetch("/rise-lovable-extension.zip")
     .then((r) => {
       if (!r.ok) throw new Error("Download indisponível — publique o site para gerar o zip.");
       return r.blob();
@@ -294,7 +294,7 @@ function downloadExtension() {
     .then((blob) => {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "lovable-extension-v1.0.2.zip";
+      a.download = "rise-lovable-extension.zip";
       a.click();
       URL.revokeObjectURL(a.href);
     })
