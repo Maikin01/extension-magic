@@ -130,6 +130,7 @@ function DashboardPage() {
           <div className="space-y-6">
             <ExtensionCard />
             <TutorialsCard />
+            <SupportCard />
             <LicensesCard licenses={data.licenses} current={data.currentLicense} />
           </div>
         )}
