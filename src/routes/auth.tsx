@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 export const Route = createFileRoute("/auth")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Entrar — Rise Lovable" },
@@ -54,10 +55,64 @@ function sanitizeNextPath(value: string) {
   }
 }
 
+function readAuthUrlParams() {
+  const url = new URL(window.location.href);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const tokenHash = url.searchParams.get("token_hash") ?? hash.get("token_hash");
+  const type = url.searchParams.get("type") ?? hash.get("type") ?? "signup";
+  return {
+    code: url.searchParams.get("code"),
+    tokenHash,
+    type,
+    accessToken: hash.get("access_token"),
+    refreshToken: hash.get("refresh_token"),
+    hasCallback:
+      url.searchParams.has("code") ||
+      url.searchParams.has("token_hash") ||
+      hash.has("access_token") ||
+      hash.has("refresh_token"),
+  };
+}
+
+async function finishEmailConfirmationFromUrl() {
+  const authUrl = readAuthUrlParams();
+
+  if (authUrl.tokenHash) {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: authUrl.tokenHash,
+      type: authUrl.type as any,
+    });
+    if (error) console.warn("[auth] Falha ao confirmar token do email", error);
+  }
+
+  if (authUrl.code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(authUrl.code);
+    if (error) console.warn("[auth] Falha ao concluir confirmação por código", error);
+  }
+
+  if (authUrl.accessToken && authUrl.refreshToken) {
+    const { error } = await supabase.auth.setSession({
+      access_token: authUrl.accessToken,
+      refresh_token: authUrl.refreshToken,
+    });
+    if (error) console.warn("[auth] Falha ao restaurar sessão da confirmação", error);
+  }
+}
+
+async function waitForRestoredSession(attempts: number) {
+  for (let i = 0; i < attempts; i++) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) return data.session;
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+  return null;
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const [authParams, setAuthParams] = useState<AuthParams>(defaultAuthParams);
   const [activeTab, setActiveTab] = useState<AuthTab>("login");
+  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
     const currentParams = getAuthParams();
@@ -71,9 +126,10 @@ function AuthPage() {
     const next = currentParams.next;
     const dest = sanitizeNextPath(next);
 
+    let cancelled = false;
     let redirected = false;
     const go = () => {
-      if (redirected) return;
+      if (redirected || cancelled) return;
       redirected = true;
       if (dest.includes("checkout=")) {
         window.location.replace(dest);
@@ -84,14 +140,47 @@ function AuthPage() {
       }
     };
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) go();
+    const finishChecking = () => {
+      if (!cancelled) setCheckingSession(false);
+    };
+
+    const authUrl = readAuthUrlParams();
+    const timeout = window.setTimeout(finishChecking, authUrl.hasCallback || currentParams.plan ? 6500 : 2500);
+
+    finishEmailConfirmationFromUrl().then(async () => {
+      if (cancelled) return;
+      const session = await waitForRestoredSession(authUrl.hasCallback || currentParams.plan ? 16 : 1);
+      if (session) {
+        go();
+        return;
+      }
+      finishChecking();
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) go();
+      if (cancelled) return;
+      if ((event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) {
+        go();
+        return;
+      }
+      if (event === "INITIAL_SESSION" && !session) finishChecking();
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+      sub.subscription.unsubscribe();
+    };
   }, [navigate]);
+
+  if (checkingSession && authParams.plan) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 px-4 py-12">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="mt-4 text-sm font-medium text-muted-foreground">Confirmando sua conta…</p>
+        </div>
+      </div>
+    );
+  }
 
 
 
@@ -209,11 +298,15 @@ function SignupForm({ next, plan }: { next: string; plan: string | null }) {
       window.localStorage.setItem(PENDING_CHECKOUT_KEY, plan);
       window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, plan);
     }
+    const emailRedirectTo = plan
+      ? `${window.location.origin}/?checkout=${encodeURIComponent(plan)}`
+      : `${window.location.origin}/auth?next=${encodeURIComponent(safeNext)}`;
+
     const { error } = await supabase.auth.signUp({
       email: emailR.data,
       password: passR.data,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth?next=${encodeURIComponent(safeNext)}${plan ? `&plan=${encodeURIComponent(plan)}` : ""}`,
+        emailRedirectTo,
         data: { full_name: name.trim() },
       },
     });

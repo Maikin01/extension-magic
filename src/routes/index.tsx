@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site/Header";
@@ -34,6 +34,54 @@ import { PixCheckoutDialog } from "@/components/checkout/PixCheckoutDialog";
 
 const PENDING_CHECKOUT_KEY = "rise_lovable_pending_checkout";
 
+function readEmailConfirmationParams() {
+  const url = new URL(window.location.href);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const tokenHash = url.searchParams.get("token_hash") ?? hash.get("token_hash");
+  const type = url.searchParams.get("type") ?? hash.get("type") ?? "signup";
+  return {
+    code: url.searchParams.get("code"),
+    tokenHash,
+    type,
+    accessToken: hash.get("access_token"),
+    refreshToken: hash.get("refresh_token"),
+  };
+}
+
+async function finishEmailConfirmationFromUrl() {
+  const authUrl = readEmailConfirmationParams();
+
+  if (authUrl.tokenHash) {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: authUrl.tokenHash,
+      type: authUrl.type as any,
+    });
+    if (error) console.warn("[checkout] Falha ao confirmar token do email", error);
+  }
+
+  if (authUrl.code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(authUrl.code);
+    if (error) console.warn("[checkout] Falha ao concluir confirmação por código", error);
+  }
+
+  if (authUrl.accessToken && authUrl.refreshToken) {
+    const { error } = await supabase.auth.setSession({
+      access_token: authUrl.accessToken,
+      refresh_token: authUrl.refreshToken,
+    });
+    if (error) console.warn("[checkout] Falha ao restaurar sessão da confirmação", error);
+  }
+}
+
+async function waitForCheckoutSession(attempts: number) {
+  for (let i = 0; i < attempts; i++) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) return data.session;
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+  return null;
+}
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -56,9 +104,7 @@ function LandingPage() {
         <Hero />
         <HowItWorks />
         <Features />
-        <Suspense fallback={<div className="py-24 text-center text-white/50">Carregando planos…</div>}>
-          <Plans />
-        </Suspense>
+        <Plans />
         <FinalCTA />
       </main>
       <Footer />
@@ -395,7 +441,7 @@ function Features() {
 
 function Plans() {
   const getPlans = useServerFn(getPublicPlans);
-  const { data: plans } = useSuspenseQuery({
+  const { data: plans = [] } = useQuery({
     queryKey: ["plans", "public"],
     queryFn: () => getPlans(),
   });
@@ -435,6 +481,7 @@ function Plans() {
   // Auto-abre o checkout ao voltar da verificação de email (?checkout=<slug>)
   useEffect(() => {
     if (typeof window === "undefined") return;
+    let cancelled = false;
     const params = new URLSearchParams(window.location.search);
     const urlSlug = params.get("checkout");
     // Só considera storage se houve intenção explícita (checkout na URL ou hash #plans)
@@ -454,14 +501,18 @@ function Plans() {
     if (!plans) return;
     const plan = plans.find((p) => p.slug === slug);
     if (!plan || plan.price_cents === 0) return;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) return;
+    const openCheckout = async () => {
+      const session = await waitForCheckoutSession(urlSlug ? 24 : 2);
+      if (!session || cancelled) return;
       setCheckoutPlan({ slug: plan.slug, name: plan.name, price_cents: plan.price_cents });
       window.localStorage.removeItem(PENDING_CHECKOUT_KEY);
       window.sessionStorage.removeItem(PENDING_CHECKOUT_KEY);
       // limpa o query param sem recarregar
       const url = new URL(window.location.href);
       url.searchParams.delete("checkout");
+      url.searchParams.delete("code");
+      url.searchParams.delete("token_hash");
+      url.searchParams.delete("type");
       // Se veio do fluxo de verificação (checkout na URL), leva para a seção de planos
       const hash = urlSlug ? "#plans" : window.location.hash;
       window.history.replaceState({}, "", url.pathname + url.search + hash);
@@ -470,7 +521,21 @@ function Plans() {
           document.getElementById("plans")?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
       }
+    };
+
+    finishEmailConfirmationFromUrl().then(openCheckout);
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session || cancelled) return;
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        openCheckout();
+      }
     });
+
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, [plans]);
 
   const highlightSlug = "monthly";
