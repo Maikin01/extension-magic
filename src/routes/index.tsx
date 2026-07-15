@@ -396,6 +396,10 @@ function Plans() {
     queryFn: () => getPlans(),
   });
 
+  const [checkoutPlan, setCheckoutPlan] = useState<
+    { slug: string; name: string; price_cents: number } | null
+  >(null);
+
   const highlightSlug = "monthly";
 
   return (
@@ -494,10 +498,20 @@ function Plans() {
                 ) : (
                   <button
                     type="button"
-                    disabled
-                    className="inline-flex h-12 cursor-not-allowed items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-xs font-bold uppercase tracking-widest text-white/40"
+                    onClick={() =>
+                      setCheckoutPlan({
+                        slug: plan.slug,
+                        name: plan.name,
+                        price_cents: plan.price_cents,
+                      })
+                    }
+                    className={`inline-flex h-12 items-center justify-center rounded-xl text-xs font-bold uppercase tracking-widest transition ${
+                      highlight
+                        ? "btn-neon text-white"
+                        : "border border-white/10 bg-white/5 text-white hover:border-primary/40 hover:bg-white/10"
+                    }`}
                   >
-                    Em breve
+                    Assinar com Pix
                   </button>
                 )}
               </Card>
@@ -506,6 +520,11 @@ function Plans() {
         </div>
       </div>
 
+      <PixCheckoutDialog
+        plan={checkoutPlan}
+        open={!!checkoutPlan}
+        onOpenChange={(v) => !v && setCheckoutPlan(null)}
+      />
     </section>
   );
 }
