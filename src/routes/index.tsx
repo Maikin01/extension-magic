@@ -34,6 +34,23 @@ import { PixCheckoutDialog } from "@/components/checkout/PixCheckoutDialog";
 
 const PENDING_CHECKOUT_KEY = "rise_lovable_pending_checkout";
 
+function savePendingCheckout(planSlug: string) {
+  window.localStorage.setItem(PENDING_CHECKOUT_KEY, planSlug);
+  window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, planSlug);
+}
+
+function readPendingCheckout() {
+  return (
+    window.localStorage.getItem(PENDING_CHECKOUT_KEY) ??
+    window.sessionStorage.getItem(PENDING_CHECKOUT_KEY)
+  );
+}
+
+function clearPendingCheckout() {
+  window.localStorage.removeItem(PENDING_CHECKOUT_KEY);
+  window.sessionStorage.removeItem(PENDING_CHECKOUT_KEY);
+}
+
 function readEmailConfirmationParams() {
   const url = new URL(window.location.href);
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
@@ -46,6 +63,17 @@ function readEmailConfirmationParams() {
     accessToken: hash.get("access_token"),
     refreshToken: hash.get("refresh_token"),
   };
+}
+
+function hasEmailConfirmationParams() {
+  const url = new URL(window.location.href);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return (
+    url.searchParams.has("code") ||
+    url.searchParams.has("token_hash") ||
+    hash.has("access_token") ||
+    hash.has("refresh_token")
+  );
 }
 
 async function finishEmailConfirmationFromUrl() {
@@ -73,10 +101,10 @@ async function finishEmailConfirmationFromUrl() {
   }
 }
 
-async function waitForCheckoutSession(attempts: number) {
+async function waitForVerifiedCheckoutUser(attempts: number) {
   for (let i = 0; i < attempts; i++) {
-    const { data } = await supabase.auth.getSession();
-    if (data.session) return data.session;
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data.user) return data.user;
     await new Promise((resolve) => window.setTimeout(resolve, 250));
   }
   return null;
@@ -452,8 +480,7 @@ function Plans() {
 
   function sendToSignup(planSlug: string) {
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(PENDING_CHECKOUT_KEY, planSlug);
-      window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, planSlug);
+      savePendingCheckout(planSlug);
     }
     const search = new URLSearchParams({
       next: `/?checkout=${planSlug}#plans`,
@@ -465,8 +492,8 @@ function Plans() {
 
   async function handleSubscribe(plan: { slug: string; name: string; price_cents: number }) {
     try {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
+      const { data, error } = await supabase.auth.getUser();
+      if (!error && data.user) {
         setCheckoutPlan(plan);
         return;
       }
@@ -482,31 +509,34 @@ function Plans() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     let cancelled = false;
+    let processing = false;
+    let opened = false;
     const params = new URLSearchParams(window.location.search);
     const urlSlug = params.get("checkout");
-    // Só considera storage se houve intenção explícita (checkout na URL ou hash #plans)
-    const hasIntent = !!urlSlug || window.location.hash === "#plans";
+    const hasAuthCallback = hasEmailConfirmationParams();
+    // Só considera storage se houve intenção explícita, para o link puro abrir no topo.
+    const hasIntent = !!urlSlug || window.location.hash === "#plans" || hasAuthCallback;
     const slug =
       urlSlug ??
       (hasIntent
-        ? window.localStorage.getItem(PENDING_CHECKOUT_KEY) ??
-          window.sessionStorage.getItem(PENDING_CHECKOUT_KEY)
+        ? readPendingCheckout()
         : null);
     if (!slug) {
       // limpa storage stale para não afetar futuras aberturas puras do site
-      window.localStorage.removeItem(PENDING_CHECKOUT_KEY);
-      window.sessionStorage.removeItem(PENDING_CHECKOUT_KEY);
+      clearPendingCheckout();
       return;
     }
     if (!plans) return;
     const plan = plans.find((p) => p.slug === slug);
     if (!plan || plan.price_cents === 0) return;
     const openCheckout = async () => {
-      const session = await waitForCheckoutSession(urlSlug ? 24 : 2);
-      if (!session || cancelled) return;
-      setCheckoutPlan({ slug: plan.slug, name: plan.name, price_cents: plan.price_cents });
-      window.localStorage.removeItem(PENDING_CHECKOUT_KEY);
-      window.sessionStorage.removeItem(PENDING_CHECKOUT_KEY);
+      if (processing || opened || cancelled) return;
+      processing = true;
+      const user = await waitForVerifiedCheckoutUser(urlSlug || hasAuthCallback ? 28 : 2);
+      processing = false;
+      if (!user || cancelled || opened) return;
+      opened = true;
+      clearPendingCheckout();
       // limpa o query param sem recarregar
       const url = new URL(window.location.href);
       url.searchParams.delete("checkout");
@@ -516,11 +546,10 @@ function Plans() {
       // Se veio do fluxo de verificação (checkout na URL), leva para a seção de planos
       const hash = urlSlug ? "#plans" : window.location.hash;
       window.history.replaceState({}, "", url.pathname + url.search + hash);
-      if (urlSlug) {
-        requestAnimationFrame(() => {
-          document.getElementById("plans")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-      }
+      requestAnimationFrame(() => {
+        document.getElementById("plans")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        setCheckoutPlan({ slug: plan.slug, name: plan.name, price_cents: plan.price_cents });
+      });
     };
 
     finishEmailConfirmationFromUrl().then(openCheckout);
