@@ -154,6 +154,20 @@ export function PixCheckoutDialog({
                   Enviaremos sua chave de licença por aqui após a confirmação.
                 </p>
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="pix-cpf">CPF (recomendado)</Label>
+                <Input
+                  id="pix-cpf"
+                  value={cpf}
+                  onChange={(e) => setCpf(e.target.value)}
+                  placeholder="000.000.000-00"
+                  className="bg-white/5"
+                  inputMode="numeric"
+                />
+                <p className="text-[11px] text-white/40">
+                  Reduz o risco do antifraude do Mercado Pago recusar o Pix.
+                </p>
+              </div>
               <Button
                 type="submit"
                 disabled={loading}
