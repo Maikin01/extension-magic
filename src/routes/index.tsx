@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site/Header";
@@ -92,9 +92,7 @@ function LandingPage() {
         <Hero />
         <HowItWorks />
         <Features />
-        <Suspense fallback={<div className="py-24 text-center text-white/50">Carregando planos…</div>}>
-          <Plans />
-        </Suspense>
+        <Plans />
         <FinalCTA />
       </main>
       <Footer />
@@ -431,7 +429,7 @@ function Features() {
 
 function Plans() {
   const getPlans = useServerFn(getPublicPlans);
-  const { data: plans } = useSuspenseQuery({
+  const { data: plans = [] } = useQuery({
     queryKey: ["plans", "public"],
     queryFn: () => getPlans(),
   });
