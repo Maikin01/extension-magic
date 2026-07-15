@@ -30,12 +30,17 @@ function AuthPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const claim = params.get("claim");
-    const dest = claim === "trial" ? "/dashboard?claim=trial" : "/dashboard";
+    const next = params.get("next");
+    const dest = next
+      ? decodeURIComponent(next)
+      : claim === "trial"
+        ? "/dashboard?claim=trial"
+        : "/dashboard";
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: dest, replace: true });
+      if (data.session) window.location.replace(dest);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) navigate({ to: dest, replace: true });
+      if (event === "SIGNED_IN" && session) window.location.replace(dest);
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
