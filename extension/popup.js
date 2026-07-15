@@ -643,7 +643,18 @@ async function sendMessage() {
         console.log('Project ID:', state.projectId);
         console.log('Token available:', !!state.token);
         
-        const response = await fetch(
+        // Segunda camada: só envia através do transporte fornecido pela licença.
+        // Se license.js for removido/adulterado, __lvblFetch some e o envio quebra.
+        const __lvblSend = window.__lvblFetch;
+        if (typeof __lvblSend !== 'function') {
+            statusBar.textContent = 'Licença inválida. Reative sua chave para continuar.';
+            statusBar.classList.add('error');
+            setTimeout(() => statusBar.classList.remove('error'), 4000);
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            return;
+        }
+        const response = await __lvblSend(
             `https://api.lovable.dev/projects/${state.projectId}/chat`,
             {
                 method: 'POST',
