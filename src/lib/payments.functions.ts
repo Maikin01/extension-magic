@@ -6,15 +6,11 @@ const createPixSchema = z.object({
   plan_slug: z.string().min(2).max(50),
   buyer_name: z.string().min(2).max(120),
   buyer_whatsapp: z.string().min(8).max(30),
+  buyer_cpf: z.string().max(20).optional(),
 });
 
 function digits(s: string) {
   return s.replace(/\D+/g, "");
-}
-
-function syntheticEmail(whatsapp: string) {
-  const d = digits(whatsapp) || "00000000000";
-  return `wpp+${d}@rise-lovable.app`;
 }
 
 /**
