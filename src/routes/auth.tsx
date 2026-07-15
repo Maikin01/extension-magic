@@ -105,7 +105,7 @@ function AuthPage() {
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <GoogleButton />
+          <GoogleButton next={next} plan={plan} />
         </Card>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
@@ -243,12 +243,18 @@ function SignupForm({ next, plan }: { next: string; plan: string | null }) {
   );
 }
 
-function GoogleButton() {
+function GoogleButton({ next, plan }: { next: string; plan: string | null }) {
   const [loading, setLoading] = useState(false);
   const handle = async () => {
     setLoading(true);
+    const safeNext = sanitizeNextPath(next);
+    if (plan) {
+      window.sessionStorage.setItem("rise_lovable_pending_checkout", plan);
+    }
+    const redirectSearch = new URLSearchParams({ next: safeNext });
+    if (plan) redirectSearch.set("plan", plan);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/auth",
+      redirect_uri: `${window.location.origin}/auth?${redirectSearch.toString()}`,
     });
     if (result.error) {
       setLoading(false);
