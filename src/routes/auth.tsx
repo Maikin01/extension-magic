@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 export const Route = createFileRoute("/auth")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Entrar — Rise Lovable" },
@@ -54,6 +55,47 @@ function sanitizeNextPath(value: string) {
   }
 }
 
+function readAuthUrlParams() {
+  const url = new URL(window.location.href);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return {
+    code: url.searchParams.get("code"),
+    accessToken: hash.get("access_token"),
+    refreshToken: hash.get("refresh_token"),
+    hasCallback:
+      url.searchParams.has("code") ||
+      url.searchParams.has("token_hash") ||
+      hash.has("access_token") ||
+      hash.has("refresh_token"),
+  };
+}
+
+async function finishEmailConfirmationFromUrl() {
+  const authUrl = readAuthUrlParams();
+
+  if (authUrl.code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(authUrl.code);
+    if (error) console.warn("[auth] Falha ao concluir confirmação por código", error);
+  }
+
+  if (authUrl.accessToken && authUrl.refreshToken) {
+    const { error } = await supabase.auth.setSession({
+      access_token: authUrl.accessToken,
+      refresh_token: authUrl.refreshToken,
+    });
+    if (error) console.warn("[auth] Falha ao restaurar sessão da confirmação", error);
+  }
+}
+
+async function waitForRestoredSession(attempts: number) {
+  for (let i = 0; i < attempts; i++) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) return data.session;
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+  return null;
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const [authParams, setAuthParams] = useState<AuthParams>(defaultAuthParams);
@@ -90,11 +132,13 @@ function AuthPage() {
       if (!cancelled) setCheckingSession(false);
     };
 
-    const timeout = window.setTimeout(finishChecking, 3500);
+    const authUrl = readAuthUrlParams();
+    const timeout = window.setTimeout(finishChecking, authUrl.hasCallback || currentParams.plan ? 6500 : 2500);
 
-    supabase.auth.getSession().then(({ data }) => {
+    finishEmailConfirmationFromUrl().then(async () => {
       if (cancelled) return;
-      if (data.session) {
+      const session = await waitForRestoredSession(authUrl.hasCallback || currentParams.plan ? 16 : 1);
+      if (session) {
         go();
         return;
       }
