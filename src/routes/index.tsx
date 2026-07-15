@@ -112,9 +112,10 @@ async function finishEmailConfirmationFromUrl() {
 
 async function waitForVerifiedCheckoutUser(attempts: number) {
   for (let i = 0; i < attempts; i++) {
-    const { data, error } = await supabase.auth.getUser();
-    if (!error && data.user) return data.user;
-    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    // getSession é local (lê do storage) — instantâneo, sem round-trip de rede.
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.user) return data.session.user;
+    await new Promise((resolve) => window.setTimeout(resolve, 60));
   }
   return null;
 }
