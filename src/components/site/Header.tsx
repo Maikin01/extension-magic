@@ -29,7 +29,10 @@ export function SiteHeader() {
         verifyUser();
       }
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const handleSignOut = async () => {
