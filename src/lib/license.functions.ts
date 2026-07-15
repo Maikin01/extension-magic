@@ -353,6 +353,7 @@ export const adminGenerateLicenses = createServerFn({ method: "POST" })
             notes: data.notes ?? null,
             custom_duration_minutes: data.custom_duration_minutes ?? null,
             custom_duration_seconds: data.custom_duration_seconds ?? null,
+            max_devices_override: data.max_devices_override ?? null,
           })
           .select()
           .single();
