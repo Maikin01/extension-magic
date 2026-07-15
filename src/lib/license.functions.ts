@@ -519,29 +519,33 @@ export const adminSetUserRole = createServerFn({ method: "POST" })
     z
       .object({
         user_id: z.string().uuid(),
-        role: z.enum(["admin", "user"]),
+        role: z.enum(["admin", "user", "cliente", "revendedor", "owner"]),
         action: z.enum(["grant", "revoke"]),
       })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
     const adminId = await assertAdmin(context);
-    if (data.user_id === adminId && data.role === "admin" && data.action === "revoke") {
-      throw new Error("Você não pode remover seu próprio acesso de admin.");
+    if (
+      data.user_id === adminId &&
+      (data.role === "admin" || data.role === "owner") &&
+      data.action === "revoke"
+    ) {
+      throw new Error("Você não pode remover seu próprio acesso de admin/owner.");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     if (data.action === "grant") {
       const { error } = await supabaseAdmin
         .from("user_roles")
-        .insert({ user_id: data.user_id, role: data.role });
+        .insert({ user_id: data.user_id, role: data.role as never });
       if (error && !error.message.includes("duplicate")) throw error;
     } else {
       const { error } = await supabaseAdmin
         .from("user_roles")
         .delete()
         .eq("user_id", data.user_id)
-        .eq("role", data.role);
+        .eq("role", data.role as never);
       if (error) throw error;
     }
 
@@ -551,6 +555,28 @@ export const adminSetUserRole = createServerFn({ method: "POST" })
       target_type: "user",
       target_id: data.user_id,
       details: { role: data.role },
+    });
+    return { ok: true };
+  });
+
+export const adminDeleteUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ user_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const adminId = await assertAdmin(context);
+    if (data.user_id === adminId) {
+      throw new Error("Você não pode excluir sua própria conta.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
+    if (error) throw error;
+
+    await supabaseAdmin.from("admin_audit_log").insert({
+      admin_id: adminId,
+      action: "delete_user",
+      target_type: "user",
+      target_id: data.user_id,
+      details: {},
     });
     return { ok: true };
   });

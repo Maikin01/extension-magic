@@ -6,13 +6,53 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { adminListUsers, adminSetUserRole } from "@/lib/license.functions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  adminListUsers,
+  adminSetUserRole,
+  adminDeleteUser,
+} from "@/lib/license.functions";
 import { formatDateBR } from "@/lib/license-utils";
-import { Shield, ShieldOff } from "lucide-react";
+import { Trash2 } from "lucide-react";
+
+type AssignableRole = "cliente" | "revendedor" | "owner";
+const ASSIGNABLE_ROLES: AssignableRole[] = ["cliente", "revendedor", "owner"];
+const ROLE_LABEL: Record<string, string> = {
+  cliente: "Cliente",
+  revendedor: "Revendedor",
+  owner: "Owner",
+  admin: "Admin",
+  user: "User",
+};
+const ROLE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
+  owner: "default",
+  admin: "default",
+  revendedor: "secondary",
+  cliente: "outline",
+  user: "outline",
+};
 
 export function UsersTab() {
   const listUsers = useServerFn(adminListUsers);
   const setRole = useServerFn(adminSetUserRole);
+  const deleteUser = useServerFn(adminDeleteUser);
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
 
@@ -21,11 +61,23 @@ export function UsersTab() {
     queryFn: () => listUsers(),
   });
 
-  const mut = useMutation({
-    mutationFn: (vars: { user_id: string; role: "admin"; action: "grant" | "revoke" }) =>
-      setRole({ data: vars }),
+  const roleMut = useMutation({
+    mutationFn: (vars: {
+      user_id: string;
+      role: AssignableRole;
+      action: "grant" | "revoke";
+    }) => setRole({ data: vars }),
     onSuccess: () => {
-      toast.success("Papel atualizado");
+      toast.success("Cargo atualizado");
+      qc.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const delMut = useMutation({
+    mutationFn: (user_id: string) => deleteUser({ data: { user_id } }),
+    onSuccess: () => {
+      toast.success("Usuário excluído");
       qc.invalidateQueries({ queryKey: ["admin", "users"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -41,6 +93,27 @@ export function UsersTab() {
       (u.full_name ?? "").toLowerCase().includes(q)
     );
   });
+
+  const getPrimaryAssignable = (roles: string[]): AssignableRole | "" => {
+    for (const r of ASSIGNABLE_ROLES) if (roles.includes(r)) return r;
+    return "";
+  };
+
+  const handleRoleChange = async (
+    userId: string,
+    currentRoles: string[],
+    next: AssignableRole,
+  ) => {
+    // remove all other assignable roles, then grant next
+    for (const r of ASSIGNABLE_ROLES) {
+      if (r !== next && currentRoles.includes(r)) {
+        await roleMut.mutateAsync({ user_id: userId, role: r, action: "revoke" });
+      }
+    }
+    if (!currentRoles.includes(next)) {
+      await roleMut.mutateAsync({ user_id: userId, role: next, action: "grant" });
+    }
+  };
 
   return (
     <Card className="p-6">
@@ -60,68 +133,89 @@ export function UsersTab() {
               <th className="py-2 pr-3">Email</th>
               <th className="py-2 pr-3">Nome</th>
               <th className="py-2 pr-3">Papéis</th>
+              <th className="py-2 pr-3">Cargo</th>
               <th className="py-2 pr-3">Licenças</th>
               <th className="py-2 pr-3">Criado</th>
               <th className="py-2 pr-3">Último login</th>
-              <th className="py-2 pr-3">Ação</th>
+              <th className="py-2 pr-3 text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((u: any) => {
-              const isAdmin = u.roles.includes("admin");
+              const primary = getPrimaryAssignable(u.roles);
               return (
                 <tr key={u.id} className="border-b hover:bg-muted/30">
                   <td className="py-2 pr-3">{u.email ?? "—"}</td>
                   <td className="py-2 pr-3">{u.full_name ?? "—"}</td>
                   <td className="py-2 pr-3">
-                    <div className="flex gap-1">
+                    <div className="flex flex-wrap gap-1">
                       {u.roles.length === 0 && (
                         <Badge variant="outline">user</Badge>
                       )}
                       {u.roles.map((r: string) => (
-                        <Badge
-                          key={r}
-                          variant={r === "admin" ? "default" : "outline"}
-                        >
-                          {r}
+                        <Badge key={r} variant={ROLE_VARIANT[r] ?? "outline"}>
+                          {ROLE_LABEL[r] ?? r}
                         </Badge>
                       ))}
                     </div>
                   </td>
+                  <td className="py-2 pr-3">
+                    <Select
+                      value={primary}
+                      onValueChange={(v) =>
+                        handleRoleChange(u.id, u.roles, v as AssignableRole)
+                      }
+                    >
+                      <SelectTrigger className="h-8 w-36">
+                        <SelectValue placeholder="Definir cargo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ASSIGNABLE_ROLES.map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {ROLE_LABEL[r]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
                   <td className="py-2 pr-3">{u.license_count}</td>
-                  <td className="py-2 pr-3 text-xs">{formatDateBR(u.created_at)}</td>
+                  <td className="py-2 pr-3 text-xs">
+                    {formatDateBR(u.created_at)}
+                  </td>
                   <td className="py-2 pr-3 text-xs">
                     {formatDateBR(u.last_sign_in_at)}
                   </td>
-                  <td className="py-2 pr-3">
-                    {isAdmin ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          mut.mutate({
-                            user_id: u.id,
-                            role: "admin",
-                            action: "revoke",
-                          })
-                        }
-                      >
-                        <ShieldOff className="mr-1 h-3 w-3" /> Remover admin
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          mut.mutate({
-                            user_id: u.id,
-                            role: "admin",
-                            action: "grant",
-                          })
-                        }
-                      >
-                        <Shield className="mr-1 h-3 w-3" /> Tornar admin
-                      </Button>
-                    )}
+                  <td className="py-2 pr-3 text-right">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Isso apagará permanentemente o cadastro de{" "}
+                            <strong>{u.email ?? u.id}</strong> e revogará
+                            todos os acessos. Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => delMut.mutate(u.id)}
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </td>
                 </tr>
               );

@@ -399,7 +399,7 @@ export type Database = {
         | "not_found"
         | "rate_limited"
         | "error"
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "cliente" | "revendedor" | "owner"
       license_status: "pending" | "active" | "expired" | "suspended" | "revoked"
     }
     CompositeTypes: {
@@ -540,7 +540,7 @@ export const Constants = {
         "rate_limited",
         "error",
       ],
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "cliente", "revendedor", "owner"],
       license_status: ["pending", "active", "expired", "suspended", "revoked"],
     },
   },
