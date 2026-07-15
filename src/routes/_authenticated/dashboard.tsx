@@ -7,13 +7,36 @@ import { SiteHeader } from "@/components/site/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Download, Key, PlayCircle, Sparkles } from "lucide-react";
+import { Clock, Copy, Download, Key, PlayCircle, Sparkles } from "lucide-react";
 import { getMyDashboard, claimTrialLicense } from "@/lib/license.functions";
 import {
   LICENSE_STATUS_LABEL,
   formatDateBR,
-  formatDaysLeft,
 } from "@/lib/license-utils";
+
+function useCountdown(target: string | null | undefined) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!target) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [target]);
+  if (!target) return null;
+  const diff = new Date(target).getTime() - now;
+  if (isNaN(diff)) return null;
+  if (diff <= 0) return { expired: true, label: "Expirada" };
+  const s = Math.floor(diff / 1000);
+  const days = Math.floor(s / 86400);
+  const hours = Math.floor((s % 86400) / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
+  const seconds = s % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  let label: string;
+  if (days > 0) label = `${days}d ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  else if (hours > 0) label = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  else label = `${pad(minutes)}:${pad(seconds)}`;
+  return { expired: false, label };
+}
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Painel — Lovable" }] }),
