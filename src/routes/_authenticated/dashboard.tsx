@@ -7,13 +7,36 @@ import { SiteHeader } from "@/components/site/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Download, Key, PlayCircle, Sparkles } from "lucide-react";
+import { Clock, Copy, Download, Key, PlayCircle, Sparkles } from "lucide-react";
 import { getMyDashboard, claimTrialLicense } from "@/lib/license.functions";
 import {
   LICENSE_STATUS_LABEL,
   formatDateBR,
-  formatDaysLeft,
 } from "@/lib/license-utils";
+
+function useCountdown(target: string | null | undefined) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!target) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [target]);
+  if (!target) return null;
+  const diff = new Date(target).getTime() - now;
+  if (isNaN(diff)) return null;
+  if (diff <= 0) return { expired: true, label: "Expirada" };
+  const s = Math.floor(diff / 1000);
+  const days = Math.floor(s / 86400);
+  const hours = Math.floor((s % 86400) / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
+  const seconds = s % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  let label: string;
+  if (days > 0) label = `${days}d ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  else if (hours > 0) label = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  else label = `${pad(minutes)}:${pad(seconds)}`;
+  return { expired: false, label };
+}
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Painel — Lovable" }] }),
@@ -188,6 +211,8 @@ function LicenseRow({ license, isCurrent }: { license: any; isCurrent: boolean }
         ? "secondary"
         : "destructive";
 
+  const countdown = useCountdown(isCurrent ? license.expires_at : null);
+
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-black/50 p-4">
       <div className="flex flex-1 items-center gap-3 min-w-0">
@@ -200,7 +225,19 @@ function LicenseRow({ license, isCurrent }: { license: any; isCurrent: boolean }
         {license.expires_at && (
           <span className="text-xs text-muted-foreground">
             Expira em {formatDateBR(license.expires_at)}
-            {isCurrent && <> · {formatDaysLeft(license.expires_at)}</>}
+          </span>
+        )}
+        {isCurrent && countdown && (
+          <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-xs tabular-nums ${
+              countdown.expired
+                ? "border-destructive/40 bg-destructive/10 text-destructive"
+                : "border-primary/40 bg-primary/10 text-primary"
+            }`}
+            title="Tempo restante da licença"
+          >
+            <Clock className="h-3 w-3" />
+            {countdown.expired ? "Expirada" : countdown.label}
           </span>
         )}
         <Button size="sm" variant="ghost" onClick={copy}>
