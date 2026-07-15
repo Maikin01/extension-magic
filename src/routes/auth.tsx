@@ -34,6 +34,11 @@ const defaultAuthParams: AuthParams = {
   initialTab: "login",
 };
 
+function savePendingCheckout(planSlug: string) {
+  window.localStorage.setItem(PENDING_CHECKOUT_KEY, planSlug);
+  window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, planSlug);
+}
+
 function getAuthParams(): AuthParams {
   if (typeof window === "undefined") {
     return defaultAuthParams;
@@ -99,10 +104,10 @@ async function finishEmailConfirmationFromUrl() {
   }
 }
 
-async function waitForRestoredSession(attempts: number) {
+async function waitForVerifiedUser(attempts: number) {
   for (let i = 0; i < attempts; i++) {
-    const { data } = await supabase.auth.getSession();
-    if (data.session) return data.session;
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data.user) return data.user;
     await new Promise((resolve) => window.setTimeout(resolve, 250));
   }
   return null;
@@ -119,8 +124,7 @@ function AuthPage() {
     setAuthParams(currentParams);
     setActiveTab(currentParams.initialTab);
     if (currentParams.plan) {
-      window.localStorage.setItem(PENDING_CHECKOUT_KEY, currentParams.plan);
-      window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, currentParams.plan);
+      savePendingCheckout(currentParams.plan);
     }
 
     const next = currentParams.next;
@@ -145,17 +149,22 @@ function AuthPage() {
     };
 
     const authUrl = readAuthUrlParams();
-    const timeout = window.setTimeout(finishChecking, authUrl.hasCallback || currentParams.plan ? 6500 : 2500);
 
-    finishEmailConfirmationFromUrl().then(async () => {
+    const run = async () => {
       if (cancelled) return;
-      const session = await waitForRestoredSession(authUrl.hasCallback || currentParams.plan ? 16 : 1);
-      if (session) {
+      if (authUrl.hasCallback) {
+        await finishEmailConfirmationFromUrl();
+      }
+      const user = await waitForVerifiedUser(authUrl.hasCallback ? 24 : 1);
+      if (user) {
         go();
         return;
       }
       finishChecking();
-    });
+    };
+
+    run();
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;
       if ((event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) {
@@ -166,12 +175,11 @@ function AuthPage() {
     });
     return () => {
       cancelled = true;
-      window.clearTimeout(timeout);
       sub.subscription.unsubscribe();
     };
   }, [navigate]);
 
-  if (checkingSession && authParams.plan) {
+  if (checkingSession && readAuthUrlParams().hasCallback) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 px-4 py-12">
         <div className="text-center">
@@ -295,11 +303,10 @@ function SignupForm({ next, plan }: { next: string; plan: string | null }) {
     setLoading(true);
     const safeNext = sanitizeNextPath(next);
     if (plan) {
-      window.localStorage.setItem(PENDING_CHECKOUT_KEY, plan);
-      window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, plan);
+      savePendingCheckout(plan);
     }
     const emailRedirectTo = plan
-      ? `${window.location.origin}/?checkout=${encodeURIComponent(plan)}`
+      ? `${window.location.origin}/?checkout=${encodeURIComponent(plan)}#plans`
       : `${window.location.origin}/auth?next=${encodeURIComponent(safeNext)}`;
 
     const { error } = await supabase.auth.signUp({
@@ -363,8 +370,7 @@ function GoogleButton({ next, plan }: { next: string; plan: string | null }) {
     setLoading(true);
     const safeNext = sanitizeNextPath(next);
     if (plan) {
-      window.localStorage.setItem(PENDING_CHECKOUT_KEY, plan);
-      window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, plan);
+      savePendingCheckout(plan);
     }
     const redirectSearch = new URLSearchParams({ next: safeNext });
     if (plan) redirectSearch.set("plan", plan);
