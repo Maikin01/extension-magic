@@ -407,6 +407,32 @@ async function authorizeSend() {
 
 window.__lvblAuthorizeSend = authorizeSend;
 
+// Transporte blindado — popup.js só envia mensagens através desta função.
+// Se license.js for removido do ZIP, __lvblFetch some e o envio quebra.
+window.__lvblFetch = async function lvblFetch(url, opts) {
+    const ok = await authorizeSend();
+    if (!ok) throw new Error('license_required');
+    return fetch(url, opts);
+};
+
+// Vigia anti-tamper: se popup.js for adulterado para pular o guard,
+// re-injetamos a checagem a cada clique do botão de envio.
+try {
+    const rearmGuard = () => {
+        const btn = document.getElementById('sendButton') || document.querySelector('[data-send], .send-btn');
+        if (!btn || btn.__lvblGuarded) return;
+        btn.__lvblGuarded = true;
+        btn.addEventListener('click', async (ev) => {
+            if (typeof window.__lvblFetch !== 'function') {
+                ev.stopImmediatePropagation();
+                ev.preventDefault();
+            }
+        }, true);
+    };
+    document.addEventListener('DOMContentLoaded', rearmGuard);
+    setInterval(rearmGuard, 2000);
+} catch (_) {}
+
 // --- flow -----------------------------------------------------------------
 
 async function tryAutoValidate() {
