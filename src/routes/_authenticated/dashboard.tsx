@@ -211,6 +211,8 @@ function LicenseRow({ license, isCurrent }: { license: any; isCurrent: boolean }
         ? "secondary"
         : "destructive";
 
+  const countdown = useCountdown(isCurrent ? license.expires_at : null);
+
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-black/50 p-4">
       <div className="flex flex-1 items-center gap-3 min-w-0">
