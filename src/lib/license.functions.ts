@@ -341,6 +341,7 @@ export const adminGenerateLicenses = createServerFn({ method: "POST" })
             license_key_hash: hash,
             status: "pending",
             notes: data.notes ?? null,
+            custom_duration_minutes: data.custom_duration_minutes ?? null,
           })
           .select()
           .single();
