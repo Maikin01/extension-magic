@@ -187,6 +187,40 @@ export function LicensesTab() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            {selected.size > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={bulkDelMut.isPending}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {bulkDelMut.isPending
+                      ? "Deletando…"
+                      : `Deletar selecionadas (${selected.size})`}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Deletar {selected.size} licença(s)?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação é permanente e não pode ser desfeita. Todas as
+                      chaves selecionadas serão removidas do sistema, junto com
+                      seus logs de ativação e dispositivos vinculados. Tem certeza
+                      que deseja continuar?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => bulkDelMut.mutate(Array.from(selected))}
+                      className="bg-destructive text-destructive-foreground"
+                    >
+                      Sim, deletar tudo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             <Dialog open={genOpen} onOpenChange={setGenOpen}>
               <DialogTrigger asChild>
                 <Button>
