@@ -8,9 +8,16 @@ const STORAGE_KEYS = {
     lastCheck: 'lvbl_last_check',
     licenseInfo: 'lvbl_license_info',
     standardChat: 'lvbl_use_standard_chat',
+    disconnectedAt: 'lvbl_license_disconnected_at',
 };
 const REVALIDATE_INTERVAL_MS = 30 * 1000; // servidor: confirma periodicamente revogação/suspensão
 const WATCHER_INTERVAL_MS = 1000;         // local: corta a chave no segundo em que expirar
+const CLEANUP_KEYS = [
+    STORAGE_KEYS.key,
+    STORAGE_KEYS.licenseInfo,
+    STORAGE_KEYS.lastCheck,
+    STORAGE_KEYS.standardChat,
+];
 
 // --- utils ----------------------------------------------------------------
 
@@ -143,10 +150,27 @@ function stopWatcher() {
 }
 
 function expiryTime(info) {
+    const localDeadline = Number(info && info.client_expires_at_ms);
+    if (Number.isFinite(localDeadline) && localDeadline > 0) return localDeadline;
     const iso = info && (info.expires_at || info.expiresAt);
     if (!iso) return null;
     const t = new Date(iso).getTime();
     return Number.isFinite(t) ? t : null;
+}
+
+function enrichLicenseInfo(info) {
+    if (!info || typeof info !== 'object') return info;
+    const now = Date.now();
+    const expiresInMs = Number(info.expires_in_ms);
+    let clientDeadline = Number.isFinite(expiresInMs)
+        ? now + Math.max(0, expiresInMs)
+        : expiryTime(info);
+    if (!Number.isFinite(clientDeadline) || clientDeadline <= 0) clientDeadline = null;
+    return {
+        ...info,
+        client_checked_at_ms: now,
+        client_expires_at_ms: clientDeadline,
+    };
 }
 
 function msUntilExpiry(info) {
@@ -171,12 +195,8 @@ function setChatControlsDisabled(disabled) {
 async function disconnectExpiredLicense(reason) {
     stopWatcher();
     setChatControlsDisabled(true);
-    await chrome.storage.local.remove([
-        STORAGE_KEYS.key,
-        STORAGE_KEYS.licenseInfo,
-        STORAGE_KEYS.lastCheck,
-        STORAGE_KEYS.standardChat,
-    ]);
+    await chrome.storage.local.set({ [STORAGE_KEYS.disconnectedAt]: Date.now() });
+    await chrome.storage.local.remove(CLEANUP_KEYS);
     if (gateInput) gateInput.value = '';
     showGate();
     setError(reasonText(reason || 'expired'));
@@ -196,11 +216,13 @@ async function forceRevalidate(reason) {
         const deviceHash = await getOrCreateDeviceHash();
         const res = await apiValidate(savedKey, deviceHash);
         if (res.ok && res.data.valid && !isLocallyExpired(res.data)) {
+            const nextInfo = enrichLicenseInfo(res.data);
             await chrome.storage.local.set({
                 [STORAGE_KEYS.lastCheck]: Date.now(),
-                [STORAGE_KEYS.licenseInfo]: res.data,
+                [STORAGE_KEYS.licenseInfo]: nextInfo,
             });
-            scheduleWatcher(res.data);
+            if (isLocallyExpired(nextInfo)) return disconnectExpiredLicense('expired');
+            scheduleWatcher(nextInfo);
         } else if (res.data.reason === 'network') {
             // offline: mantém só enquanto a data local ainda não venceu
             if (isLocallyExpired(stored[STORAGE_KEYS.licenseInfo])) {
@@ -217,12 +239,8 @@ async function forceRevalidate(reason) {
 async function kickToGate(reason) {
     stopWatcher();
     setChatControlsDisabled(true);
-    await chrome.storage.local.remove([
-        STORAGE_KEYS.key,
-        STORAGE_KEYS.licenseInfo,
-        STORAGE_KEYS.lastCheck,
-        STORAGE_KEYS.standardChat,
-    ]);
+    await chrome.storage.local.set({ [STORAGE_KEYS.disconnectedAt]: Date.now() });
+    await chrome.storage.local.remove(CLEANUP_KEYS);
     showGate();
     setError(reasonText(reason || 'expired'));
 }
@@ -313,7 +331,9 @@ async function tryAutoValidate() {
 
     // Mostra chat de cara com info do cache (se houver) e revalida em background
     if (stored[STORAGE_KEYS.licenseInfo]) {
-        showChat(stored[STORAGE_KEYS.licenseInfo]);
+        const cachedInfo = enrichLicenseInfo(stored[STORAGE_KEYS.licenseInfo]);
+        await chrome.storage.local.set({ [STORAGE_KEYS.licenseInfo]: cachedInfo });
+        showChat(cachedInfo);
     } else {
         gate.style.display = 'flex';
         chatShell.style.display = 'none';
@@ -329,11 +349,13 @@ async function tryAutoValidate() {
     const res = await apiValidate(savedKey, deviceHash);
 
     if (res.ok && res.data.valid && !isLocallyExpired(res.data)) {
+        const nextInfo = enrichLicenseInfo(res.data);
         await chrome.storage.local.set({
             [STORAGE_KEYS.lastCheck]: Date.now(),
-            [STORAGE_KEYS.licenseInfo]: res.data,
+            [STORAGE_KEYS.licenseInfo]: nextInfo,
         });
-        showChat(res.data);
+        if (isLocallyExpired(nextInfo)) return disconnectExpiredLicense('expired');
+        showChat(nextInfo);
     } else if (res.data.reason === 'network') {
         // Offline: se tinha info em cache e ainda não venceu, mantém liberado
         if (stored[STORAGE_KEYS.licenseInfo] && !isLocallyExpired(stored[STORAGE_KEYS.licenseInfo])) {
@@ -365,24 +387,22 @@ async function handleActivate(e) {
     setBusy(false);
 
     if (res.ok && res.data.valid && !isLocallyExpired(res.data)) {
+        const nextInfo = enrichLicenseInfo(res.data);
         await chrome.storage.local.set({
             [STORAGE_KEYS.key]: key,
             [STORAGE_KEYS.lastCheck]: Date.now(),
-            [STORAGE_KEYS.licenseInfo]: res.data,
+            [STORAGE_KEYS.licenseInfo]: nextInfo,
         });
-        showChat(res.data);
+        if (isLocallyExpired(nextInfo)) return disconnectExpiredLicense('expired');
+        showChat(nextInfo);
     } else {
         setError(reasonText(res.data.reason || 'expired'));
     }
 }
 
 async function handleLogout() {
-    await chrome.storage.local.remove([
-        STORAGE_KEYS.key,
-        STORAGE_KEYS.lastCheck,
-        STORAGE_KEYS.licenseInfo,
-        STORAGE_KEYS.standardChat,
-    ]);
+    await chrome.storage.local.set({ [STORAGE_KEYS.disconnectedAt]: Date.now() });
+    await chrome.storage.local.remove(CLEANUP_KEYS);
     gateInput.value = '';
     setError('');
     showGate();
