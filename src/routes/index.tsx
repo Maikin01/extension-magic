@@ -51,9 +51,16 @@ function clearPendingCheckout() {
   window.sessionStorage.removeItem(PENDING_CHECKOUT_KEY);
 }
 
+function getAuthHashParams() {
+  const rawHash = window.location.hash.replace(/^#/, "");
+  const authParamStart = rawHash.search(/(?:^|[#&?])(access_token|refresh_token|token_hash|type)=/);
+  const paramsSource = authParamStart >= 0 ? rawHash.slice(authParamStart).replace(/^[#&?]/, "") : rawHash;
+  return new URLSearchParams(paramsSource);
+}
+
 function readEmailConfirmationParams() {
   const url = new URL(window.location.href);
-  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const hash = getAuthHashParams();
   const tokenHash = url.searchParams.get("token_hash") ?? hash.get("token_hash");
   const type = url.searchParams.get("type") ?? hash.get("type") ?? "signup";
   return {
@@ -67,10 +74,12 @@ function readEmailConfirmationParams() {
 
 function hasEmailConfirmationParams() {
   const url = new URL(window.location.href);
-  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const hash = getAuthHashParams();
   return (
     url.searchParams.has("code") ||
     url.searchParams.has("token_hash") ||
+    window.location.hash.includes("access_token=") ||
+    window.location.hash.includes("refresh_token=") ||
     hash.has("access_token") ||
     hash.has("refresh_token")
   );
@@ -545,9 +554,8 @@ function Plans() {
       url.searchParams.delete("code");
       url.searchParams.delete("token_hash");
       url.searchParams.delete("type");
-      // Se veio do fluxo de verificação (checkout na URL), leva para a seção de planos
-      const hash = urlSlug ? "#plans" : window.location.hash;
-      window.history.replaceState({}, "", url.pathname + url.search + hash);
+      // Se veio do fluxo de verificação, força a seção de planos e remove tokens do endereço.
+      window.history.replaceState({}, "", url.pathname + url.search + "#plans");
       requestAnimationFrame(() => {
         document.getElementById("plans")?.scrollIntoView({ behavior: "smooth", block: "start" });
         setCheckoutPlan({ slug: plan.slug, name: plan.name, price_cents: plan.price_cents });
