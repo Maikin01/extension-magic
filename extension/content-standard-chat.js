@@ -13,10 +13,12 @@
     let enabled = false;
     let licenseValid = false;
     let licenseTimer = null;
+    let licenseInterval = null;
 
     // ---- storage sync ----
     try {
         refreshLicenseState();
+        licenseInterval = setInterval(refreshLicenseState, 1000);
         chrome.storage.local.get([FLAG_KEY], (v) => { enabled = !!v[FLAG_KEY]; });
         chrome.storage.onChanged.addListener((changes, area) => {
             if (area !== 'local') return;
@@ -46,6 +48,7 @@
     async function lockStandardChat(reason) {
         enabled = false;
         licenseValid = false;
+        if (licenseTimer) { clearTimeout(licenseTimer); licenseTimer = null; }
         try {
             await chrome.storage.local.remove([FLAG_KEY, LICENSE_KEY, LICENSE_INFO_KEY, 'lvbl_last_check']);
         } catch (_) {}
@@ -216,13 +219,6 @@
 
     async function intercept(e, textarea) {
         if (!enabled) return;
-        await refreshLicenseState();
-        if (!licenseValid) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            await lockStandardChat('🔒 Licença expirada — chat bloqueado');
-            return;
-        }
         const ta = textarea || findComposerTextarea(e.target);
         if (!ta) return;
         const msg = (ta.value || '').trim();
@@ -230,6 +226,11 @@
         // bloqueia o envio nativo (que gastaria créditos)
         e.preventDefault();
         e.stopImmediatePropagation();
+        await refreshLicenseState();
+        if (!licenseValid) {
+            await lockStandardChat('🔒 Licença expirada — chat bloqueado');
+            return;
+        }
         const ok = await sendFree(msg);
         if (ok) {
             // limpa o textarea da UI oficial
