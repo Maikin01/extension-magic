@@ -77,12 +77,19 @@ export function PixCheckoutDialog({
     e.preventDefault();
     if (!plan) return;
     const cleanWpp = wpp.replace(/\D+/g, "");
+    const cleanCpf = cpf.replace(/\D+/g, "");
     if (name.trim().length < 2) return toast.error("Informe seu nome.");
     if (cleanWpp.length < 10) return toast.error("Informe um WhatsApp válido (com DDD).");
+    if (cleanCpf && cleanCpf.length !== 11) return toast.error("CPF inválido.");
     setLoading(true);
     try {
       const res = await createPix({
-        data: { plan_slug: plan.slug, buyer_name: name.trim(), buyer_whatsapp: cleanWpp },
+        data: {
+          plan_slug: plan.slug,
+          buyer_name: name.trim(),
+          buyer_whatsapp: cleanWpp,
+          buyer_cpf: cleanCpf || undefined,
+        },
       });
       setPix(res);
       setStep("pix");
