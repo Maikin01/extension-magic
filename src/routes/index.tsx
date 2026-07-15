@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { SiteHeader } from "@/components/site/Header";
 import { Card } from "@/components/ui/card";
 import {
@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { getPublicPlans } from "@/lib/license.functions";
 import { formatPrice } from "@/lib/license-utils";
+import { PixCheckoutDialog } from "@/components/checkout/PixCheckoutDialog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -395,6 +396,10 @@ function Plans() {
     queryFn: () => getPlans(),
   });
 
+  const [checkoutPlan, setCheckoutPlan] = useState<
+    { slug: string; name: string; price_cents: number } | null
+  >(null);
+
   const highlightSlug = "monthly";
 
   return (
@@ -493,10 +498,20 @@ function Plans() {
                 ) : (
                   <button
                     type="button"
-                    disabled
-                    className="inline-flex h-12 cursor-not-allowed items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-xs font-bold uppercase tracking-widest text-white/40"
+                    onClick={() =>
+                      setCheckoutPlan({
+                        slug: plan.slug,
+                        name: plan.name,
+                        price_cents: plan.price_cents,
+                      })
+                    }
+                    className={`inline-flex h-12 items-center justify-center rounded-xl text-xs font-bold uppercase tracking-widest transition ${
+                      highlight
+                        ? "btn-neon text-white"
+                        : "border border-white/10 bg-white/5 text-white hover:border-primary/40 hover:bg-white/10"
+                    }`}
                   >
-                    Em breve
+                    Assinar com Pix
                   </button>
                 )}
               </Card>
@@ -505,6 +520,11 @@ function Plans() {
         </div>
       </div>
 
+      <PixCheckoutDialog
+        plan={checkoutPlan}
+        open={!!checkoutPlan}
+        onOpenChange={(v) => !v && setCheckoutPlan(null)}
+      />
     </section>
   );
 }

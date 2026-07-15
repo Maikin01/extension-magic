@@ -200,6 +200,87 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount_cents: number
+          buyer_email: string | null
+          buyer_name: string
+          buyer_whatsapp: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          license_id: string | null
+          paid_at: string | null
+          plan_id: string
+          provider: string
+          provider_payment_id: string | null
+          qr_code: string | null
+          qr_code_base64: string | null
+          raw: Json | null
+          status: string
+          ticket_url: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          buyer_email?: string | null
+          buyer_name: string
+          buyer_whatsapp: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          license_id?: string | null
+          paid_at?: string | null
+          plan_id: string
+          provider?: string
+          provider_payment_id?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          raw?: Json | null
+          status?: string
+          ticket_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          buyer_email?: string | null
+          buyer_name?: string
+          buyer_whatsapp?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          license_id?: string | null
+          paid_at?: string | null
+          plan_id?: string
+          provider?: string
+          provider_payment_id?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          raw?: Json | null
+          status?: string
+          ticket_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           created_at: string
