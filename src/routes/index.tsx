@@ -478,7 +478,7 @@ function Plans() {
                   ))}
                 </ul>
 
-                {isTrial ? (
+                {plan.slug === "trial" ? (
                   <Link
                     to="/auth"
                     search={{ claim: "trial" } as any}
