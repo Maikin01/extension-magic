@@ -217,6 +217,23 @@ export function LicensesTab() {
                       onChange={(e) => setGenCount(Number(e.target.value))}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label>
+                      Limite de dispositivos{" "}
+                      <span className="text-xs text-muted-foreground">(opcional)</span>
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={50}
+                      placeholder="Deixe vazio para usar o padrão do plano"
+                      value={maxDevicesOverride}
+                      onChange={(e) => setMaxDevicesOverride(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Quantos dispositivos diferentes esta chave pode ativar. Se vazio, usa o valor do plano.
+                    </p>
+                  </div>
                   <div className="space-y-2 rounded-md border p-3">
                     <div className="flex items-center justify-between">
                       <Label className="cursor-pointer" htmlFor="custom-dur-toggle">
