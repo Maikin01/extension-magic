@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
-      { title: "Redefinir senha — Lovable" },
-      { name: "description", content: "Defina uma nova senha para sua conta Lovable." },
+      { title: "Redefinir senha — Rise Lovable" },
+      { name: "description", content: "Defina uma nova senha para sua conta Rise Lovable." },
     ],
   }),
   component: ResetPage,
