@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -61,6 +62,7 @@ export function LicensesTab() {
   const [customDurationUnit, setCustomDurationUnit] = useState<"seconds" | "minutes" | "hours" | "days">("minutes");
   const [maxDevicesOverride, setMaxDevicesOverride] = useState<string>("");
   const [lastGenerated, setLastGenerated] = useState<any[] | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin", "overview"],
@@ -81,6 +83,21 @@ export function LicensesTab() {
     mutationFn: (license_id: string) => del({ data: { license_id } }),
     onSuccess: () => {
       toast.success("Licença deletada");
+      qc.invalidateQueries({ queryKey: ["admin"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const bulkDelMut = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const results = await Promise.allSettled(ids.map((id) => del({ data: { license_id: id } })));
+      const failed = results.filter((r) => r.status === "rejected").length;
+      return { total: ids.length, failed };
+    },
+    onSuccess: ({ total, failed }) => {
+      if (failed === 0) toast.success(`${total} licença(s) deletadas`);
+      else toast.warning(`${total - failed} deletadas, ${failed} falharam`);
+      setSelected(new Set());
       qc.invalidateQueries({ queryKey: ["admin"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -170,6 +187,40 @@ export function LicensesTab() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            {selected.size > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={bulkDelMut.isPending}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {bulkDelMut.isPending
+                      ? "Deletando…"
+                      : `Deletar selecionadas (${selected.size})`}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Deletar {selected.size} licença(s)?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação é permanente e não pode ser desfeita. Todas as
+                      chaves selecionadas serão removidas do sistema, junto com
+                      seus logs de ativação e dispositivos vinculados. Tem certeza
+                      que deseja continuar?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => bulkDelMut.mutate(Array.from(selected))}
+                      className="bg-destructive text-destructive-foreground"
+                    >
+                      Sim, deletar tudo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             <Dialog open={genOpen} onOpenChange={setGenOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -358,6 +409,22 @@ export function LicensesTab() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left text-xs uppercase text-muted-foreground">
+                <th className="w-8 py-2 pr-3">
+                  <Checkbox
+                    checked={
+                      filtered.length > 0 &&
+                      filtered.every((l: any) => selected.has(l.id))
+                    }
+                    onCheckedChange={(v) => {
+                      if (v) {
+                        setSelected(new Set(filtered.map((l: any) => l.id)));
+                      } else {
+                        setSelected(new Set());
+                      }
+                    }}
+                    aria-label="Selecionar todas"
+                  />
+                </th>
                 <th className="py-2 pr-3">Chave</th>
                 <th className="py-2 pr-3">Usuário</th>
                 <th className="py-2 pr-3">Plano</th>
@@ -370,6 +437,20 @@ export function LicensesTab() {
             <tbody>
               {filtered.map((l: any) => (
                 <tr key={l.id} className="border-b hover:bg-muted/30">
+                  <td className="py-2 pr-3">
+                    <Checkbox
+                      checked={selected.has(l.id)}
+                      onCheckedChange={(v) => {
+                        setSelected((prev) => {
+                          const next = new Set(prev);
+                          if (v) next.add(l.id);
+                          else next.delete(l.id);
+                          return next;
+                        });
+                      }}
+                      aria-label={`Selecionar ${l.license_key}`}
+                    />
+                  </td>
                   <td className="py-2 pr-3">
                     <div className="flex items-center gap-1 font-mono text-xs">
                       {l.license_key}
@@ -459,7 +540,7 @@ export function LicensesTab() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="py-8 text-center text-muted-foreground">
                     Nenhuma licença encontrada.
                   </td>
                 </tr>
