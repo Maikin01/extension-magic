@@ -88,18 +88,24 @@ export function LicensesTab() {
   const genMut = useMutation({
     mutationFn: () => {
       let custom_duration_minutes: number | null = null;
+      let custom_duration_seconds: number | null = null;
       if (useCustomDuration) {
-        const mult =
-          customDurationUnit === "minutes" ? 1 : customDurationUnit === "hours" ? 60 : 60 * 24;
-        custom_duration_minutes = Math.max(1, Math.floor(customDurationValue * mult));
+        if (customDurationUnit === "seconds") {
+          custom_duration_seconds = Math.max(1, Math.floor(customDurationValue));
+        } else {
+          const mult =
+            customDurationUnit === "minutes" ? 1 : customDurationUnit === "hours" ? 60 : 60 * 24;
+          custom_duration_minutes = Math.max(1, Math.floor(customDurationValue * mult));
+        }
       }
       return generate({
         data: {
-          plan_slug: genPlan,
+          plan_slug: genPlan || null,
           count: genCount,
           email: genEmail.trim() || null,
           notes: genNotes.trim() || null,
           custom_duration_minutes,
+          custom_duration_seconds,
         },
       });
     },
