@@ -120,7 +120,7 @@ export const Route = createFileRoute("/api/public/license/activate")({
           }
 
           // Dispositivos: registra ou atualiza; respeita max_devices
-          const maxDevices = effective.plans?.max_devices ?? 1;
+          const maxDevices = effective.max_devices_override ?? effective.plans?.max_devices ?? 1;
           const { data: existingDevices } = await supabaseAdmin
             .from("devices")
             .select("*")
