@@ -39,6 +39,7 @@ export function PixCheckoutDialog({
       setStep("form");
       setName("");
       setWpp("");
+      setCpf("");
       setPix(null);
       setLicenseKey(null);
       setCopied(false);
