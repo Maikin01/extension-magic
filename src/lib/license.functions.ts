@@ -298,6 +298,7 @@ export const adminGenerateLicenses = createServerFn({ method: "POST" })
         notes: z.string().max(500).optional().nullable(),
         custom_duration_minutes: z.number().int().min(1).max(60 * 24 * 3650).optional().nullable(),
         custom_duration_seconds: z.number().int().min(1).max(60 * 60 * 24 * 3650).optional().nullable(),
+        max_devices_override: z.number().int().min(1).max(50).optional().nullable(),
       })
       .refine(
         (v) => !!v.plan_slug || !!v.custom_duration_minutes || !!v.custom_duration_seconds,
@@ -352,6 +353,7 @@ export const adminGenerateLicenses = createServerFn({ method: "POST" })
             notes: data.notes ?? null,
             custom_duration_minutes: data.custom_duration_minutes ?? null,
             custom_duration_seconds: data.custom_duration_seconds ?? null,
+            max_devices_override: data.max_devices_override ?? null,
           })
           .select()
           .single();

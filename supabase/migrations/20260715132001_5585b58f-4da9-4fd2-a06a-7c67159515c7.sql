@@ -1,0 +1,1 @@
+ALTER TABLE public.licenses ADD COLUMN IF NOT EXISTS max_devices_override integer CHECK (max_devices_override IS NULL OR (max_devices_override >= 1 AND max_devices_override <= 50));

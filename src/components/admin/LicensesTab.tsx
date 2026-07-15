@@ -59,6 +59,7 @@ export function LicensesTab() {
   const [useCustomDuration, setUseCustomDuration] = useState(false);
   const [customDurationValue, setCustomDurationValue] = useState(10);
   const [customDurationUnit, setCustomDurationUnit] = useState<"seconds" | "minutes" | "hours" | "days">("minutes");
+  const [maxDevicesOverride, setMaxDevicesOverride] = useState<string>("");
   const [lastGenerated, setLastGenerated] = useState<any[] | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -98,6 +99,7 @@ export function LicensesTab() {
           custom_duration_minutes = Math.max(1, Math.floor(customDurationValue * mult));
         }
       }
+      const mdo = maxDevicesOverride.trim() === "" ? null : Math.max(1, Math.min(50, Math.floor(Number(maxDevicesOverride))));
       return generate({
         data: {
           plan_slug: genPlan || null,
@@ -106,6 +108,7 @@ export function LicensesTab() {
           notes: genNotes.trim() || null,
           custom_duration_minutes,
           custom_duration_seconds,
+          max_devices_override: mdo,
         },
       });
     },
@@ -115,6 +118,7 @@ export function LicensesTab() {
       setGenEmail("");
       setGenNotes("");
       setGenCount(1);
+      setMaxDevicesOverride("");
       qc.invalidateQueries({ queryKey: ["admin"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -212,6 +216,23 @@ export function LicensesTab() {
                       value={genCount}
                       onChange={(e) => setGenCount(Number(e.target.value))}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>
+                      Limite de dispositivos{" "}
+                      <span className="text-xs text-muted-foreground">(opcional)</span>
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={50}
+                      placeholder="Deixe vazio para usar o padrão do plano"
+                      value={maxDevicesOverride}
+                      onChange={(e) => setMaxDevicesOverride(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Quantos dispositivos diferentes esta chave pode ativar. Se vazio, usa o valor do plano.
+                    </p>
                   </div>
                   <div className="space-y-2 rounded-md border p-3">
                     <div className="flex items-center justify-between">
