@@ -409,6 +409,22 @@ export function LicensesTab() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left text-xs uppercase text-muted-foreground">
+                <th className="w-8 py-2 pr-3">
+                  <Checkbox
+                    checked={
+                      filtered.length > 0 &&
+                      filtered.every((l: any) => selected.has(l.id))
+                    }
+                    onCheckedChange={(v) => {
+                      if (v) {
+                        setSelected(new Set(filtered.map((l: any) => l.id)));
+                      } else {
+                        setSelected(new Set());
+                      }
+                    }}
+                    aria-label="Selecionar todas"
+                  />
+                </th>
                 <th className="py-2 pr-3">Chave</th>
                 <th className="py-2 pr-3">Usuário</th>
                 <th className="py-2 pr-3">Plano</th>
@@ -421,6 +437,20 @@ export function LicensesTab() {
             <tbody>
               {filtered.map((l: any) => (
                 <tr key={l.id} className="border-b hover:bg-muted/30">
+                  <td className="py-2 pr-3">
+                    <Checkbox
+                      checked={selected.has(l.id)}
+                      onCheckedChange={(v) => {
+                        setSelected((prev) => {
+                          const next = new Set(prev);
+                          if (v) next.add(l.id);
+                          else next.delete(l.id);
+                          return next;
+                        });
+                      }}
+                      aria-label={`Selecionar ${l.license_key}`}
+                    />
+                  </td>
                   <td className="py-2 pr-3">
                     <div className="flex items-center gap-1 font-mono text-xs">
                       {l.license_key}
