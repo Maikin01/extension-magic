@@ -295,13 +295,19 @@ async function validateActiveLicense(forceLockOnNetworkError) {
         lastValidationAt = Date.now();
 
         if (res.ok && res.data.valid) {
-            activeLicense.info = res.data;
-            activeLicense.checkedAt = Date.now();
-            await chrome.storage.local.set({
-                [STORAGE_KEYS.lastCheck]: activeLicense.checkedAt,
-                [STORAGE_KEYS.licenseInfo]: res.data,
-            });
-            showChat(res.data, activeLicense.checkedAt);
+            const prevExpires = activeLicense.info?.expires_at;
+            const newExpires = res.data?.expires_at;
+            // Só reancorar o relógio local se o expires_at mudou; caso contrário
+            // manter o checkedAt original evita o "pisca" causado pela latência
+            // variável da rede a cada revalidação.
+            if (prevExpires !== newExpires) {
+                activeLicense.info = res.data;
+                activeLicense.checkedAt = Date.now();
+                await chrome.storage.local.set({
+                    [STORAGE_KEYS.lastCheck]: activeLicense.checkedAt,
+                    [STORAGE_KEYS.licenseInfo]: res.data,
+                });
+            }
             setError('');
             return;
         }
