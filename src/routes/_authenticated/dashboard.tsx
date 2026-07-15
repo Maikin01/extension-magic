@@ -188,6 +188,8 @@ function SupportCard() {
     </Card>
   );
 }
+
+function TutorialsCard() {
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <VideoCard title="Como instalar" />
