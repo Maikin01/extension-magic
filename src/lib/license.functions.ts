@@ -292,12 +292,17 @@ export const adminGenerateLicenses = createServerFn({ method: "POST" })
   .inputValidator((data) =>
     z
       .object({
-        plan_slug: z.string().min(1),
+        plan_slug: z.string().min(1).optional().nullable(),
         count: z.number().int().min(1).max(100),
         email: z.string().email().optional().nullable(),
         notes: z.string().max(500).optional().nullable(),
         custom_duration_minutes: z.number().int().min(1).max(60 * 24 * 3650).optional().nullable(),
+        custom_duration_seconds: z.number().int().min(1).max(60 * 60 * 24 * 3650).optional().nullable(),
       })
+      .refine(
+        (v) => !!v.plan_slug || !!v.custom_duration_minutes || !!v.custom_duration_seconds,
+        { message: "Informe um plano ou uma duração personalizada." },
+      )
       .parse(data),
   )
   .handler(async ({ data, context }) => {
@@ -305,12 +310,16 @@ export const adminGenerateLicenses = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { generateLicenseKey, hashLicenseKey } = await import("@/lib/license.server");
 
-    const { data: plan, error: planErr } = await supabaseAdmin
-      .from("plans")
-      .select("*")
-      .eq("slug", data.plan_slug)
-      .single();
-    if (planErr || !plan) throw new Error("Plano não encontrado.");
+    let planId: string | null = null;
+    if (data.plan_slug) {
+      const { data: plan, error: planErr } = await supabaseAdmin
+        .from("plans")
+        .select("*")
+        .eq("slug", data.plan_slug)
+        .single();
+      if (planErr || !plan) throw new Error("Plano não encontrado.");
+      planId = plan.id;
+    }
 
     let targetUserId: string | null = null;
     if (data.email) {
@@ -336,12 +345,13 @@ export const adminGenerateLicenses = createServerFn({ method: "POST" })
           .from("licenses")
           .insert({
             user_id: targetUserId,
-            plan_id: plan.id,
+            plan_id: planId,
             license_key: key,
             license_key_hash: hash,
             status: "pending",
             notes: data.notes ?? null,
             custom_duration_minutes: data.custom_duration_minutes ?? null,
+            custom_duration_seconds: data.custom_duration_seconds ?? null,
           })
           .select()
           .single();
@@ -361,9 +371,11 @@ export const adminGenerateLicenses = createServerFn({ method: "POST" })
       target_type: "license",
       target_id: null,
       details: {
-        plan_slug: data.plan_slug,
+        plan_slug: data.plan_slug ?? null,
         count: data.count,
         email: data.email ?? null,
+        custom_duration_minutes: data.custom_duration_minutes ?? null,
+        custom_duration_seconds: data.custom_duration_seconds ?? null,
       },
     });
 

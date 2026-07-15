@@ -74,13 +74,21 @@ export const Route = createFileRoute("/api/public/license/activate")({
             return jsonWithCors({ valid: false, reason: "expired" }, 403);
           }
 
-          // Se ainda pending, ativa agora — expira em custom_duration_minutes (se definido) ou duration_days a partir de now()
+          // Se ainda pending, ativa agora — expira em custom_duration_seconds > custom_duration_minutes > plan.duration_days
           let effective = license;
           if (license.status === "pending") {
             const now = new Date();
-            const durationMs = license.custom_duration_minutes
-              ? license.custom_duration_minutes * 60_000
-              : license.plans.duration_days * 86400_000;
+            let durationMs: number;
+            if (license.custom_duration_seconds) {
+              durationMs = license.custom_duration_seconds * 1_000;
+            } else if (license.custom_duration_minutes) {
+              durationMs = license.custom_duration_minutes * 60_000;
+            } else if (license.plans) {
+              durationMs = license.plans.duration_days * 86400_000;
+            } else {
+              await logAndReturn(license.id, baseLog, "error", "Licença sem duração definida");
+              return jsonWithCors({ valid: false, reason: "error" }, 500);
+            }
             const expires = new Date(now.getTime() + durationMs);
             const { data: updated, error: updErr } = await supabaseAdmin
               .from("licenses")
@@ -112,6 +120,7 @@ export const Route = createFileRoute("/api/public/license/activate")({
           }
 
           // Dispositivos: registra ou atualiza; respeita max_devices
+          const maxDevices = effective.plans?.max_devices ?? 1;
           const { data: existingDevices } = await supabaseAdmin
             .from("devices")
             .select("*")
@@ -122,18 +131,18 @@ export const Route = createFileRoute("/api/public/license/activate")({
           );
           if (!already) {
             const activeCount = existingDevices?.filter((d) => !d.is_revoked).length ?? 0;
-            if (activeCount >= effective.plans.max_devices) {
+            if (activeCount >= maxDevices) {
               await logAndReturn(
                 effective.id,
                 baseLog,
                 "device_limit",
-                `Limite de ${effective.plans.max_devices} dispositivos atingido`,
+                `Limite de ${maxDevices} dispositivos atingido`,
               );
               return jsonWithCors(
                 {
                   valid: false,
                   reason: "device_limit",
-                  max_devices: effective.plans.max_devices,
+                  max_devices: maxDevices,
                 },
                 403,
               );
@@ -169,14 +178,14 @@ export const Route = createFileRoute("/api/public/license/activate")({
 
           return jsonWithCors({
             valid: true,
-            plan: effective.plans.slug,
-            plan_name: effective.plans.name,
-            features: effective.plans.features,
+            plan: effective.plans?.slug ?? "custom",
+            plan_name: effective.plans?.name ?? "Personalizado",
+            features: effective.plans?.features ?? [],
             expires_at: effective.expires_at,
             expires_in_ms: expiresAtMs == null ? null : Math.max(0, expiresAtMs - serverNowMs),
             server_now: new Date(serverNowMs).toISOString(),
             activated_at: effective.activated_at,
-            max_devices: effective.plans.max_devices,
+            max_devices: maxDevices,
           });
 
           async function logAndReturn(

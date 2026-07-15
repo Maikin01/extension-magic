@@ -82,9 +82,9 @@ export const Route = createFileRoute("/api/public/license/validate")({
 
           return jsonWithCors({
             valid: true,
-            plan: license.plans.slug,
-            plan_name: license.plans.name,
-            features: license.plans.features,
+            plan: license.plans?.slug ?? "custom",
+            plan_name: license.plans?.name ?? "Personalizado",
+            features: license.plans?.features ?? [],
             expires_at: license.expires_at,
             expires_in_ms: expiresAtMs == null ? null : Math.max(0, expiresAtMs - serverNowMs),
             server_now: new Date(serverNowMs).toISOString(),

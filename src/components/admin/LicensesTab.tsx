@@ -58,7 +58,7 @@ export function LicensesTab() {
   const [genNotes, setGenNotes] = useState("");
   const [useCustomDuration, setUseCustomDuration] = useState(false);
   const [customDurationValue, setCustomDurationValue] = useState(10);
-  const [customDurationUnit, setCustomDurationUnit] = useState<"minutes" | "hours" | "days">("minutes");
+  const [customDurationUnit, setCustomDurationUnit] = useState<"seconds" | "minutes" | "hours" | "days">("minutes");
   const [lastGenerated, setLastGenerated] = useState<any[] | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -88,18 +88,24 @@ export function LicensesTab() {
   const genMut = useMutation({
     mutationFn: () => {
       let custom_duration_minutes: number | null = null;
+      let custom_duration_seconds: number | null = null;
       if (useCustomDuration) {
-        const mult =
-          customDurationUnit === "minutes" ? 1 : customDurationUnit === "hours" ? 60 : 60 * 24;
-        custom_duration_minutes = Math.max(1, Math.floor(customDurationValue * mult));
+        if (customDurationUnit === "seconds") {
+          custom_duration_seconds = Math.max(1, Math.floor(customDurationValue));
+        } else {
+          const mult =
+            customDurationUnit === "minutes" ? 1 : customDurationUnit === "hours" ? 60 : 60 * 24;
+          custom_duration_minutes = Math.max(1, Math.floor(customDurationValue * mult));
+        }
       }
       return generate({
         data: {
-          plan_slug: genPlan,
+          plan_slug: genPlan || null,
           count: genCount,
           email: genEmail.trim() || null,
           notes: genNotes.trim() || null,
           custom_duration_minutes,
+          custom_duration_seconds,
         },
       });
     },
@@ -174,10 +180,10 @@ export function LicensesTab() {
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <div className="space-y-2">
-                    <Label>Plano</Label>
+                    <Label>Plano {useCustomDuration && <span className="text-xs text-muted-foreground">(opcional)</span>}</Label>
                     <Select value={genPlan} onValueChange={setGenPlan}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o plano" />
+                        <SelectValue placeholder={useCustomDuration ? "Sem plano (duração personalizada)" : "Selecione o plano"} />
                       </SelectTrigger>
                       <SelectContent>
                         {data.plans.map((p: any) => (
@@ -187,6 +193,15 @@ export function LicensesTab() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {useCustomDuration && genPlan && (
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground underline"
+                        onClick={() => setGenPlan("")}
+                      >
+                        Limpar seleção de plano
+                      </button>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Quantidade (máx 100)</Label>
@@ -231,6 +246,7 @@ export function LicensesTab() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="seconds">Segundos</SelectItem>
                             <SelectItem value="minutes">Minutos</SelectItem>
                             <SelectItem value="hours">Horas</SelectItem>
                             <SelectItem value="days">Dias</SelectItem>
@@ -306,7 +322,7 @@ export function LicensesTab() {
                     Fechar
                   </Button>
                   <Button
-                    disabled={!genPlan || genMut.isPending}
+                    disabled={(!genPlan && !useCustomDuration) || genMut.isPending}
                     onClick={() => genMut.mutate()}
                   >
                     {genMut.isPending ? "Gerando…" : "Gerar"}
