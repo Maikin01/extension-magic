@@ -44,6 +44,7 @@ export const createPixCheckout = createServerFn({ method: "POST" })
       .from("payments")
       .insert({
         plan_id: plan.id,
+        user_id: userId,
         amount_cents: plan.price_cents,
         buyer_name: data.buyer_name.trim(),
         buyer_whatsapp: digits(data.buyer_whatsapp),
