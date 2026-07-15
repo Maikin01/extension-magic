@@ -58,6 +58,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const [authParams, setAuthParams] = useState<AuthParams>(defaultAuthParams);
   const [activeTab, setActiveTab] = useState<AuthTab>("login");
+  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
     const currentParams = getAuthParams();
@@ -71,9 +72,10 @@ function AuthPage() {
     const next = currentParams.next;
     const dest = sanitizeNextPath(next);
 
+    let cancelled = false;
     let redirected = false;
     const go = () => {
-      if (redirected) return;
+      if (redirected || cancelled) return;
       redirected = true;
       if (dest.includes("checkout=")) {
         window.location.replace(dest);
@@ -84,14 +86,45 @@ function AuthPage() {
       }
     };
 
+    const finishChecking = () => {
+      if (!cancelled) setCheckingSession(false);
+    };
+
+    const timeout = window.setTimeout(finishChecking, 3500);
+
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) go();
+      if (cancelled) return;
+      if (data.session) {
+        go();
+        return;
+      }
+      finishChecking();
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) go();
+      if (cancelled) return;
+      if ((event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) {
+        go();
+        return;
+      }
+      if (event === "INITIAL_SESSION" && !session) finishChecking();
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+      sub.subscription.unsubscribe();
+    };
   }, [navigate]);
+
+  if (checkingSession && authParams.plan) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 px-4 py-12">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="mt-4 text-sm font-medium text-muted-foreground">Confirmando sua conta…</p>
+        </div>
+      </div>
+    );
+  }
 
 
 
