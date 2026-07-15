@@ -58,7 +58,7 @@ export function LicensesTab() {
   const [genNotes, setGenNotes] = useState("");
   const [useCustomDuration, setUseCustomDuration] = useState(false);
   const [customDurationValue, setCustomDurationValue] = useState(10);
-  const [customDurationUnit, setCustomDurationUnit] = useState<"minutes" | "hours" | "days">("minutes");
+  const [customDurationUnit, setCustomDurationUnit] = useState<"seconds" | "minutes" | "hours" | "days">("minutes");
   const [lastGenerated, setLastGenerated] = useState<any[] | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
