@@ -27,6 +27,7 @@ export function PixCheckoutDialog({
   const [step, setStep] = useState<Step>("form");
   const [name, setName] = useState("");
   const [wpp, setWpp] = useState("");
+  const [cpf, setCpf] = useState("");
   const [loading, setLoading] = useState(false);
   const [pix, setPix] = useState<Awaited<ReturnType<typeof createPix>> | null>(null);
   const [licenseKey, setLicenseKey] = useState<string | null>(null);
@@ -38,6 +39,7 @@ export function PixCheckoutDialog({
       setStep("form");
       setName("");
       setWpp("");
+      setCpf("");
       setPix(null);
       setLicenseKey(null);
       setCopied(false);
@@ -75,12 +77,19 @@ export function PixCheckoutDialog({
     e.preventDefault();
     if (!plan) return;
     const cleanWpp = wpp.replace(/\D+/g, "");
+    const cleanCpf = cpf.replace(/\D+/g, "");
     if (name.trim().length < 2) return toast.error("Informe seu nome.");
     if (cleanWpp.length < 10) return toast.error("Informe um WhatsApp válido (com DDD).");
+    if (cleanCpf && cleanCpf.length !== 11) return toast.error("CPF inválido.");
     setLoading(true);
     try {
       const res = await createPix({
-        data: { plan_slug: plan.slug, buyer_name: name.trim(), buyer_whatsapp: cleanWpp },
+        data: {
+          plan_slug: plan.slug,
+          buyer_name: name.trim(),
+          buyer_whatsapp: cleanWpp,
+          buyer_cpf: cleanCpf || undefined,
+        },
       });
       setPix(res);
       setStep("pix");
@@ -143,6 +152,20 @@ export function PixCheckoutDialog({
                 />
                 <p className="text-[11px] text-white/40">
                   Enviaremos sua chave de licença por aqui após a confirmação.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="pix-cpf">CPF (recomendado)</Label>
+                <Input
+                  id="pix-cpf"
+                  value={cpf}
+                  onChange={(e) => setCpf(e.target.value)}
+                  placeholder="000.000.000-00"
+                  className="bg-white/5"
+                  inputMode="numeric"
+                />
+                <p className="text-[11px] text-white/40">
+                  Reduz o risco do antifraude do Mercado Pago recusar o Pix.
                 </p>
               </div>
               <Button
