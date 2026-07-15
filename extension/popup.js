@@ -84,9 +84,12 @@ async function initialize() {
             throw new Error('Abra a extensão em uma página do Lovable.dev');
         }
 
-        // Extract project ID
-        const urlParts = tab.url.split('/');
-        state.projectId = urlParts[urlParts.length - 1].split('?')[0];
+        // Extract project ID (aceita /projects/<id>, /projects/<id>/..., com ou sem query/hash)
+        const projectMatch = tab.url.match(/\/projects\/([^\/?#]+)/);
+        if (!projectMatch) {
+            throw new Error('Abra um projeto (/projects/...) no Lovable.dev antes de usar a extensão');
+        }
+        state.projectId = projectMatch[1];
         projectIdElement.textContent = `Projeto: ${state.projectId}`;
 
         // Get auth data
