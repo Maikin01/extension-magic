@@ -538,6 +538,14 @@ async function sendMessage() {
         return;
     }
     
+    // Gate de licença obrigatório — bloqueia envio se a chave não estiver ativa/válida no servidor
+    if (typeof window.__lvblAuthorizeSend !== 'function' || !(await window.__lvblAuthorizeSend())) {
+        statusBar.textContent = 'Licença inválida. Reative sua chave para continuar.';
+        statusBar.classList.add('error');
+        setTimeout(() => statusBar.classList.remove('error'), 4000);
+        return;
+    }
+    
     try {
         // Disable input
         messageInput.disabled = true;
