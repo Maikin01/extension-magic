@@ -1,7 +1,7 @@
 // License gate — controla acesso ao chat sem tocar em popup.js
 // Roda ANTES de popup.js e mantém o chat oculto até validar a chave.
 
-const LICENSE_API_BASE = 'https://vamos-extend-buddy.lovable.app';
+const LICENSE_API_BASE = 'https://riselovable.lovable.app';
 const STORAGE_KEYS = {
     key: 'lvbl_license_key',
     deviceHash: 'lvbl_device_hash',
