@@ -24,18 +24,33 @@ export const Route = createFileRoute("/auth")({
 const emailSchema = z.string().trim().email("Email inválido").max(255);
 const passwordSchema = z.string().min(6, "Mínimo de 6 caracteres").max(72);
 
+function getAuthParams() {
+  if (typeof window === "undefined") {
+    return { next: "/dashboard", plan: null as string | null, initialTab: "login" };
+  }
+  const params = new URLSearchParams(window.location.search);
+  const claim = params.get("claim");
+  const plan = params.get("plan");
+  const next = params.get("next") ?? (plan ? `/?checkout=${plan}#plans` : claim === "trial" ? "/dashboard?claim=trial" : "/dashboard");
+  const initialTab = params.get("tab") === "signup" || plan ? "signup" : "login";
+  return { next, plan, initialTab };
+}
+
+function sanitizeNextPath(value: string) {
+  try {
+    const decoded = decodeURIComponent(value);
+    return decoded.startsWith("/") && !decoded.startsWith("//") ? decoded : "/dashboard";
+  } catch {
+    return "/dashboard";
+  }
+}
+
 function AuthPage() {
   const navigate = useNavigate();
+  const { next, plan, initialTab } = getAuthParams();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const claim = params.get("claim");
-    const next = params.get("next");
-    const dest = next
-      ? decodeURIComponent(next)
-      : claim === "trial"
-        ? "/dashboard?claim=trial"
-        : "/dashboard";
+    const dest = sanitizeNextPath(next);
 
     let redirected = false;
     const go = () => {
@@ -56,7 +71,7 @@ function AuthPage() {
       if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) go();
     });
     return () => sub.subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, next]);
 
 
 
@@ -71,7 +86,7 @@ function AuthPage() {
         </Link>
 
         <Card className="p-6">
-          <Tabs defaultValue="login">
+          <Tabs defaultValue={initialTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Cadastrar</TabsTrigger>
@@ -80,7 +95,7 @@ function AuthPage() {
               <LoginForm />
             </TabsContent>
             <TabsContent value="signup" className="mt-6">
-              <SignupForm />
+              <SignupForm next={next} plan={plan} />
             </TabsContent>
           </Tabs>
 
@@ -156,7 +171,7 @@ function LoginForm() {
   );
 }
 
-function SignupForm() {
+function SignupForm({ next, plan }: { next: string; plan: string | null }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -169,18 +184,15 @@ function SignupForm() {
     if (!emailR.success) return toast.error(emailR.error.issues[0].message);
     if (!passR.success) return toast.error(passR.error.issues[0].message);
     setLoading(true);
+    const safeNext = sanitizeNextPath(next);
+    if (plan) {
+      window.sessionStorage.setItem("rise_lovable_pending_checkout", plan);
+    }
     const { error } = await supabase.auth.signUp({
       email: emailR.data,
       password: passR.data,
       options: {
-        emailRedirectTo: (() => {
-          const p = new URLSearchParams(window.location.search);
-          const next = p.get("next");
-          // Sempre volta para /auth para que a sessão seja detectada (tokens no hash)
-          // e só então redireciona para o destino final (ex.: /#plans).
-          const dest = next ?? "/dashboard";
-          return `${window.location.origin}/auth?next=${encodeURIComponent(dest)}`;
-        })(),
+        emailRedirectTo: `${window.location.origin}/auth?next=${encodeURIComponent(safeNext)}${plan ? `&plan=${encodeURIComponent(plan)}` : ""}`,
         data: { full_name: name.trim() },
       },
     });
