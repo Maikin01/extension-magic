@@ -1,7 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Suspense, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { SiteHeader } from "@/components/site/Header";
 import { Card } from "@/components/ui/card";
 import {
@@ -391,6 +393,7 @@ function Features() {
 
 function Plans() {
   const getPlans = useServerFn(getPublicPlans);
+  const navigate = useNavigate();
   const { data: plans } = useSuspenseQuery({
     queryKey: ["plans", "public"],
     queryFn: () => getPlans(),
@@ -399,6 +402,16 @@ function Plans() {
   const [checkoutPlan, setCheckoutPlan] = useState<
     { slug: string; name: string; price_cents: number } | null
   >(null);
+
+  async function handleSubscribe(plan: { slug: string; name: string; price_cents: number }) {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) {
+      toast.info("Crie sua conta para comprar — sua chave fica salva no painel.");
+      navigate({ to: "/auth", search: { next: "/#plans", plan: plan.slug } as any });
+      return;
+    }
+    setCheckoutPlan(plan);
+  }
 
   const highlightSlug = "monthly";
 
@@ -499,7 +512,7 @@ function Plans() {
                   <button
                     type="button"
                     onClick={() =>
-                      setCheckoutPlan({
+                      handleSubscribe({
                         slug: plan.slug,
                         name: plan.name,
                         price_cents: plan.price_cents,

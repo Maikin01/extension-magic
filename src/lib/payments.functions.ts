@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const createPixSchema = z.object({
   plan_slug: z.string().min(2).max(50),
@@ -22,8 +23,10 @@ function syntheticEmail(whatsapp: string) {
  * Fluxo público (sem login) — a chave da licença é entregue após confirmação.
  */
 export const createPixCheckout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data) => createPixSchema.parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { createPixPayment } = await import("@/lib/mercadopago.server");
 
@@ -41,6 +44,7 @@ export const createPixCheckout = createServerFn({ method: "POST" })
       .from("payments")
       .insert({
         plan_id: plan.id,
+        user_id: userId,
         amount_cents: plan.price_cents,
         buyer_name: data.buyer_name.trim(),
         buyer_whatsapp: digits(data.buyer_whatsapp),
@@ -99,8 +103,9 @@ export const createPixCheckout = createServerFn({ method: "POST" })
  * não tiver sido gerada, gera aqui mesmo (fallback caso o webhook atrase).
  */
 export const getCheckoutStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ payment_id: z.string().uuid() }).parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { getPayment } = await import("@/lib/mercadopago.server");
     const { finalizePaymentIfApproved } = await import("@/lib/payments.server");
@@ -111,6 +116,9 @@ export const getCheckoutStatus = createServerFn({ method: "POST" })
       .eq("id", data.payment_id)
       .maybeSingle();
     if (error || !payment) throw new Error("Pagamento não encontrado.");
+    if (payment.user_id && payment.user_id !== context.userId) {
+      throw new Error("Acesso negado.");
+    }
 
     // Se ainda não aprovado, pergunta ao MP
     if (payment.status !== "approved" && payment.provider_payment_id) {
