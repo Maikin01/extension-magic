@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
     deviceHash: 'lvbl_device_hash',
     lastCheck: 'lvbl_last_check',
     licenseInfo: 'lvbl_license_info',
+    standardChat: 'lvbl_use_standard_chat',
 };
 const REVALIDATE_INTERVAL_MS = 30 * 1000; // servidor: confirma periodicamente revogação/suspensão
 const WATCHER_INTERVAL_MS = 1000;         // local: corta a chave no segundo em que expirar
@@ -170,7 +171,12 @@ function setChatControlsDisabled(disabled) {
 async function disconnectExpiredLicense(reason) {
     stopWatcher();
     setChatControlsDisabled(true);
-    await chrome.storage.local.remove([STORAGE_KEYS.key, STORAGE_KEYS.licenseInfo, STORAGE_KEYS.lastCheck]);
+    await chrome.storage.local.remove([
+        STORAGE_KEYS.key,
+        STORAGE_KEYS.licenseInfo,
+        STORAGE_KEYS.lastCheck,
+        STORAGE_KEYS.standardChat,
+    ]);
     if (gateInput) gateInput.value = '';
     showGate();
     setError(reasonText(reason || 'expired'));
@@ -211,7 +217,12 @@ async function forceRevalidate(reason) {
 async function kickToGate(reason) {
     stopWatcher();
     setChatControlsDisabled(true);
-    await chrome.storage.local.remove([STORAGE_KEYS.key, STORAGE_KEYS.licenseInfo, STORAGE_KEYS.lastCheck]);
+    await chrome.storage.local.remove([
+        STORAGE_KEYS.key,
+        STORAGE_KEYS.licenseInfo,
+        STORAGE_KEYS.lastCheck,
+        STORAGE_KEYS.standardChat,
+    ]);
     showGate();
     setError(reasonText(reason || 'expired'));
 }
@@ -370,6 +381,7 @@ async function handleLogout() {
         STORAGE_KEYS.key,
         STORAGE_KEYS.lastCheck,
         STORAGE_KEYS.licenseInfo,
+        STORAGE_KEYS.standardChat,
     ]);
     gateInput.value = '';
     setError('');
