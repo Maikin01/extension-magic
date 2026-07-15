@@ -151,6 +151,7 @@ export type Database = {
           id: string
           license_key: string
           license_key_hash: string
+          max_devices_override: number | null
           notes: string | null
           plan_id: string | null
           status: Database["public"]["Enums"]["license_status"]
@@ -166,6 +167,7 @@ export type Database = {
           id?: string
           license_key: string
           license_key_hash: string
+          max_devices_override?: number | null
           notes?: string | null
           plan_id?: string | null
           status?: Database["public"]["Enums"]["license_status"]
@@ -181,6 +183,7 @@ export type Database = {
           id?: string
           license_key?: string
           license_key_hash?: string
+          max_devices_override?: number | null
           notes?: string | null
           plan_id?: string | null
           status?: Database["public"]["Enums"]["license_status"]
