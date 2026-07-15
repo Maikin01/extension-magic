@@ -88,6 +88,21 @@ export function LicensesTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const bulkDelMut = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const results = await Promise.allSettled(ids.map((id) => del({ data: { license_id: id } })));
+      const failed = results.filter((r) => r.status === "rejected").length;
+      return { total: ids.length, failed };
+    },
+    onSuccess: ({ total, failed }) => {
+      if (failed === 0) toast.success(`${total} licença(s) deletadas`);
+      else toast.warning(`${total - failed} deletadas, ${failed} falharam`);
+      setSelected(new Set());
+      qc.invalidateQueries({ queryKey: ["admin"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const genMut = useMutation({
     mutationFn: () => {
       let custom_duration_minutes: number | null = null;
