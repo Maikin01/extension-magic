@@ -146,12 +146,13 @@ export type Database = {
           activated_at: string | null
           created_at: string
           custom_duration_minutes: number | null
+          custom_duration_seconds: number | null
           expires_at: string | null
           id: string
           license_key: string
           license_key_hash: string
           notes: string | null
-          plan_id: string
+          plan_id: string | null
           status: Database["public"]["Enums"]["license_status"]
           updated_at: string
           user_id: string | null
@@ -160,12 +161,13 @@ export type Database = {
           activated_at?: string | null
           created_at?: string
           custom_duration_minutes?: number | null
+          custom_duration_seconds?: number | null
           expires_at?: string | null
           id?: string
           license_key: string
           license_key_hash: string
           notes?: string | null
-          plan_id: string
+          plan_id?: string | null
           status?: Database["public"]["Enums"]["license_status"]
           updated_at?: string
           user_id?: string | null
@@ -174,12 +176,13 @@ export type Database = {
           activated_at?: string | null
           created_at?: string
           custom_duration_minutes?: number | null
+          custom_duration_seconds?: number | null
           expires_at?: string | null
           id?: string
           license_key?: string
           license_key_hash?: string
           notes?: string | null
-          plan_id?: string
+          plan_id?: string | null
           status?: Database["public"]["Enums"]["license_status"]
           updated_at?: string
           user_id?: string | null
