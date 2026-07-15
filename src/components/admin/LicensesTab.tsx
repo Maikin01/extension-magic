@@ -99,6 +99,7 @@ export function LicensesTab() {
           custom_duration_minutes = Math.max(1, Math.floor(customDurationValue * mult));
         }
       }
+      const mdo = maxDevicesOverride.trim() === "" ? null : Math.max(1, Math.min(50, Math.floor(Number(maxDevicesOverride))));
       return generate({
         data: {
           plan_slug: genPlan || null,
@@ -107,6 +108,7 @@ export function LicensesTab() {
           notes: genNotes.trim() || null,
           custom_duration_minutes,
           custom_duration_seconds,
+          max_devices_override: mdo,
         },
       });
     },
