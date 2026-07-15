@@ -56,6 +56,9 @@ export function LicensesTab() {
   const [genCount, setGenCount] = useState(1);
   const [genEmail, setGenEmail] = useState("");
   const [genNotes, setGenNotes] = useState("");
+  const [useCustomDuration, setUseCustomDuration] = useState(false);
+  const [customDurationValue, setCustomDurationValue] = useState(10);
+  const [customDurationUnit, setCustomDurationUnit] = useState<"minutes" | "hours" | "days">("minutes");
   const [lastGenerated, setLastGenerated] = useState<any[] | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -83,15 +86,23 @@ export function LicensesTab() {
   });
 
   const genMut = useMutation({
-    mutationFn: () =>
-      generate({
+    mutationFn: () => {
+      let custom_duration_minutes: number | null = null;
+      if (useCustomDuration) {
+        const mult =
+          customDurationUnit === "minutes" ? 1 : customDurationUnit === "hours" ? 60 : 60 * 24;
+        custom_duration_minutes = Math.max(1, Math.floor(customDurationValue * mult));
+      }
+      return generate({
         data: {
           plan_slug: genPlan,
           count: genCount,
           email: genEmail.trim() || null,
           notes: genNotes.trim() || null,
+          custom_duration_minutes,
         },
-      }),
+      });
+    },
     onSuccess: (res) => {
       toast.success(`${res.licenses.length} chave(s) geradas`);
       setLastGenerated(res.licenses);
@@ -186,6 +197,47 @@ export function LicensesTab() {
                       value={genCount}
                       onChange={(e) => setGenCount(Number(e.target.value))}
                     />
+                  </div>
+                  <div className="space-y-2 rounded-md border p-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="cursor-pointer" htmlFor="custom-dur-toggle">
+                        Duração personalizada
+                      </Label>
+                      <input
+                        id="custom-dur-toggle"
+                        type="checkbox"
+                        className="h-4 w-4"
+                        checked={useCustomDuration}
+                        onChange={(e) => setUseCustomDuration(e.target.checked)}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Se ativado, ignora a duração padrão do plano e usa o tempo informado abaixo.
+                    </p>
+                    {useCustomDuration && (
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          min={1}
+                          value={customDurationValue}
+                          onChange={(e) => setCustomDurationValue(Number(e.target.value))}
+                          className="flex-1"
+                        />
+                        <Select
+                          value={customDurationUnit}
+                          onValueChange={(v) => setCustomDurationUnit(v as any)}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="minutes">Minutos</SelectItem>
+                            <SelectItem value="hours">Horas</SelectItem>
+                            <SelectItem value="days">Dias</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Atribuir a email (opcional)</Label>

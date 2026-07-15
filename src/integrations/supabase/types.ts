@@ -145,6 +145,7 @@ export type Database = {
         Row: {
           activated_at: string | null
           created_at: string
+          custom_duration_minutes: number | null
           expires_at: string | null
           id: string
           license_key: string
@@ -158,6 +159,7 @@ export type Database = {
         Insert: {
           activated_at?: string | null
           created_at?: string
+          custom_duration_minutes?: number | null
           expires_at?: string | null
           id?: string
           license_key: string
@@ -171,6 +173,7 @@ export type Database = {
         Update: {
           activated_at?: string | null
           created_at?: string
+          custom_duration_minutes?: number | null
           expires_at?: string | null
           id?: string
           license_key?: string

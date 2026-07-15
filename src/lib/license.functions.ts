@@ -296,6 +296,7 @@ export const adminGenerateLicenses = createServerFn({ method: "POST" })
         count: z.number().int().min(1).max(100),
         email: z.string().email().optional().nullable(),
         notes: z.string().max(500).optional().nullable(),
+        custom_duration_minutes: z.number().int().min(1).max(60 * 24 * 3650).optional().nullable(),
       })
       .parse(data),
   )
@@ -340,6 +341,7 @@ export const adminGenerateLicenses = createServerFn({ method: "POST" })
             license_key_hash: hash,
             status: "pending",
             notes: data.notes ?? null,
+            custom_duration_minutes: data.custom_duration_minutes ?? null,
           })
           .select()
           .single();
