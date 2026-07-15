@@ -60,9 +60,16 @@ function sanitizeNextPath(value: string) {
   }
 }
 
+function getAuthHashParams() {
+  const rawHash = window.location.hash.replace(/^#/, "");
+  const authParamStart = rawHash.search(/(?:^|[#&?])(access_token|refresh_token|token_hash|type)=/);
+  const paramsSource = authParamStart >= 0 ? rawHash.slice(authParamStart).replace(/^[#&?]/, "") : rawHash;
+  return new URLSearchParams(paramsSource);
+}
+
 function readAuthUrlParams() {
   const url = new URL(window.location.href);
-  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const hash = getAuthHashParams();
   const tokenHash = url.searchParams.get("token_hash") ?? hash.get("token_hash");
   const type = url.searchParams.get("type") ?? hash.get("type") ?? "signup";
   return {
@@ -74,6 +81,8 @@ function readAuthUrlParams() {
     hasCallback:
       url.searchParams.has("code") ||
       url.searchParams.has("token_hash") ||
+      window.location.hash.includes("access_token=") ||
+      window.location.hash.includes("refresh_token=") ||
       hash.has("access_token") ||
       hash.has("refresh_token"),
   };
@@ -306,7 +315,7 @@ function SignupForm({ next, plan }: { next: string; plan: string | null }) {
       savePendingCheckout(plan);
     }
     const emailRedirectTo = plan
-      ? `${window.location.origin}/?checkout=${encodeURIComponent(plan)}#plans`
+      ? `${window.location.origin}/?checkout=${encodeURIComponent(plan)}`
       : `${window.location.origin}/auth?next=${encodeURIComponent(safeNext)}`;
 
     const { error } = await supabase.auth.signUp({
