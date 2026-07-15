@@ -462,7 +462,14 @@ function Plans() {
       // limpa o query param sem recarregar
       const url = new URL(window.location.href);
       url.searchParams.delete("checkout");
-      window.history.replaceState({}, "", url.pathname + url.search);
+      // Se veio do fluxo de verificação (checkout na URL), leva para a seção de planos
+      const hash = urlSlug ? "#plans" : window.location.hash;
+      window.history.replaceState({}, "", url.pathname + url.search + hash);
+      if (urlSlug) {
+        requestAnimationFrame(() => {
+          document.getElementById("plans")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
     });
   }, [plans]);
 
