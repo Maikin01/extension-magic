@@ -180,10 +180,10 @@ export function LicensesTab() {
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <div className="space-y-2">
-                    <Label>Plano</Label>
+                    <Label>Plano {useCustomDuration && <span className="text-xs text-muted-foreground">(opcional)</span>}</Label>
                     <Select value={genPlan} onValueChange={setGenPlan}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o plano" />
+                        <SelectValue placeholder={useCustomDuration ? "Sem plano (duração personalizada)" : "Selecione o plano"} />
                       </SelectTrigger>
                       <SelectContent>
                         {data.plans.map((p: any) => (
@@ -193,6 +193,15 @@ export function LicensesTab() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {useCustomDuration && genPlan && (
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground underline"
+                        onClick={() => setGenPlan("")}
+                      >
+                        Limpar seleção de plano
+                      </button>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Quantidade (máx 100)</Label>
