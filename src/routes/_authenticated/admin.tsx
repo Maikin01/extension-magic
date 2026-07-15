@@ -9,7 +9,7 @@ import { LogsTab } from "@/components/admin/LogsTab";
 import { ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
-  head: () => ({ meta: [{ title: "Admin — Lovable" }] }),
+  head: () => ({ meta: [{ title: "Admin — Rise Lovable" }] }),
   component: AdminPage,
 });
 
