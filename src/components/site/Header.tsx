@@ -13,12 +13,21 @@ export function SiteHeader() {
   const router = useRouter();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setSession({ email: data.user.email });
-      else setSession(null);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s?.user ? { email: s.user.email } : null);
+    let cancelled = false;
+    const verifyUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (cancelled) return;
+      setSession(!error && data.user ? { email: data.user.email } : null);
+    };
+    verifyUser();
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "SIGNED_OUT" || !s) {
+        setSession(null);
+        return;
+      }
+      if (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED") {
+        verifyUser();
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
