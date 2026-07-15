@@ -23,16 +23,24 @@ export const Route = createFileRoute("/auth")({
 
 const emailSchema = z.string().trim().email("Email inválido").max(255);
 const passwordSchema = z.string().min(6, "Mínimo de 6 caracteres").max(72);
+type AuthTab = "login" | "signup";
+type AuthParams = { next: string; plan: string | null; initialTab: AuthTab };
 
-function getAuthParams() {
+const defaultAuthParams: AuthParams = {
+  next: "/dashboard",
+  plan: null,
+  initialTab: "login",
+};
+
+function getAuthParams(): AuthParams {
   if (typeof window === "undefined") {
-    return { next: "/dashboard", plan: null as string | null, initialTab: "login" };
+    return defaultAuthParams;
   }
   const params = new URLSearchParams(window.location.search);
   const claim = params.get("claim");
   const plan = params.get("plan");
   const next = params.get("next") ?? (plan ? `/?checkout=${plan}#plans` : claim === "trial" ? "/dashboard?claim=trial" : "/dashboard");
-  const initialTab = params.get("tab") === "signup" || plan ? "signup" : "login";
+  const initialTab: AuthTab = params.get("tab") === "signup" || plan ? "signup" : "login";
   return { next, plan, initialTab };
 }
 
@@ -47,9 +55,18 @@ function sanitizeNextPath(value: string) {
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { next, plan, initialTab } = getAuthParams();
+  const [authParams, setAuthParams] = useState<AuthParams>(defaultAuthParams);
+  const [activeTab, setActiveTab] = useState<AuthTab>("login");
 
   useEffect(() => {
+    const currentParams = getAuthParams();
+    setAuthParams(currentParams);
+    setActiveTab(currentParams.initialTab);
+    if (currentParams.plan) {
+      window.sessionStorage.setItem("rise_lovable_pending_checkout", currentParams.plan);
+    }
+
+    const next = currentParams.next;
     const dest = sanitizeNextPath(next);
 
     let redirected = false;
@@ -71,7 +88,7 @@ function AuthPage() {
       if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) go();
     });
     return () => sub.subscription.unsubscribe();
-  }, [navigate, next]);
+  }, [navigate]);
 
 
 
@@ -86,7 +103,7 @@ function AuthPage() {
         </Link>
 
         <Card className="p-6">
-          <Tabs defaultValue={initialTab}>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AuthTab)}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Cadastrar</TabsTrigger>
@@ -95,7 +112,7 @@ function AuthPage() {
               <LoginForm />
             </TabsContent>
             <TabsContent value="signup" className="mt-6">
-              <SignupForm next={next} plan={plan} />
+              <SignupForm next={authParams.next} plan={authParams.plan} />
             </TabsContent>
           </Tabs>
 
@@ -105,7 +122,7 @@ function AuthPage() {
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <GoogleButton next={next} plan={plan} />
+          <GoogleButton next={authParams.next} plan={authParams.plan} />
         </Card>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
