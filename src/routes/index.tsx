@@ -436,11 +436,22 @@ function Plans() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
+    const urlSlug = params.get("checkout");
+    // Só considera storage se houve intenção explícita (checkout na URL ou hash #plans)
+    const hasIntent = !!urlSlug || window.location.hash === "#plans";
     const slug =
-      params.get("checkout") ??
-      window.localStorage.getItem(PENDING_CHECKOUT_KEY) ??
-      window.sessionStorage.getItem(PENDING_CHECKOUT_KEY);
-    if (!slug || !plans) return;
+      urlSlug ??
+      (hasIntent
+        ? window.localStorage.getItem(PENDING_CHECKOUT_KEY) ??
+          window.sessionStorage.getItem(PENDING_CHECKOUT_KEY)
+        : null);
+    if (!slug) {
+      // limpa storage stale para não afetar futuras aberturas puras do site
+      window.localStorage.removeItem(PENDING_CHECKOUT_KEY);
+      window.sessionStorage.removeItem(PENDING_CHECKOUT_KEY);
+      return;
+    }
+    if (!plans) return;
     const plan = plans.find((p) => p.slug === slug);
     if (!plan || plan.price_cents === 0) return;
     supabase.auth.getSession().then(({ data }) => {
@@ -451,7 +462,7 @@ function Plans() {
       // limpa o query param sem recarregar
       const url = new URL(window.location.href);
       url.searchParams.delete("checkout");
-      window.history.replaceState({}, "", url.pathname + url.search + "#plans");
+      window.history.replaceState({}, "", url.pathname + url.search);
     });
   }, [plans]);
 
