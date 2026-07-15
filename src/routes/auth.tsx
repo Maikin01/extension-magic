@@ -36,14 +36,29 @@ function AuthPage() {
       : claim === "trial"
         ? "/dashboard?claim=trial"
         : "/dashboard";
+
+    let redirected = false;
+    const go = () => {
+      if (redirected) return;
+      redirected = true;
+      // usa navigate (client-side) para evitar full reload / loops
+      if (dest.startsWith("/")) {
+        navigate({ to: dest, replace: true } as any);
+      } else {
+        window.location.replace(dest);
+      }
+    };
+
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) window.location.replace(dest);
+      if (data.session) go();
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) window.location.replace(dest);
+      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) go();
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
+
+
 
 
   return (
