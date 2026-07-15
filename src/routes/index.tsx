@@ -492,8 +492,10 @@ function Plans() {
 
   async function handleSubscribe(plan: { slug: string; name: string; price_cents: number }) {
     try {
-      const { data, error } = await supabase.auth.getUser();
-      if (!error && data.user) {
+      // getSession é local (sem rede) — evita falsos negativos que mandavam o
+      // usuário logado para /auth e faziam o ping-pong de volta para os planos.
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session?.user) {
         setCheckoutPlan(plan);
         return;
       }
