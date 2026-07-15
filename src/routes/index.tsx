@@ -32,6 +32,8 @@ import { getPublicPlans } from "@/lib/license.functions";
 import { formatPrice } from "@/lib/license-utils";
 import { PixCheckoutDialog } from "@/components/checkout/PixCheckoutDialog";
 
+const PENDING_CHECKOUT_KEY = "rise_lovable_pending_checkout";
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -404,7 +406,8 @@ function Plans() {
 
   function sendToSignup(planSlug: string) {
     if (typeof window !== "undefined") {
-      window.sessionStorage.setItem("rise_lovable_pending_checkout", planSlug);
+      window.localStorage.setItem(PENDING_CHECKOUT_KEY, planSlug);
+      window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, planSlug);
     }
     const search = new URLSearchParams({
       next: `/?checkout=${planSlug}#plans`,
@@ -433,13 +436,18 @@ function Plans() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    const slug = params.get("checkout");
+    const slug =
+      params.get("checkout") ??
+      window.localStorage.getItem(PENDING_CHECKOUT_KEY) ??
+      window.sessionStorage.getItem(PENDING_CHECKOUT_KEY);
     if (!slug || !plans) return;
     const plan = plans.find((p) => p.slug === slug);
     if (!plan || plan.price_cents === 0) return;
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) return;
       setCheckoutPlan({ slug: plan.slug, name: plan.name, price_cents: plan.price_cents });
+      window.localStorage.removeItem(PENDING_CHECKOUT_KEY);
+      window.sessionStorage.removeItem(PENDING_CHECKOUT_KEY);
       // limpa o query param sem recarregar
       const url = new URL(window.location.href);
       url.searchParams.delete("checkout");
