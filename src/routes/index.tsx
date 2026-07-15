@@ -512,7 +512,7 @@ function Plans() {
                   <button
                     type="button"
                     onClick={() =>
-                      setCheckoutPlan({
+                      handleSubscribe({
                         slug: plan.slug,
                         name: plan.name,
                         price_cents: plan.price_cents,
