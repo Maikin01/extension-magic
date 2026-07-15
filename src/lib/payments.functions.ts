@@ -103,8 +103,9 @@ export const createPixCheckout = createServerFn({ method: "POST" })
  * não tiver sido gerada, gera aqui mesmo (fallback caso o webhook atrase).
  */
 export const getCheckoutStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ payment_id: z.string().uuid() }).parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { getPayment } = await import("@/lib/mercadopago.server");
     const { finalizePaymentIfApproved } = await import("@/lib/payments.server");
@@ -115,6 +116,9 @@ export const getCheckoutStatus = createServerFn({ method: "POST" })
       .eq("id", data.payment_id)
       .maybeSingle();
     if (error || !payment) throw new Error("Pagamento não encontrado.");
+    if (payment.user_id && payment.user_id !== context.userId) {
+      throw new Error("Acesso negado.");
+    }
 
     // Se ainda não aprovado, pergunta ao MP
     if (payment.status !== "approved" && payment.provider_payment_id) {
