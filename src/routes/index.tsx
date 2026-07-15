@@ -309,16 +309,6 @@ function Features() {
       desc: "Ative o raciocínio profundo da IA com um clique. Ideal para arquiteturas complexas, debugging avançado e decisões técnicas críticas.",
     },
     {
-      icon: MousePointerClick,
-      title: "Seletor de Elementos",
-      desc: "Clique em qualquer elemento da tela e edite-o instantaneamente. Sem digitar caminhos, sem perder tempo descrevendo o que você quer alterar.",
-    },
-    {
-      icon: Mic,
-      title: "Comando de Voz",
-      desc: "Fale seus prompts naturalmente. A transcrição em tempo real captura suas ideias enquanto você pensa, acelerando seu fluxo criativo.",
-    },
-    {
       icon: UploadCloud,
       title: "Upload de Arquivos & Imagens",
       desc: "Envie imagens, PDFs e referências de design direto no chat. A IA usa esses arquivos para construir interfaces fiéis ao seu desejo.",
@@ -339,24 +329,9 @@ function Features() {
       desc: "Envie comandos diretamente pelo chat oficial do Lovable. Nossa tecnologia intercepta as mensagens e processa tudo sem tocar nos créditos.",
     },
     {
-      icon: Bot,
-      title: "Assistente Alexa",
-      desc: "IA dedicada que responde dúvidas, sugere prompts e guia seu projeto do zero ao deploy. Como ter um sênior ao seu lado 24/7.",
-    },
-    {
       icon: Puzzle,
       title: "Sistema de Skills",
       desc: "Ative skills especialistas (SEO, Performance, UI/UX, Copy) ou crie as suas próprias. Transforme a IA num especialista em segundos.",
-    },
-    {
-      icon: StickyNote,
-      title: "Notas Flutuantes",
-      desc: "Anotações rápidas fixadas na tela que permanecem mesmo após fechar o navegador. Ideal para guardar prompts, ideias e referências.",
-    },
-    {
-      icon: Boxes,
-      title: "Seleção de Agente",
-      desc: "Escolha qual IA processa seus comandos: Claude Opus 4.8, Gemini PRO 3.2 ou GPT 5.5. Use o modelo certo para cada tipo de tarefa.",
     },
   ];
 
