@@ -225,7 +225,19 @@ function LicenseRow({ license, isCurrent }: { license: any; isCurrent: boolean }
         {license.expires_at && (
           <span className="text-xs text-muted-foreground">
             Expira em {formatDateBR(license.expires_at)}
-            {isCurrent && <> · {formatDaysLeft(license.expires_at)}</>}
+          </span>
+        )}
+        {isCurrent && countdown && (
+          <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-xs tabular-nums ${
+              countdown.expired
+                ? "border-destructive/40 bg-destructive/10 text-destructive"
+                : "border-primary/40 bg-primary/10 text-primary"
+            }`}
+            title="Tempo restante da licença"
+          >
+            <Clock className="h-3 w-3" />
+            {countdown.expired ? "Expirada" : countdown.label}
           </span>
         )}
         <Button size="sm" variant="ghost" onClick={copy}>
