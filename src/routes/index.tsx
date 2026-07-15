@@ -471,6 +471,7 @@ function Plans() {
   // Auto-abre o checkout ao voltar da verificação de email (?checkout=<slug>)
   useEffect(() => {
     if (typeof window === "undefined") return;
+    let cancelled = false;
     const params = new URLSearchParams(window.location.search);
     const urlSlug = params.get("checkout");
     // Só considera storage se houve intenção explícita (checkout na URL ou hash #plans)
@@ -490,9 +491,9 @@ function Plans() {
     if (!plans) return;
     const plan = plans.find((p) => p.slug === slug);
     if (!plan || plan.price_cents === 0) return;
-    finishEmailConfirmationFromUrl().then(async () => {
-      const session = await waitForCheckoutSession(urlSlug ? 18 : 1);
-      if (!session) return;
+    const openCheckout = async () => {
+      const session = await waitForCheckoutSession(urlSlug ? 24 : 2);
+      if (!session || cancelled) return;
       setCheckoutPlan({ slug: plan.slug, name: plan.name, price_cents: plan.price_cents });
       window.localStorage.removeItem(PENDING_CHECKOUT_KEY);
       window.sessionStorage.removeItem(PENDING_CHECKOUT_KEY);
@@ -510,7 +511,21 @@ function Plans() {
           document.getElementById("plans")?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
       }
+    };
+
+    finishEmailConfirmationFromUrl().then(openCheckout);
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session || cancelled) return;
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        openCheckout();
+      }
     });
+
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, [plans]);
 
   const highlightSlug = "monthly";
