@@ -8,7 +8,12 @@ const STORAGE_KEYS = {
     lastCheck: 'lvbl_last_check',
     licenseInfo: 'lvbl_license_info',
 };
-const REVALIDATE_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
+const REVALIDATE_INTERVAL_MS = 1000; // 1s — a licença ativa é revalidada no servidor continuamente
+
+let activeLicense = null;
+let licenseWatchTimer = null;
+let validationInFlight = false;
+let lastValidationAt = 0;
 
 // --- utils ----------------------------------------------------------------
 
@@ -82,6 +87,73 @@ function formatExpires(iso) {
     }
 }
 
+function parseTime(value) {
+    if (!value) return null;
+    const ms = new Date(value).getTime();
+    return Number.isFinite(ms) ? ms : null;
+}
+
+function getRemainingMs(info, checkedAt) {
+    if (!info) return 0;
+    const expiresAtMs = parseTime(info.expires_at);
+    if (expiresAtMs == null) return Infinity;
+
+    const serverNowAtCheck = parseTime(info.server_now);
+    const localCheckedAt = typeof checkedAt === 'number' ? checkedAt : Date.now();
+    const elapsedSinceCheck = Math.max(0, Date.now() - localCheckedAt);
+
+    if (serverNowAtCheck != null) {
+        return expiresAtMs - (serverNowAtCheck + elapsedSinceCheck);
+    }
+
+    if (typeof info.expires_in_ms === 'number') {
+        return info.expires_in_ms - elapsedSinceCheck;
+    }
+
+    return expiresAtMs - Date.now();
+}
+
+function formatRemaining(ms) {
+    if (!Number.isFinite(ms)) return 'Sem expiração';
+    const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const two = (n) => String(n).padStart(2, '0');
+
+    if (days > 0) return `${days}d ${two(hours)}:${two(minutes)}:${two(seconds)}`;
+    if (hours > 0) return `${two(hours)}:${two(minutes)}:${two(seconds)}`;
+    return `${two(minutes)}:${two(seconds)}`;
+}
+
+function updateCountdown(info, checkedAt) {
+    const remainingMs = getRemainingMs(info, checkedAt);
+    const timerValue = document.querySelector('.timer-value');
+    const timerFill = document.querySelector('.timer-bar-fill');
+    if (timerValue) timerValue.textContent = formatRemaining(remainingMs);
+
+    if (timerFill) {
+        const expiresAtMs = parseTime(info?.expires_at);
+        const activatedAtMs = parseTime(info?.activated_at);
+        let totalMs = null;
+        if (expiresAtMs != null && activatedAtMs != null && expiresAtMs > activatedAtMs) {
+            totalMs = expiresAtMs - activatedAtMs;
+        } else if (typeof info?.expires_in_ms === 'number') {
+            totalMs = info.expires_in_ms + Math.max(0, Date.now() - (checkedAt || Date.now()));
+        }
+
+        if (totalMs && Number.isFinite(totalMs) && totalMs > 0) {
+            const pct = Math.max(0, Math.min(100, (remainingMs / totalMs) * 100));
+            timerFill.style.width = `${pct}%`;
+        } else {
+            timerFill.style.width = '100%';
+        }
+    }
+
+    return remainingMs;
+}
+
 // --- API ------------------------------------------------------------------
 
 async function apiActivate(key, deviceHash) {
@@ -104,12 +176,12 @@ async function apiActivate(key, deviceHash) {
     }
 }
 
-async function apiValidate(key, deviceHash) {
+async function apiValidate(key, deviceHash, silent = false) {
     try {
         const res = await fetch(`${LICENSE_API_BASE}/api/public/license/validate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key, device_hash: deviceHash }),
+            body: JSON.stringify({ key, device_hash: deviceHash, silent }),
         });
         const data = await res.json().catch(() => ({}));
         return { ok: res.ok, status: res.status, data };
@@ -132,16 +204,18 @@ const licenseInfoText = document.getElementById('licenseInfoText');
 const licenseLogoutBtn = document.getElementById('licenseLogout');
 
 function showGate() {
+    stopLicenseWatch();
     gate.style.display = 'flex';
     chatShell.style.display = 'none';
     licenseInfoBar.style.display = 'none';
     setTimeout(() => gateInput?.focus(), 50);
 }
 
-function showChat(_info) {
+function showChat(info, checkedAt = Date.now()) {
     gate.style.display = 'none';
     chatShell.style.display = 'flex';
     if (licenseInfoBar) licenseInfoBar.style.display = 'none';
+    updateCountdown(info, checkedAt);
 }
 
 function setBusy(busy, label) {
@@ -153,6 +227,98 @@ function setBusy(busy, label) {
 function setError(msg) {
     gateError.textContent = msg || '';
     gateError.style.display = msg ? 'block' : 'none';
+}
+
+function stopLicenseWatch() {
+    if (licenseWatchTimer) clearInterval(licenseWatchTimer);
+    licenseWatchTimer = null;
+    activeLicense = null;
+    validationInFlight = false;
+}
+
+async function expireAndLock(reason = 'expired') {
+    stopLicenseWatch();
+    await chrome.storage.local.remove([
+        STORAGE_KEYS.key,
+        STORAGE_KEYS.lastCheck,
+        STORAGE_KEYS.licenseInfo,
+    ]);
+    gateInput.value = '';
+    setBusy(false);
+    showGate();
+    setError(reason === 'expired' ? 'Licença expirada. Insira uma nova chave.' : reasonText(reason));
+}
+
+async function storeValidLicense(key, info) {
+    const checkedAt = Date.now();
+    await chrome.storage.local.set({
+        [STORAGE_KEYS.key]: key,
+        [STORAGE_KEYS.lastCheck]: checkedAt,
+        [STORAGE_KEYS.licenseInfo]: info,
+    });
+    showChat(info, checkedAt);
+    startLicenseWatch(key, info, checkedAt);
+}
+
+function startLicenseWatch(key, info, checkedAt = Date.now()) {
+    if (licenseWatchTimer) clearInterval(licenseWatchTimer);
+    activeLicense = { key, info, checkedAt };
+    lastValidationAt = 0;
+
+    const tick = async () => {
+        if (!activeLicense) return;
+        const remainingMs = updateCountdown(activeLicense.info, activeLicense.checkedAt);
+
+        if (remainingMs <= 0) {
+            await validateActiveLicense(true);
+            if (!activeLicense || getRemainingMs(activeLicense.info, activeLicense.checkedAt) <= 0) {
+                await expireAndLock('expired');
+            }
+            return;
+        }
+
+        if (Date.now() - lastValidationAt >= REVALIDATE_INTERVAL_MS) {
+            await validateActiveLicense(false);
+        }
+    };
+
+    tick();
+    licenseWatchTimer = setInterval(tick, 1000);
+}
+
+async function validateActiveLicense(forceLockOnNetworkError) {
+    if (!activeLicense || validationInFlight) return;
+    validationInFlight = true;
+    try {
+        const deviceHash = await getOrCreateDeviceHash();
+        const res = await apiValidate(activeLicense.key, deviceHash, true);
+        lastValidationAt = Date.now();
+
+        if (res.ok && res.data.valid) {
+            activeLicense.info = res.data;
+            activeLicense.checkedAt = Date.now();
+            await chrome.storage.local.set({
+                [STORAGE_KEYS.lastCheck]: activeLicense.checkedAt,
+                [STORAGE_KEYS.licenseInfo]: res.data,
+            });
+            showChat(res.data, activeLicense.checkedAt);
+            setError('');
+            return;
+        }
+
+        if (res.data.reason === 'network') {
+            if (forceLockOnNetworkError || getRemainingMs(activeLicense.info, activeLicense.checkedAt) <= 0) {
+                await expireAndLock('expired');
+            } else {
+                gateStatus.textContent = 'Revalidando licença...';
+            }
+            return;
+        }
+
+        await expireAndLock(res.data.reason || 'invalid_key');
+    } finally {
+        validationInFlight = false;
+    }
 }
 
 // --- flow -----------------------------------------------------------------
@@ -169,41 +335,36 @@ async function tryAutoValidate() {
         return;
     }
 
-    // Mostra chat de cara com info do cache (se houver) e revalida em background
-    if (stored[STORAGE_KEYS.licenseInfo]) {
-        showChat(stored[STORAGE_KEYS.licenseInfo]);
-    } else {
-        gate.style.display = 'flex';
-        chatShell.style.display = 'none';
-        gateStatus.textContent = 'Validando licença...';
+    const cachedInfo = stored[STORAGE_KEYS.licenseInfo];
+    const lastCheck = stored[STORAGE_KEYS.lastCheck] || Date.now();
+    if (cachedInfo && getRemainingMs(cachedInfo, lastCheck) <= 0) {
+        await expireAndLock('expired');
+        return;
     }
 
-    const lastCheck = stored[STORAGE_KEYS.lastCheck] || 0;
-    const needsCheck = Date.now() - lastCheck > REVALIDATE_INTERVAL_MS || !stored[STORAGE_KEYS.licenseInfo];
-
-    if (!needsCheck) return;
+    gate.style.display = 'flex';
+    chatShell.style.display = 'none';
+    gateInput.value = savedKey;
+    setError('');
+    gateStatus.textContent = 'Validando licença...';
 
     const deviceHash = await getOrCreateDeviceHash();
-    const res = await apiValidate(savedKey, deviceHash);
+    const res = await apiValidate(savedKey, deviceHash, true);
 
     if (res.ok && res.data.valid) {
-        await chrome.storage.local.set({
-            [STORAGE_KEYS.lastCheck]: Date.now(),
-            [STORAGE_KEYS.licenseInfo]: res.data,
-        });
-        showChat(res.data);
+        await storeValidLicense(savedKey, res.data);
     } else if (res.data.reason === 'network') {
-        // Offline: se tinha info em cache, mantém liberado
-        if (stored[STORAGE_KEYS.licenseInfo]) {
-            showChat(stored[STORAGE_KEYS.licenseInfo]);
-        } else {
-            showGate();
-            setError(reasonText('network'));
-        }
-    } else {
-        await chrome.storage.local.remove([STORAGE_KEYS.licenseInfo]);
         showGate();
         gateInput.value = savedKey;
+        setError(reasonText('network'));
+    } else {
+        await chrome.storage.local.remove([
+            STORAGE_KEYS.key,
+            STORAGE_KEYS.lastCheck,
+            STORAGE_KEYS.licenseInfo,
+        ]);
+        showGate();
+        gateInput.value = '';
         setError(reasonText(res.data.reason));
     }
 }
@@ -224,12 +385,7 @@ async function handleActivate(e) {
     setBusy(false);
 
     if (res.ok && res.data.valid) {
-        await chrome.storage.local.set({
-            [STORAGE_KEYS.key]: key,
-            [STORAGE_KEYS.lastCheck]: Date.now(),
-            [STORAGE_KEYS.licenseInfo]: res.data,
-        });
-        showChat(res.data);
+        await storeValidLicense(key, res.data);
     } else {
         setError(reasonText(res.data.reason));
     }
