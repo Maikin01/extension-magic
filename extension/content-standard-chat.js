@@ -217,12 +217,38 @@
         return all.reverse().find((t) => t.offsetParent !== null) || null;
     }
 
+    // Detecta se o composer tem anexos (imagens/arquivos). Quando tiver, NÃO
+    // interceptamos — deixamos o envio nativo passar para preservar as imagens
+    // (o payload da extensão usa files:[] e perderia os anexos).
+    function composerHasAttachments(ta) {
+        try {
+            const root = (ta && ta.closest && (ta.closest('form') || ta.closest('[class*="composer" i]'))) || document;
+            // thumbnails de imagem anexada
+            if (root.querySelector('img[src^="blob:"], img[src^="data:"]')) return true;
+            // botões de remover anexo (padrão comum: "Remove file", "Remover")
+            const removeBtns = root.querySelectorAll('button[aria-label*="remove" i], button[aria-label*="remover" i]');
+            for (const b of removeBtns) {
+                const lbl = (b.getAttribute('aria-label') || '').toLowerCase();
+                if (lbl.includes('file') || lbl.includes('image') || lbl.includes('anexo') || lbl.includes('arquivo') || lbl.includes('imagem')) return true;
+            }
+            // atributo data-* comum em previews
+            if (root.querySelector('[data-testid*="attachment" i], [data-testid*="file-preview" i], [class*="attachment" i] img')) return true;
+        } catch (_) {}
+        return false;
+    }
+
     async function intercept(e, textarea) {
         if (!enabled) return;
         const ta = textarea || findComposerTextarea(e.target);
         if (!ta) return;
         const msg = (ta.value || '').trim();
         if (!msg) return;
+        // Se há imagens/arquivos anexados, deixa o envio nativo cuidar disso
+        // (nosso payload perderia os anexos).
+        if (composerHasAttachments(ta)) {
+            showToast('🖼 Anexo detectado — enviando pelo fluxo nativo (consome créditos)');
+            return;
+        }
         // bloqueia o envio nativo (que gastaria créditos)
         e.preventDefault();
         e.stopImmediatePropagation();
