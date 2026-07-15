@@ -118,6 +118,7 @@ export function LicensesTab() {
       setGenEmail("");
       setGenNotes("");
       setGenCount(1);
+      setMaxDevicesOverride("");
       qc.invalidateQueries({ queryKey: ["admin"] });
     },
     onError: (e: Error) => toast.error(e.message),
