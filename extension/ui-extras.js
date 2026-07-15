@@ -456,14 +456,6 @@
                         await chrome.storage.local.set({ lvbl_use_standard_chat: next });
                         btn.classList.toggle('is-active', next);
                         btn.textContent = next ? 'Chat Padrão ATIVO ✓' : 'Usar Chat Padrão';
-                        if (next) {
-                            alert(
-                                'Chat Padrão ATIVO.\n\n' +
-                                'Abra o chat do lovable.dev normalmente. Suas mensagens serão enviadas ' +
-                                'pelo mesmo método da extensão (sem consumir créditos).\n\n' +
-                                'Um aviso aparecerá no site a cada envio.'
-                            );
-                        }
                     } catch (e) {
                         console.warn('[ui-extras] toggle chat padrão failed:', e);
                     }
