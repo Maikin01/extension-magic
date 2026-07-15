@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/site/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Copy, Download, Key, PlayCircle, Sparkles } from "lucide-react";
+import { Clock, Copy, Download, Key, MessageCircle, PlayCircle, Sparkles } from "lucide-react";
 import { getMyDashboard, claimTrialLicense } from "@/lib/license.functions";
 import {
   LICENSE_STATUS_LABEL,
@@ -130,6 +130,7 @@ function DashboardPage() {
           <div className="space-y-6">
             <ExtensionCard />
             <TutorialsCard />
+            <SupportCard />
             <LicensesCard licenses={data.licenses} current={data.currentLicense} />
           </div>
         )}
@@ -149,6 +150,41 @@ function ExtensionCard() {
       <Button className="btn-neon mt-5" onClick={downloadExtension}>
         <Download className="mr-2 h-4 w-4" /> Baixar extensão
       </Button>
+    </Card>
+  );
+}
+
+const SUPPORT_URL =
+  "https://wa.me/5561992039398?text=Ol%C3%A1%21%20Tudo%20bem%3F%20Tenho%20algumas%20d%C3%BAvidas%20sobre%20a%20extens%C3%A3o.%20Pode%20me%20ajudar%2C%20por%20favor%3F";
+
+function SupportCard() {
+  return (
+    <Card className="ring-glow relative overflow-hidden border-primary/30 bg-black/40 p-8 backdrop-blur">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-40"
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 60% 50% at 100% 0%, oklch(0.63 0.245 25 / 0.25), transparent 70%)",
+        }}
+      />
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-primary/10">
+            <MessageCircle className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gradient-red">Precisa de ajuda?</h2>
+            <p className="mt-1 max-w-md text-sm text-muted-foreground">
+              Fale direto com nosso suporte no WhatsApp — resposta rápida para dúvidas sobre a extensão.
+            </p>
+          </div>
+        </div>
+        <Button asChild className="btn-neon">
+          <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
+            <MessageCircle className="mr-2 h-4 w-4" /> Falar com suporte
+          </a>
+        </Button>
+      </div>
     </Card>
   );
 }
