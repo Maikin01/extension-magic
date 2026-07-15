@@ -23,29 +23,64 @@ export const Route = createFileRoute("/auth")({
 
 const emailSchema = z.string().trim().email("Email inválido").max(255);
 const passwordSchema = z.string().min(6, "Mínimo de 6 caracteres").max(72);
+const PENDING_CHECKOUT_KEY = "rise_lovable_pending_checkout";
+type AuthTab = "login" | "signup";
+type AuthParams = { next: string; plan: string | null; initialTab: AuthTab };
+
+const defaultAuthParams: AuthParams = {
+  next: "/dashboard",
+  plan: null,
+  initialTab: "login",
+};
+
+function getAuthParams(): AuthParams {
+  if (typeof window === "undefined") {
+    return defaultAuthParams;
+  }
+  const params = new URLSearchParams(window.location.search);
+  const claim = params.get("claim");
+  const plan = params.get("plan");
+  const next = params.get("next") ?? (plan ? `/?checkout=${plan}#plans` : claim === "trial" ? "/dashboard?claim=trial" : "/dashboard");
+  const initialTab: AuthTab = params.get("tab") === "signup" || plan ? "signup" : "login";
+  return { next, plan, initialTab };
+}
+
+function sanitizeNextPath(value: string) {
+  try {
+    const decoded = decodeURIComponent(value);
+    return decoded.startsWith("/") && !decoded.startsWith("//") ? decoded : "/dashboard";
+  } catch {
+    return "/dashboard";
+  }
+}
 
 function AuthPage() {
   const navigate = useNavigate();
+  const [authParams, setAuthParams] = useState<AuthParams>(defaultAuthParams);
+  const [activeTab, setActiveTab] = useState<AuthTab>("login");
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const claim = params.get("claim");
-    const next = params.get("next");
-    const dest = next
-      ? decodeURIComponent(next)
-      : claim === "trial"
-        ? "/dashboard?claim=trial"
-        : "/dashboard";
+    const currentParams = getAuthParams();
+    setAuthParams(currentParams);
+    setActiveTab(currentParams.initialTab);
+    if (currentParams.plan) {
+      window.localStorage.setItem(PENDING_CHECKOUT_KEY, currentParams.plan);
+      window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, currentParams.plan);
+    }
+
+    const next = currentParams.next;
+    const dest = sanitizeNextPath(next);
 
     let redirected = false;
     const go = () => {
       if (redirected) return;
       redirected = true;
-      // usa navigate (client-side) para evitar full reload / loops
-      if (dest.startsWith("/")) {
+      if (dest.includes("checkout=")) {
+        window.location.replace(dest);
+      } else if (dest.startsWith("/")) {
         navigate({ to: dest, replace: true } as any);
       } else {
-        window.location.replace(dest);
+        navigate({ to: "/dashboard", replace: true });
       }
     };
 
@@ -71,7 +106,7 @@ function AuthPage() {
         </Link>
 
         <Card className="p-6">
-          <Tabs defaultValue="login">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AuthTab)}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Cadastrar</TabsTrigger>
@@ -80,7 +115,7 @@ function AuthPage() {
               <LoginForm />
             </TabsContent>
             <TabsContent value="signup" className="mt-6">
-              <SignupForm />
+              <SignupForm next={authParams.next} plan={authParams.plan} />
             </TabsContent>
           </Tabs>
 
@@ -90,7 +125,7 @@ function AuthPage() {
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <GoogleButton />
+          <GoogleButton next={authParams.next} plan={authParams.plan} />
         </Card>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
@@ -156,7 +191,7 @@ function LoginForm() {
   );
 }
 
-function SignupForm() {
+function SignupForm({ next, plan }: { next: string; plan: string | null }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -169,18 +204,16 @@ function SignupForm() {
     if (!emailR.success) return toast.error(emailR.error.issues[0].message);
     if (!passR.success) return toast.error(passR.error.issues[0].message);
     setLoading(true);
+    const safeNext = sanitizeNextPath(next);
+    if (plan) {
+      window.localStorage.setItem(PENDING_CHECKOUT_KEY, plan);
+      window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, plan);
+    }
     const { error } = await supabase.auth.signUp({
       email: emailR.data,
       password: passR.data,
       options: {
-        emailRedirectTo: (() => {
-          const p = new URLSearchParams(window.location.search);
-          const next = p.get("next");
-          // Sempre volta para /auth para que a sessão seja detectada (tokens no hash)
-          // e só então redireciona para o destino final (ex.: /#plans).
-          const dest = next ?? "/dashboard";
-          return `${window.location.origin}/auth?next=${encodeURIComponent(dest)}`;
-        })(),
+        emailRedirectTo: `${window.location.origin}/auth?next=${encodeURIComponent(safeNext)}${plan ? `&plan=${encodeURIComponent(plan)}` : ""}`,
         data: { full_name: name.trim() },
       },
     });
@@ -231,12 +264,19 @@ function SignupForm() {
   );
 }
 
-function GoogleButton() {
+function GoogleButton({ next, plan }: { next: string; plan: string | null }) {
   const [loading, setLoading] = useState(false);
   const handle = async () => {
     setLoading(true);
+    const safeNext = sanitizeNextPath(next);
+    if (plan) {
+      window.localStorage.setItem(PENDING_CHECKOUT_KEY, plan);
+      window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, plan);
+    }
+    const redirectSearch = new URLSearchParams({ next: safeNext });
+    if (plan) redirectSearch.set("plan", plan);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/auth",
+      redirect_uri: `${window.location.origin}/auth?${redirectSearch.toString()}`,
     });
     if (result.error) {
       setLoading(false);

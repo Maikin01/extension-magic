@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Suspense, useEffect, useState } from "react";
@@ -31,6 +31,8 @@ import {
 import { getPublicPlans } from "@/lib/license.functions";
 import { formatPrice } from "@/lib/license-utils";
 import { PixCheckoutDialog } from "@/components/checkout/PixCheckoutDialog";
+
+const PENDING_CHECKOUT_KEY = "rise_lovable_pending_checkout";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -393,7 +395,6 @@ function Features() {
 
 function Plans() {
   const getPlans = useServerFn(getPublicPlans);
-  const navigate = useNavigate();
   const { data: plans } = useSuspenseQuery({
     queryKey: ["plans", "public"],
     queryFn: () => getPlans(),
@@ -403,15 +404,31 @@ function Plans() {
     { slug: string; name: string; price_cents: number } | null
   >(null);
 
-  async function handleSubscribe(plan: { slug: string; name: string; price_cents: number }) {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
-      toast.info("Crie sua conta para comprar — sua chave fica salva no painel.");
-      const next = encodeURIComponent(`/?checkout=${plan.slug}#plans`);
-      window.location.href = `/auth?next=${next}&plan=${plan.slug}`;
-      return;
+  function sendToSignup(planSlug: string) {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(PENDING_CHECKOUT_KEY, planSlug);
+      window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, planSlug);
     }
-    setCheckoutPlan(plan);
+    const search = new URLSearchParams({
+      next: `/?checkout=${planSlug}#plans`,
+      plan: planSlug,
+      tab: "signup",
+    });
+    window.location.assign(`/auth?${search.toString()}`);
+  }
+
+  async function handleSubscribe(plan: { slug: string; name: string; price_cents: number }) {
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setCheckoutPlan(plan);
+        return;
+      }
+      toast.info("Crie sua conta para comprar — sua chave fica salva no painel.");
+      sendToSignup(plan.slug);
+    } catch {
+      sendToSignup(plan.slug);
+    }
   }
 
 
@@ -419,13 +436,18 @@ function Plans() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    const slug = params.get("checkout");
+    const slug =
+      params.get("checkout") ??
+      window.localStorage.getItem(PENDING_CHECKOUT_KEY) ??
+      window.sessionStorage.getItem(PENDING_CHECKOUT_KEY);
     if (!slug || !plans) return;
     const plan = plans.find((p) => p.slug === slug);
     if (!plan || plan.price_cents === 0) return;
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) return;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) return;
       setCheckoutPlan({ slug: plan.slug, name: plan.name, price_cents: plan.price_cents });
+      window.localStorage.removeItem(PENDING_CHECKOUT_KEY);
+      window.sessionStorage.removeItem(PENDING_CHECKOUT_KEY);
       // limpa o query param sem recarregar
       const url = new URL(window.location.href);
       url.searchParams.delete("checkout");
