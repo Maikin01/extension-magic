@@ -393,6 +393,7 @@ function Features() {
 
 function Plans() {
   const getPlans = useServerFn(getPublicPlans);
+  const navigate = useNavigate();
   const { data: plans } = useSuspenseQuery({
     queryKey: ["plans", "public"],
     queryFn: () => getPlans(),
@@ -401,6 +402,16 @@ function Plans() {
   const [checkoutPlan, setCheckoutPlan] = useState<
     { slug: string; name: string; price_cents: number } | null
   >(null);
+
+  async function handleSubscribe(plan: { slug: string; name: string; price_cents: number }) {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) {
+      toast.info("Crie sua conta para comprar — sua chave fica salva no painel.");
+      navigate({ to: "/auth", search: { next: "/#plans", plan: plan.slug } as any });
+      return;
+    }
+    setCheckoutPlan(plan);
+  }
 
   const highlightSlug = "monthly";
 
