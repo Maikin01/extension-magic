@@ -8,7 +8,7 @@ const STORAGE_KEYS = {
     lastCheck: 'lvbl_last_check',
     licenseInfo: 'lvbl_license_info',
 };
-const REVALIDATE_INTERVAL_MS = 1000; // 1s — a licença ativa é revalidada no servidor continuamente
+const REVALIDATE_INTERVAL_MS = 15000; // 15s — revalida no servidor; o tick local (1s) cuida da expiração
 
 let activeLicense = null;
 let licenseWatchTimer = null;
