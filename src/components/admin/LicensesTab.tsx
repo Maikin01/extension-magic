@@ -62,6 +62,7 @@ export function LicensesTab() {
   const [customDurationUnit, setCustomDurationUnit] = useState<"seconds" | "minutes" | "hours" | "days">("minutes");
   const [maxDevicesOverride, setMaxDevicesOverride] = useState<string>("");
   const [lastGenerated, setLastGenerated] = useState<any[] | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin", "overview"],
