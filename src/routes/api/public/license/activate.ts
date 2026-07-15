@@ -120,6 +120,7 @@ export const Route = createFileRoute("/api/public/license/activate")({
           }
 
           // Dispositivos: registra ou atualiza; respeita max_devices
+          const maxDevices = effective.plans?.max_devices ?? 1;
           const { data: existingDevices } = await supabaseAdmin
             .from("devices")
             .select("*")
@@ -130,18 +131,18 @@ export const Route = createFileRoute("/api/public/license/activate")({
           );
           if (!already) {
             const activeCount = existingDevices?.filter((d) => !d.is_revoked).length ?? 0;
-            if (activeCount >= effective.plans.max_devices) {
+            if (activeCount >= maxDevices) {
               await logAndReturn(
                 effective.id,
                 baseLog,
                 "device_limit",
-                `Limite de ${effective.plans.max_devices} dispositivos atingido`,
+                `Limite de ${maxDevices} dispositivos atingido`,
               );
               return jsonWithCors(
                 {
                   valid: false,
                   reason: "device_limit",
-                  max_devices: effective.plans.max_devices,
+                  max_devices: maxDevices,
                 },
                 403,
               );
@@ -177,14 +178,14 @@ export const Route = createFileRoute("/api/public/license/activate")({
 
           return jsonWithCors({
             valid: true,
-            plan: effective.plans.slug,
-            plan_name: effective.plans.name,
-            features: effective.plans.features,
+            plan: effective.plans?.slug ?? "custom",
+            plan_name: effective.plans?.name ?? "Personalizado",
+            features: effective.plans?.features ?? [],
             expires_at: effective.expires_at,
             expires_in_ms: expiresAtMs == null ? null : Math.max(0, expiresAtMs - serverNowMs),
             server_now: new Date(serverNowMs).toISOString(),
             activated_at: effective.activated_at,
-            max_devices: effective.plans.max_devices,
+            max_devices: maxDevices,
           });
 
           async function logAndReturn(
