@@ -34,8 +34,8 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 w-full border-b border-white/5 bg-black/40 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2.5 font-semibold">
-          <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/60 shadow-[0_0_24px_oklch(0.63_0.245_25/0.55)]">
-            <span className="text-sm font-black tracking-tighter text-white">R</span>
+          <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-primary to-primary/60 shadow-[0_0_24px_oklch(0.63_0.245_25/0.55)]">
+            <img src={riseLogo.url} alt="Rise Lovable" className="h-full w-full object-cover" />
           </span>
           <span className="font-display text-base tracking-tight">
             RISE <span className="text-gradient-red">LOVABLE</span>
