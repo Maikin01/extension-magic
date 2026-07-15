@@ -70,11 +70,14 @@ export const Route = createFileRoute("/api/public/license/activate")({
             return jsonWithCors({ valid: false, reason: "suspended" }, 403);
           }
 
-          // Se ainda pending, ativa agora — expira em duration_days a partir de now()
+          // Se ainda pending, ativa agora — expira em custom_duration_minutes (se definido) ou duration_days a partir de now()
           let effective = license;
           if (license.status === "pending") {
             const now = new Date();
-            const expires = new Date(now.getTime() + license.plans.duration_days * 86400_000);
+            const durationMs = license.custom_duration_minutes
+              ? license.custom_duration_minutes * 60_000
+              : license.plans.duration_days * 86400_000;
+            const expires = new Date(now.getTime() + durationMs);
             const { data: updated, error: updErr } = await supabaseAdmin
               .from("licenses")
               .update({
