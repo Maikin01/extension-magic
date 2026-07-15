@@ -327,6 +327,86 @@ async function validateActiveLicense(forceLockOnNetworkError) {
     }
 }
 
+// --- send authorization (obrigatório antes de cada envio de mensagem) -----
+// Exposta como window.__lvblAuthorizeSend. popup.js chama isto antes de cada
+// fetch para api.lovable.dev/chat. Sem OK do servidor, o envio é bloqueado.
+const AUTHORIZE_CACHE_MS = 25000;
+let lastAuthorizeAt = 0;
+let lastAuthorizeOk = false;
+let authorizeInFlight = null;
+
+async function authorizeSend() {
+    try {
+        // Sem licença ativa em memória? tenta recuperar do storage.
+        if (!activeLicense) {
+            const stored = await chrome.storage.local.get([
+                STORAGE_KEYS.key,
+                STORAGE_KEYS.lastCheck,
+                STORAGE_KEYS.licenseInfo,
+            ]);
+            const savedKey = stored[STORAGE_KEYS.key];
+            const cachedInfo = stored[STORAGE_KEYS.licenseInfo];
+            if (!savedKey || !cachedInfo) return false;
+            activeLicense = {
+                key: savedKey,
+                info: cachedInfo,
+                checkedAt: stored[STORAGE_KEYS.lastCheck] || Date.now(),
+            };
+        }
+
+        // Expirou localmente
+        if (getRemainingMs(activeLicense.info, activeLicense.checkedAt) <= 0) {
+            await expireAndLock('expired');
+            return false;
+        }
+
+        // Cache curto para não penalizar envios rápidos em sequência
+        if (lastAuthorizeOk && Date.now() - lastAuthorizeAt < AUTHORIZE_CACHE_MS) {
+            return true;
+        }
+
+        // Coalesce chamadas concorrentes
+        if (authorizeInFlight) return authorizeInFlight;
+
+        authorizeInFlight = (async () => {
+            const deviceHash = await getOrCreateDeviceHash();
+            const res = await apiValidate(activeLicense.key, deviceHash, true);
+            if (res.ok && res.data && res.data.valid) {
+                lastAuthorizeOk = true;
+                lastAuthorizeAt = Date.now();
+                // Atualiza expires_at se mudou
+                const newExpires = res.data.expires_at;
+                if (activeLicense.info?.expires_at !== newExpires) {
+                    activeLicense.info = res.data;
+                    activeLicense.checkedAt = Date.now();
+                    await chrome.storage.local.set({
+                        [STORAGE_KEYS.lastCheck]: activeLicense.checkedAt,
+                        [STORAGE_KEYS.licenseInfo]: res.data,
+                    });
+                }
+                return true;
+            }
+            lastAuthorizeOk = false;
+            // Rede caiu: se ainda tem tempo local, permite; senão bloqueia
+            if (res.data?.reason === 'network') {
+                return getRemainingMs(activeLicense.info, activeLicense.checkedAt) > 0;
+            }
+            await expireAndLock(res.data?.reason || 'invalid_key');
+            return false;
+        })();
+
+        try {
+            return await authorizeInFlight;
+        } finally {
+            authorizeInFlight = null;
+        }
+    } catch (e) {
+        return false;
+    }
+}
+
+window.__lvblAuthorizeSend = authorizeSend;
+
 // --- flow -----------------------------------------------------------------
 
 async function tryAutoValidate() {
