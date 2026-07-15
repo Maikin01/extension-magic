@@ -6,6 +6,7 @@ import { jsonWithCors, optionsResponse } from "@/lib/cors";
 const schema = z.object({
   key: z.string().min(10).max(64),
   device_hash: z.string().min(8).max(128),
+  silent: z.boolean().optional(),
 });
 
 export const Route = createFileRoute("/api/public/license/validate")({
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/api/public/license/validate")({
 
           const key = normalizeLicenseKey(parsed.data.key);
           const keyHash = hashLicenseKey(key);
+          const silent = parsed.data.silent === true;
           const ip = safeIp();
           const ua = request.headers.get("user-agent")?.slice(0, 512) ?? null;
 
@@ -40,7 +42,9 @@ export const Route = createFileRoute("/api/public/license/validate")({
           };
 
           if (!license) {
-            await supabaseAdmin.from("activation_logs").insert({ ...baseLog, result: "not_found" });
+            if (!silent) {
+              await supabaseAdmin.from("activation_logs").insert({ ...baseLog, result: "not_found" });
+            }
             return jsonWithCors({ valid: false, reason: "not_found" }, 404);
           }
 
@@ -76,9 +80,11 @@ export const Route = createFileRoute("/api/public/license/validate")({
             .update({ last_seen_at: new Date().toISOString() })
             .eq("id", device.id);
 
-          await supabaseAdmin
-            .from("activation_logs")
-            .insert({ ...baseLog, license_id: license.id, result: "success" });
+          if (!silent) {
+            await supabaseAdmin
+              .from("activation_logs")
+              .insert({ ...baseLog, license_id: license.id, result: "success" });
+          }
 
           return jsonWithCors({
             valid: true,
@@ -88,6 +94,8 @@ export const Route = createFileRoute("/api/public/license/validate")({
             expires_at: license.expires_at,
             expires_in_ms: expiresAtMs == null ? null : Math.max(0, expiresAtMs - serverNowMs),
             server_now: new Date(serverNowMs).toISOString(),
+            activated_at: license.activated_at,
+            max_devices: license.plans?.max_devices ?? 1,
           });
 
           async function finalize(
@@ -105,9 +113,11 @@ export const Route = createFileRoute("/api/public/license/validate")({
             status: number,
             reason?: string,
           ) {
-            await supabaseAdmin
-              .from("activation_logs")
-              .insert({ ...base, license_id: licId, result, reason: reason ?? null });
+            if (!silent) {
+              await supabaseAdmin
+                .from("activation_logs")
+                .insert({ ...base, license_id: licId, result, reason: reason ?? null });
+            }
             return jsonWithCors({ valid: false, reason: result, message: reason ?? null }, status);
           }
         } catch (err: any) {
