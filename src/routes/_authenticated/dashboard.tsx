@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/site/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Copy, Download, Key, PlayCircle, Sparkles } from "lucide-react";
+import { Clock, Copy, Download, Key, MessageCircle, PlayCircle, Sparkles } from "lucide-react";
 import { getMyDashboard, claimTrialLicense } from "@/lib/license.functions";
 import {
   LICENSE_STATUS_LABEL,
