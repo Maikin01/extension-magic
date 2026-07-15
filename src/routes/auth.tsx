@@ -45,8 +45,9 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 px-4 py-12">
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2 font-semibold">
-          <Sparkles className="h-6 w-6 text-primary" />
-          <span className="text-xl">Lovable</span>
+          <span className="font-display text-xl tracking-tight">
+            RISE <span className="text-gradient-red">LOVABLE</span>
+          </span>
         </Link>
 
         <Card className="p-6">
