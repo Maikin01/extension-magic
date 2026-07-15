@@ -205,6 +205,7 @@ export type Database = {
           created_at: string
           description: string | null
           duration_days: number
+          duration_minutes: number | null
           features: Json
           id: string
           is_active: boolean
@@ -219,6 +220,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_days: number
+          duration_minutes?: number | null
           features?: Json
           id?: string
           is_active?: boolean
@@ -233,6 +235,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_days?: number
+          duration_minutes?: number | null
           features?: Json
           id?: string
           is_active?: boolean

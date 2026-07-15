@@ -83,6 +83,8 @@ export const Route = createFileRoute("/api/public/license/activate")({
               durationMs = license.custom_duration_seconds * 1_000;
             } else if (license.custom_duration_minutes) {
               durationMs = license.custom_duration_minutes * 60_000;
+            } else if (license.plans?.duration_minutes) {
+              durationMs = license.plans.duration_minutes * 60_000;
             } else if (license.plans) {
               durationMs = license.plans.duration_days * 86400_000;
             } else {

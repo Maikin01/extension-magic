@@ -415,10 +415,12 @@ function Plans() {
           {plans.slice(0, 6).map((plan) => {
             const highlight = plan.slug === highlightSlug;
             const features = (plan.features as string[]) ?? [];
-            const isTrial = plan.slug === "trial";
-            const durationLabel = isTrial
-              ? "10 minutos"
-              : `${plan.duration_days} ${plan.duration_days === 1 ? "dia" : "dias"}`;
+            const isLifetime = plan.slug === "lifetime";
+            const durationLabel = plan.duration_minutes
+              ? `${plan.duration_minutes} min`
+              : isLifetime
+                ? "Vitalício"
+                : `${plan.duration_days} ${plan.duration_days === 1 ? "dia" : "dias"}`;
             return (
               <Card
                 key={plan.id}
@@ -476,7 +478,7 @@ function Plans() {
                   ))}
                 </ul>
 
-                {isTrial ? (
+                {plan.slug === "trial" ? (
                   <Link
                     to="/auth"
                     search={{ claim: "trial" } as any}
