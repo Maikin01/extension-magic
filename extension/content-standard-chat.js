@@ -8,18 +8,70 @@
     'use strict';
 
     const FLAG_KEY = 'lvbl_use_standard_chat';
+    const LICENSE_KEY = 'lvbl_license_key';
+    const LICENSE_INFO_KEY = 'lvbl_license_info';
     let enabled = false;
+    let licenseValid = false;
+    let licenseTimer = null;
+    let licenseInterval = null;
 
     // ---- storage sync ----
     try {
+        refreshLicenseState();
+        licenseInterval = setInterval(refreshLicenseState, 1000);
         chrome.storage.local.get([FLAG_KEY], (v) => { enabled = !!v[FLAG_KEY]; });
         chrome.storage.onChanged.addListener((changes, area) => {
-            if (area === 'local' && FLAG_KEY in changes) {
+            if (area !== 'local') return;
+            if (FLAG_KEY in changes) {
                 enabled = !!changes[FLAG_KEY].newValue;
                 showToast(enabled ? '🛡 Chat Padrão: envio sem créditos ATIVO' : '⚪ Chat Padrão desativado');
             }
+            if (LICENSE_KEY in changes || LICENSE_INFO_KEY in changes) refreshLicenseState();
         });
     } catch (_) {}
+
+    function getExpiryMs(info) {
+        if (!info || typeof info !== 'object') return null;
+        const localDeadline = Number(info.client_expires_at_ms);
+        if (Number.isFinite(localDeadline) && localDeadline > 0) return localDeadline;
+        const iso = info.expires_at || info.expiresAt;
+        if (!iso) return null;
+        const parsed = new Date(iso).getTime();
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function isExpired(info) {
+        const expiry = getExpiryMs(info);
+        return expiry == null || expiry <= Date.now();
+    }
+
+    async function lockStandardChat(reason) {
+        enabled = false;
+        licenseValid = false;
+        if (licenseTimer) { clearTimeout(licenseTimer); licenseTimer = null; }
+        try {
+            await chrome.storage.local.remove([FLAG_KEY, LICENSE_KEY, LICENSE_INFO_KEY, 'lvbl_last_check']);
+        } catch (_) {}
+        showToast(reason || '🔒 Licença expirada — chat bloqueado');
+    }
+
+    async function refreshLicenseState() {
+        try {
+            const stored = await chrome.storage.local.get([LICENSE_KEY, LICENSE_INFO_KEY]);
+            const hasKey = !!stored[LICENSE_KEY];
+            const info = stored[LICENSE_INFO_KEY];
+            licenseValid = !!(hasKey && info && !isExpired(info));
+            if (licenseTimer) clearTimeout(licenseTimer);
+            if (!licenseValid) {
+                if (hasKey || info) await lockStandardChat('🔒 Licença expirada — chat bloqueado');
+                return;
+            }
+            const ms = getExpiryMs(info) - Date.now();
+            licenseTimer = setTimeout(() => lockStandardChat('🔒 Licença expirada — chat bloqueado'), Math.max(0, Math.min(ms + 50, 2147483647)));
+        } catch (_) {
+            licenseValid = false;
+        }
+    }
 
     // ---- helpers ----
     function getProjectId() {
@@ -90,6 +142,11 @@
     }
 
     async function sendFree(message) {
+        await refreshLicenseState();
+        if (!licenseValid) {
+            await lockStandardChat('🔒 Licença expirada — chat bloqueado');
+            return false;
+        }
         const projectId = getProjectId();
         if (!projectId) {
             showToast('⚠ Abra um projeto (/projects/...) antes de enviar');
@@ -169,6 +226,11 @@
         // bloqueia o envio nativo (que gastaria créditos)
         e.preventDefault();
         e.stopImmediatePropagation();
+        await refreshLicenseState();
+        if (!licenseValid) {
+            await lockStandardChat('🔒 Licença expirada — chat bloqueado');
+            return;
+        }
         const ok = await sendFree(msg);
         if (ok) {
             // limpa o textarea da UI oficial

@@ -48,10 +48,14 @@ export const Route = createFileRoute("/api/public/license/validate")({
             return finalize(license.id, baseLog, "revoked", 403);
           if (license.status === "suspended")
             return finalize(license.id, baseLog, "suspended", 403);
+          if (license.status === "expired")
+            return finalize(license.id, baseLog, "expired", 403);
           if (license.status === "pending")
             return finalize(license.id, baseLog, "invalid_key", 403, "Licença ainda não ativada");
 
-          if (license.expires_at && new Date(license.expires_at).getTime() < Date.now()) {
+          const serverNowMs = Date.now();
+          const expiresAtMs = license.expires_at ? new Date(license.expires_at).getTime() : null;
+          if (expiresAtMs != null && expiresAtMs <= serverNowMs) {
             await supabaseAdmin.from("licenses").update({ status: "expired" }).eq("id", license.id);
             return finalize(license.id, baseLog, "expired", 403);
           }
@@ -82,6 +86,8 @@ export const Route = createFileRoute("/api/public/license/validate")({
             plan_name: license.plans.name,
             features: license.plans.features,
             expires_at: license.expires_at,
+            expires_in_ms: expiresAtMs == null ? null : Math.max(0, expiresAtMs - serverNowMs),
+            server_now: new Date(serverNowMs).toISOString(),
           });
 
           async function finalize(

@@ -69,6 +69,10 @@ export const Route = createFileRoute("/api/public/license/activate")({
             await logAndReturn(license.id, baseLog, "suspended", "Licença suspensa");
             return jsonWithCors({ valid: false, reason: "suspended" }, 403);
           }
+          if (license.status === "expired") {
+            await logAndReturn(license.id, baseLog, "expired", "Licença expirada");
+            return jsonWithCors({ valid: false, reason: "expired" }, 403);
+          }
 
           // Se ainda pending, ativa agora — expira em custom_duration_minutes (se definido) ou duration_days a partir de now()
           let effective = license;
@@ -96,7 +100,9 @@ export const Route = createFileRoute("/api/public/license/activate")({
           }
 
           // Verifica expiração via now() do servidor
-          if (effective.expires_at && new Date(effective.expires_at).getTime() < Date.now()) {
+          const serverNowMs = Date.now();
+          const expiresAtMs = effective.expires_at ? new Date(effective.expires_at).getTime() : null;
+          if (expiresAtMs != null && expiresAtMs <= serverNowMs) {
             await supabaseAdmin
               .from("licenses")
               .update({ status: "expired" })
@@ -167,6 +173,8 @@ export const Route = createFileRoute("/api/public/license/activate")({
             plan_name: effective.plans.name,
             features: effective.plans.features,
             expires_at: effective.expires_at,
+            expires_in_ms: expiresAtMs == null ? null : Math.max(0, expiresAtMs - serverNowMs),
+            server_now: new Date(serverNowMs).toISOString(),
             activated_at: effective.activated_at,
             max_devices: effective.plans.max_devices,
           });
