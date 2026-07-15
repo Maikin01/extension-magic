@@ -23,8 +23,10 @@ function syntheticEmail(whatsapp: string) {
  * Fluxo público (sem login) — a chave da licença é entregue após confirmação.
  */
 export const createPixCheckout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data) => createPixSchema.parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { createPixPayment } = await import("@/lib/mercadopago.server");
 
