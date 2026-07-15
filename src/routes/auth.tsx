@@ -58,8 +58,12 @@ function sanitizeNextPath(value: string) {
 function readAuthUrlParams() {
   const url = new URL(window.location.href);
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const tokenHash = url.searchParams.get("token_hash") ?? hash.get("token_hash");
+  const type = url.searchParams.get("type") ?? hash.get("type") ?? "signup";
   return {
     code: url.searchParams.get("code"),
+    tokenHash,
+    type,
     accessToken: hash.get("access_token"),
     refreshToken: hash.get("refresh_token"),
     hasCallback:
@@ -72,6 +76,14 @@ function readAuthUrlParams() {
 
 async function finishEmailConfirmationFromUrl() {
   const authUrl = readAuthUrlParams();
+
+  if (authUrl.tokenHash) {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: authUrl.tokenHash,
+      type: authUrl.type as any,
+    });
+    if (error) console.warn("[auth] Falha ao confirmar token do email", error);
+  }
 
   if (authUrl.code) {
     const { error } = await supabase.auth.exchangeCodeForSession(authUrl.code);
