@@ -286,11 +286,15 @@ function SignupForm({ next, plan }: { next: string; plan: string | null }) {
       window.localStorage.setItem(PENDING_CHECKOUT_KEY, plan);
       window.sessionStorage.setItem(PENDING_CHECKOUT_KEY, plan);
     }
+    const emailRedirectTo = plan
+      ? `${window.location.origin}/?checkout=${encodeURIComponent(plan)}`
+      : `${window.location.origin}/auth?next=${encodeURIComponent(safeNext)}`;
+
     const { error } = await supabase.auth.signUp({
       email: emailR.data,
       password: passR.data,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth?next=${encodeURIComponent(safeNext)}${plan ? `&plan=${encodeURIComponent(plan)}` : ""}`,
+        emailRedirectTo,
         data: { full_name: name.trim() },
       },
     });

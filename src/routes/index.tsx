@@ -34,6 +34,42 @@ import { PixCheckoutDialog } from "@/components/checkout/PixCheckoutDialog";
 
 const PENDING_CHECKOUT_KEY = "rise_lovable_pending_checkout";
 
+function readEmailConfirmationParams() {
+  const url = new URL(window.location.href);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return {
+    code: url.searchParams.get("code"),
+    accessToken: hash.get("access_token"),
+    refreshToken: hash.get("refresh_token"),
+  };
+}
+
+async function finishEmailConfirmationFromUrl() {
+  const authUrl = readEmailConfirmationParams();
+
+  if (authUrl.code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(authUrl.code);
+    if (error) console.warn("[checkout] Falha ao concluir confirmação por código", error);
+  }
+
+  if (authUrl.accessToken && authUrl.refreshToken) {
+    const { error } = await supabase.auth.setSession({
+      access_token: authUrl.accessToken,
+      refresh_token: authUrl.refreshToken,
+    });
+    if (error) console.warn("[checkout] Falha ao restaurar sessão da confirmação", error);
+  }
+}
+
+async function waitForCheckoutSession(attempts: number) {
+  for (let i = 0; i < attempts; i++) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) return data.session;
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+  return null;
+}
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -454,14 +490,18 @@ function Plans() {
     if (!plans) return;
     const plan = plans.find((p) => p.slug === slug);
     if (!plan || plan.price_cents === 0) return;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) return;
+    finishEmailConfirmationFromUrl().then(async () => {
+      const session = await waitForCheckoutSession(urlSlug ? 18 : 1);
+      if (!session) return;
       setCheckoutPlan({ slug: plan.slug, name: plan.name, price_cents: plan.price_cents });
       window.localStorage.removeItem(PENDING_CHECKOUT_KEY);
       window.sessionStorage.removeItem(PENDING_CHECKOUT_KEY);
       // limpa o query param sem recarregar
       const url = new URL(window.location.href);
       url.searchParams.delete("checkout");
+      url.searchParams.delete("code");
+      url.searchParams.delete("token_hash");
+      url.searchParams.delete("type");
       // Se veio do fluxo de verificação (checkout na URL), leva para a seção de planos
       const hash = urlSlug ? "#plans" : window.location.hash;
       window.history.replaceState({}, "", url.pathname + url.search + hash);
