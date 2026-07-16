@@ -234,6 +234,17 @@
 
         // Messages coming from inside the iframe (minimize + drag via topbar)
         let iframeDrag = null;
+
+        function endIframeDrag() {
+            if (!iframeDrag) return;
+            iframeDrag = null;
+            const f = panel.querySelector('iframe');
+            if (f) f.style.pointerEvents = '';
+            const rect = panel.getBoundingClientRect();
+            state.panel = { x: rect.left, y: rect.top };
+            saveState();
+        }
+
         window.addEventListener('message', (ev) => {
             if (!ev.data || typeof ev.data !== 'object') return;
             const d = ev.data;
@@ -242,7 +253,8 @@
             if (d.__lovableExt === 'dragStart') {
                 const rect = panel.getBoundingClientRect();
                 iframeDrag = { origX: rect.left, origY: rect.top, startX: d.x, startY: d.y };
-                panel.querySelector('iframe').style.pointerEvents = 'none';
+                const f = panel.querySelector('iframe');
+                if (f) f.style.pointerEvents = 'none';
             }
             if (d.__lovableExt === 'dragMove' && iframeDrag) {
                 const w = panel.offsetWidth, h = panel.offsetHeight;
@@ -251,14 +263,29 @@
                 panel.style.left = nx + 'px';
                 panel.style.top = ny + 'px';
             }
-            if (d.__lovableExt === 'dragEnd' && iframeDrag) {
-                iframeDrag = null;
-                panel.querySelector('iframe').style.pointerEvents = '';
-                const rect = panel.getBoundingClientRect();
-                state.panel = { x: rect.left, y: rect.top };
-                saveState();
-            }
+            if (d.__lovableExt === 'dragEnd') endIframeDrag();
         });
+
+        // Safety net: if the iframe never sends dragEnd (pointer released outside
+        // the iframe, mouse leaves the window, tab loses focus, escape pressed…),
+        // restore iframe interactivity so the panel never becomes stuck.
+        const safety = ['mouseup', 'pointerup', 'pointercancel', 'blur', 'mouseleave'];
+        safety.forEach((t) => window.addEventListener(t, endIframeDrag, true));
+        document.addEventListener('mouseleave', endIframeDrag, true);
+        document.addEventListener('visibilitychange', () => { if (document.hidden) endIframeDrag(); });
+        window.addEventListener('keydown', (e) => { if (e.key === 'Escape') endIframeDrag(); }, true);
+
+        // While the iframe is being dragged, mouse events go to the parent page
+        // (because iframe has pointer-events:none). Track them here so we can
+        // still move the panel smoothly.
+        window.addEventListener('mousemove', (e) => {
+            if (!iframeDrag) return;
+            const w = panel.offsetWidth, h = panel.offsetHeight;
+            const nx = clamp(iframeDrag.origX + (e.screenX - iframeDrag.startX), 4, window.innerWidth - w - 4);
+            const ny = clamp(iframeDrag.origY + (e.screenY - iframeDrag.startY), 4, window.innerHeight - h - 4);
+            panel.style.left = nx + 'px';
+            panel.style.top = ny + 'px';
+        }, true);
 
         window.addEventListener('resize', render);
         render();
