@@ -341,32 +341,45 @@
 
     function buttonLooksLikeCreateSend(btn, editor) {
         if (!btn || btn.disabled || buttonIsInsideEditor(btn, editor) || !isVisible(btn)) return false;
-        const rect = btn.getBoundingClientRect();
-        const editorRect = editor.getBoundingClientRect();
         const label = [
             btn.getAttribute('aria-label'),
             btn.getAttribute('title'),
             btn.getAttribute('data-testid'),
             btn.textContent,
         ].filter(Boolean).join(' ').toLowerCase();
-        if (/share\s+lovable|earn\s+credits|ganhar\s+cr[eé]ditos|invite|referral|copy\s+link/.test(label)) return false;
-        const closeToEditor = rect.left >= editorRect.left - 80
-            && rect.right <= editorRect.right + 80
-            && rect.top >= editorRect.top - 80
-            && rect.bottom <= editorRect.bottom + 100;
-        if (!closeToEditor) return false;
-        return /\b(send|enviar|submit|create|criar)\b/i.test(label)
-            || btn.type === 'submit'
-            || btn.querySelector('svg[data-icon="send"], svg[data-icon="arrow-up"], [data-testid*="send" i], [aria-label*="send" i], [aria-label*="enviar" i]');
+        if (/share\s+lovable|earn\s+credits|ganhar\s+cr[eé]ditos|invite|referral|copy\s+link|upgrade|attach|design|connector|database|voice|microphone|mic|dictate/.test(label)) return false;
+        // Deve estar próximo do editor (mesma região)
+        const rect = btn.getBoundingClientRect();
+        const editorRect = editor.getBoundingClientRect();
+        const dy = Math.max(0, Math.max(editorRect.top - rect.bottom, rect.top - editorRect.bottom));
+        const dx = Math.max(0, Math.max(editorRect.left - rect.right, rect.left - editorRect.right));
+        if (dy > 120 || dx > 200) return false;
+
+        if (btn.type === 'submit') return true;
+        if (/\b(send|enviar|submit)\b/i.test(label)) return true;
+        if (btn.querySelector('svg[data-icon="send"], svg[data-icon="arrow-up"], [data-testid*="send" i], [aria-label*="send" i], [aria-label*="enviar" i]')) return true;
+        // Ícone de seta pra cima (SVG genérico) — verifica paths
+        const svgs = btn.querySelectorAll('svg');
+        for (const svg of svgs) {
+            const d = Array.from(svg.querySelectorAll('path')).map((p) => p.getAttribute('d') || '').join(' ');
+            // Setas para cima geralmente têm "M12 19V5" ou "l-7 7" ou similar
+            if (/M\s*12\s+1?9?.*V\s*5|l-?7\s+7|arrow.*up/i.test(d)) return true;
+        }
+        return false;
     }
 
     function findSendButtonNear(editor) {
-        const scopes = [];
-        if (editor) {
-            const form = editor.closest?.('form');
-            if (form) scopes.push(form);
-            const container = editor.closest?.('form, [data-testid], section, main');
-            if (container) scopes.push(container);
+        if (!editor) return null;
+        const form = editor.closest?.('form');
+        const scopes = new Set();
+        if (form) scopes.add(form);
+        const container = editor.closest?.('[data-testid], section, main, div[class*="composer" i], div[class*="chat" i]');
+        if (container) scopes.add(container);
+        // fallback: parent chain until we have some buttons
+        let node = editor.parentElement;
+        for (let i = 0; i < 6 && node; i++) {
+            if (node.querySelector('button')) { scopes.add(node); break; }
+            node = node.parentElement;
         }
         for (const scope of scopes) {
             const btns = Array.from(scope.querySelectorAll('button'));
@@ -377,10 +390,20 @@
     }
 
     function dispatchEnter(editor) {
-        const evOpts = { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13 };
+        const evOpts = { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13, view: window };
         editor.dispatchEvent(new KeyboardEvent('keydown', evOpts));
         editor.dispatchEvent(new KeyboardEvent('keypress', evOpts));
         editor.dispatchEvent(new KeyboardEvent('keyup', evOpts));
+    }
+
+    async function waitForSendButton(editor, maxMs = 3000) {
+        const start = Date.now();
+        while (Date.now() - start < maxMs) {
+            const btn = findSendButtonNear(editor);
+            if (btn && !btn.disabled) return btn;
+            await new Promise((r) => setTimeout(r, 120));
+        }
+        return findSendButtonNear(editor);
     }
 
     async function triggerCreateNewProject() {
@@ -403,18 +426,31 @@
         setEditorText(editor, '.');
         showToast('🚀 Criando novo projeto (sem gastar créditos)…');
 
-        // Tenta clicar no botão de envio; se não achar, dispara Enter no editor
-        await new Promise((r) => setTimeout(r, 250));
+        // Enquanto criando projeto, o interceptor do chat padrão fica desligado
         creatingProject = true;
         try {
-            const btn = findSendButtonNear(editor);
+            // Aguarda o React re-renderizar e habilitar o botão de envio
+            const btn = await waitForSendButton(editor, 3000);
             if (btn) {
+                // Simula um clique humano completo
+                const rect = btn.getBoundingClientRect();
+                const opts = { bubbles: true, cancelable: true, view: window, clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2, button: 0 };
+                btn.dispatchEvent(new PointerEvent('pointerdown', opts));
+                btn.dispatchEvent(new MouseEvent('mousedown', opts));
+                btn.dispatchEvent(new PointerEvent('pointerup', opts));
+                btn.dispatchEvent(new MouseEvent('mouseup', opts));
+                btn.dispatchEvent(new MouseEvent('click', opts));
                 btn.click();
             } else {
+                // Fallback: form.requestSubmit + Enter
+                const form = editor.closest?.('form');
+                if (form?.requestSubmit) {
+                    try { form.requestSubmit(); } catch (_) { form.submit?.(); }
+                }
                 dispatchEnter(editor);
             }
         } finally {
-            setTimeout(() => { creatingProject = false; }, 1200);
+            setTimeout(() => { creatingProject = false; }, 1500);
         }
         return true;
     }
