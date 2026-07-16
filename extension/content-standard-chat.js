@@ -14,6 +14,16 @@
     let toastEl = null;
     let toastTimer = null;
 
+    // Injeta patch de fetch/XHR no contexto da página (mundo MAIN) para poder
+    // reescrever o body da requisição de criação de projeto quando pedido.
+    try {
+        const s = document.createElement('script');
+        s.src = chrome.runtime.getURL('page-fetch-patch.js');
+        s.async = false;
+        (document.head || document.documentElement).appendChild(s);
+        s.onload = () => s.remove();
+    } catch (_) {}
+
     try {
         chrome.storage.local.get([FLAG_KEY], (v) => {
             enabled = !!v[FLAG_KEY];
