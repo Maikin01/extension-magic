@@ -81,6 +81,14 @@ export function SiteHeader() {
               >
                 Painel
               </Link>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="rounded-md px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+                >
+                  Admin
+                </Link>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
