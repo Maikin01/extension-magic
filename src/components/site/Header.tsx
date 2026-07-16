@@ -9,6 +9,7 @@ import { useRouter } from "@tanstack/react-router";
 
 export function SiteHeader() {
   const [session, setSession] = useState<{ email?: string | null } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -17,12 +18,24 @@ export function SiteHeader() {
     const verifyUser = async () => {
       const { data, error } = await supabase.auth.getUser();
       if (cancelled) return;
-      setSession(!error && data.user ? { email: data.user.email } : null);
+      if (error || !data.user) {
+        setSession(null);
+        setIsAdmin(false);
+        return;
+      }
+      setSession({ email: data.user.email });
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id);
+      if (cancelled) return;
+      setIsAdmin(!!roles?.some((r) => r.role === "admin" || r.role === "owner"));
     };
     verifyUser();
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       if (event === "SIGNED_OUT" || !s) {
         setSession(null);
+        setIsAdmin(false);
         return;
       }
       if (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED") {
