@@ -193,7 +193,7 @@ function TutorialsCard() {
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <VideoCard title="Como instalar" youtubeId="nBYuzg8csH0" />
-      <VideoCard title="Como usar" />
+      <VideoCard title="Como usar" youtubeId="xupsVZ22-OY" />
     </div>
   );
 }
