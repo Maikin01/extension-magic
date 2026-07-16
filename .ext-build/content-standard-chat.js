@@ -293,5 +293,86 @@
         intercept(e, editor);
     }, true);
 
+    // ---------- Criar Novo Projeto (dashboard) ----------
+    // Recebe pedido do popup/background para preencher o composer da dashboard
+    // com "." e disparar o envio nativo (criação de projeto novo é gratuita).
+    function setEditorText(el, text) {
+        if (!el) return false;
+        const tag = (el.tagName || '').toLowerCase();
+        if (tag === 'textarea' || tag === 'input') {
+            try {
+                const proto = tag === 'textarea' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+                const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+                if (setter) setter.call(el, text);
+                else el.value = text;
+            } catch (_) { el.value = text; }
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            return true;
+        }
+        try { el.focus?.(); } catch (_) {}
+        el.textContent = text;
+        el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
+        return true;
+    }
+
+    function findSendButtonNear(editor) {
+        const scopes = [];
+        if (editor) {
+            const form = editor.closest?.('form');
+            if (form) scopes.push(form);
+            const container = editor.closest?.('[data-testid], section, main, div');
+            if (container) scopes.push(container);
+        }
+        scopes.push(document);
+        for (const scope of scopes) {
+            const btns = Array.from(scope.querySelectorAll('button'));
+            const send = btns.find((b) => !b.disabled && buttonLooksLikeSend(b));
+            if (send) return send;
+        }
+        return null;
+    }
+
+    async function triggerCreateNewProject() {
+        // Espera a UI ficar disponível
+        let editor = null;
+        for (let i = 0; i < 30; i++) {
+            editor = candidateEditors(document).sort(
+                (a, b) => b.getBoundingClientRect().bottom - a.getBoundingClientRect().bottom
+            )[0];
+            if (editor) break;
+            await new Promise((r) => setTimeout(r, 300));
+        }
+        if (!editor) throw new Error('Chat da dashboard não encontrado nesta página.');
+
+        try { editor.focus?.(); } catch (_) {}
+        setEditorText(editor, '.');
+        showToast('🚀 Criando novo projeto (sem gastar créditos)…');
+
+        // Tenta clicar no botão de envio; se não achar, dispara Enter no editor
+        await new Promise((r) => setTimeout(r, 250));
+        const btn = findSendButtonNear(editor);
+        if (btn) {
+            btn.click();
+        } else {
+            const evOpts = { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13 };
+            editor.dispatchEvent(new KeyboardEvent('keydown', evOpts));
+            editor.dispatchEvent(new KeyboardEvent('keypress', evOpts));
+            editor.dispatchEvent(new KeyboardEvent('keyup', evOpts));
+        }
+        return true;
+    }
+
+    try {
+        chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+            if (msg && msg.action === 'lvbl_create_new_project') {
+                triggerCreateNewProject()
+                    .then(() => sendResponse({ ok: true }))
+                    .catch((err) => sendResponse({ ok: false, error: err.message }));
+                return true;
+            }
+        });
+    } catch (_) {}
+
     console.log('[lvbl-std-chat] content script loaded');
 })();
