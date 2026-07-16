@@ -28,7 +28,42 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             .catch((err) => sendResponse({ success: false, error: err.message }));
         return true;
     }
+
+    if (request.action === 'sendStandardChat') {
+        sendStandardChat(request.projectId, request.body)
+            .then((r) => sendResponse({ success: true, ...r }))
+            .catch((err) => sendResponse({ success: false, error: err.message }));
+        return true;
+    }
 });
+
+async function sendStandardChat(projectId, body) {
+    if (!projectId) throw new Error('projectId ausente');
+    const cookies = await chrome.cookies.getAll({ domain: 'lovable.dev' });
+    if (!cookies.length) throw new Error('Cookies não encontrados. Faça login no Lovable.dev.');
+    const sessionCookie = cookies.find((c) =>
+        c.name === 'lovable-session-id-v2' || c.name.includes('session') || c.name === 'sb-access-token'
+    );
+    if (!sessionCookie) throw new Error('Token de sessão não encontrado.');
+    const token = sessionCookie.value;
+    const cookieString = cookies.map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const res = await fetch(`https://api.lovable.dev/projects/${projectId}/chat`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'Origin': 'https://lovable.dev',
+            'Referer': 'https://lovable.dev/',
+            'Cookie': cookieString,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36'
+        },
+        body: JSON.stringify(body)
+    });
+    const text = await res.text().catch(() => '');
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+    return { status: res.status, body: text };
+}
 
 async function findOrOpenDashboardTab() {
     const tabs = await chrome.tabs.query({ url: ['https://lovable.dev/*', 'https://*.lovable.dev/*'] });
