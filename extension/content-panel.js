@@ -266,18 +266,24 @@
             if (d.__lovableExt === 'dragEnd') endIframeDrag();
         });
 
-        // Safety net: if the iframe never sends dragEnd (pointer released outside
-        // the iframe, mouse leaves the window, tab loses focus, escape pressed…),
-        // restore iframe interactivity so the panel never becomes stuck.
-        const safety = ['mouseup', 'pointerup', 'pointercancel', 'blur', 'mouseleave'];
-        safety.forEach((t) => window.addEventListener(t, endIframeDrag, true));
-        document.addEventListener('mouseleave', endIframeDrag, true);
-        document.addEventListener('visibilitychange', () => { if (document.hidden) endIframeDrag(); });
+        // Safety net: se o iframe nunca enviar dragEnd (mouse solto fora do
+        // iframe), garantimos o fim do drag em eventos reais de liberação.
+        // IMPORTANTE: não usar `mouseleave`/`mouseout` como gatilhos — eles
+        // disparam ao sair de qualquer elemento filho e interrompem o drag.
+        const endSafety = (e) => {
+            if (!iframeDrag) return;
+            // pointerup/mouseup só encerra se realmente for release do botão principal
+            if (e && e.type !== 'blur' && e.button !== undefined && e.button !== 0) return;
+            endIframeDrag();
+        };
+        window.addEventListener('mouseup', endSafety, true);
+        window.addEventListener('pointerup', endSafety, true);
+        window.addEventListener('pointercancel', endSafety, true);
+        window.addEventListener('blur', () => endIframeDrag());
         window.addEventListener('keydown', (e) => { if (e.key === 'Escape') endIframeDrag(); }, true);
 
-        // While the iframe is being dragged, mouse events go to the parent page
-        // (because iframe has pointer-events:none). Track them here so we can
-        // still move the panel smoothly.
+        // Enquanto o iframe está sendo arrastado, o cursor pode sair da área
+        // dele (porque pointer-events:none). Acompanhamos o mouse no pai.
         window.addEventListener('mousemove', (e) => {
             if (!iframeDrag) return;
             const w = panel.offsetWidth, h = panel.offsetHeight;
