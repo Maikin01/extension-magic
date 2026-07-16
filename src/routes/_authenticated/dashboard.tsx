@@ -192,28 +192,44 @@ function SupportCard() {
 function TutorialsCard() {
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      <VideoCard title="Como instalar" />
+      <VideoCard title="Como instalar" youtubeId="nBYuzg8csH0" />
       <VideoCard title="Como usar" />
     </div>
   );
 }
 
-function VideoCard({ title }: { title: string }) {
+function VideoCard({ title, youtubeId }: { title: string; youtubeId?: string }) {
+
   return (
     <Card className="border-primary/20 bg-black/40 p-6 backdrop-blur">
       <h3 className="mb-4 text-lg font-semibold text-gradient-red">{title}</h3>
       <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-primary/20 bg-black/60">
-        <div className="pointer-events-none absolute inset-0 opacity-40"
-          style={{
-            backgroundImage:
-              "radial-gradient(ellipse 60% 40% at 50% 50%, oklch(0.63 0.245 25 / 0.25), transparent 70%)",
-          }}
-        />
-        <div className="relative z-10 flex flex-col items-center gap-3 text-muted-foreground">
-          <PlayCircle className="h-14 w-14" />
-          <span className="text-sm">Vídeo em breve</span>
-        </div>
+        {youtubeId ? (
+          <iframe
+            className="absolute inset-0 h-full w-full"
+            src={`https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0&modestbranding=1`}
+            title={title}
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        ) : (
+          <>
+            <div
+              className="pointer-events-none absolute inset-0 opacity-40"
+              style={{
+                backgroundImage:
+                  "radial-gradient(ellipse 60% 40% at 50% 50%, oklch(0.63 0.245 25 / 0.25), transparent 70%)",
+              }}
+            />
+            <div className="relative z-10 flex flex-col items-center gap-3 text-muted-foreground">
+              <PlayCircle className="h-14 w-14" />
+              <span className="text-sm">Vídeo em breve</span>
+            </div>
+          </>
+        )}
       </div>
+
     </Card>
   );
 }
