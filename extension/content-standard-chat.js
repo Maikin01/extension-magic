@@ -436,6 +436,15 @@
         setEditorText(editor, '.');
         showToast('🚀 Criando novo projeto (sem gastar créditos)…');
 
+        // Liga a flag no mundo da página para o page-fetch-patch reescrever
+        // a próxima requisição como fix_error (envio gratuito).
+        try {
+            const flag = document.createElement('script');
+            flag.textContent = 'window.__lvblForceFree = true; setTimeout(()=>{ window.__lvblForceFree = false; }, 8000);';
+            (document.head || document.documentElement).appendChild(flag);
+            flag.remove();
+        } catch (_) {}
+
         // Enquanto criando projeto, o interceptor do chat padrão fica desligado
         creatingProject = true;
         try {
