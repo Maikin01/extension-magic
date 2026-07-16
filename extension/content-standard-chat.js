@@ -316,34 +316,87 @@
         return true;
     }
 
+    function isCreateProjectEditor(el) {
+        if (!isVisible(el)) return false;
+        const rect = el.getBoundingClientRect();
+        if (rect.top < 80 || rect.bottom > window.innerHeight - 20) return false;
+        const label = [
+            el.getAttribute('aria-label'),
+            el.getAttribute('placeholder'),
+            el.getAttribute('data-placeholder'),
+            el.closest?.('form')?.textContent,
+            el.closest?.('[data-testid], section, main, div')?.textContent,
+        ].filter(Boolean).join(' ').toLowerCase();
+        if (/share\s+lovable|earn\s+credits|ganhar\s+cr[eé]ditos|invite|referral/.test(label)) return false;
+        return /ask|prompt|describe|build|create|criar|projeto|app|site|idea|what do you want|o que voc[eê]/.test(label)
+            || ['textarea', 'input'].includes((el.tagName || '').toLowerCase())
+            || el.matches?.('[contenteditable="true"],[role="textbox"],.ProseMirror,[data-lexical-editor="true"]');
+    }
+
+    function buttonIsInsideEditor(btn, editor) {
+        if (!btn || !editor) return false;
+        return btn.contains(editor) || editor.contains(btn);
+    }
+
+    function buttonLooksLikeCreateSend(btn, editor) {
+        if (!btn || btn.disabled || buttonIsInsideEditor(btn, editor) || !isVisible(btn)) return false;
+        const rect = btn.getBoundingClientRect();
+        const editorRect = editor.getBoundingClientRect();
+        const label = [
+            btn.getAttribute('aria-label'),
+            btn.getAttribute('title'),
+            btn.getAttribute('data-testid'),
+            btn.textContent,
+        ].filter(Boolean).join(' ').toLowerCase();
+        if (/share\s+lovable|earn\s+credits|ganhar\s+cr[eé]ditos|invite|referral|copy\s+link/.test(label)) return false;
+        const closeToEditor = rect.left >= editorRect.left - 80
+            && rect.right <= editorRect.right + 80
+            && rect.top >= editorRect.top - 80
+            && rect.bottom <= editorRect.bottom + 100;
+        if (!closeToEditor) return false;
+        return /\b(send|enviar|submit|create|criar)\b/i.test(label)
+            || btn.type === 'submit'
+            || btn.querySelector('svg[data-icon="send"], svg[data-icon="arrow-up"], [data-testid*="send" i], [aria-label*="send" i], [aria-label*="enviar" i]');
+    }
+
     function findSendButtonNear(editor) {
         const scopes = [];
         if (editor) {
             const form = editor.closest?.('form');
             if (form) scopes.push(form);
-            const container = editor.closest?.('[data-testid], section, main, div');
+            const container = editor.closest?.('form, [data-testid], section, main');
             if (container) scopes.push(container);
         }
-        scopes.push(document);
         for (const scope of scopes) {
             const btns = Array.from(scope.querySelectorAll('button'));
-            const send = btns.find((b) => !b.disabled && buttonLooksLikeSend(b));
+            const send = btns.find((b) => buttonLooksLikeCreateSend(b, editor));
             if (send) return send;
         }
         return null;
+    }
+
+    function dispatchEnter(editor) {
+        const evOpts = { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13 };
+        editor.dispatchEvent(new KeyboardEvent('keydown', evOpts));
+        editor.dispatchEvent(new KeyboardEvent('keypress', evOpts));
+        editor.dispatchEvent(new KeyboardEvent('keyup', evOpts));
     }
 
     async function triggerCreateNewProject() {
         // Espera a UI ficar disponível
         let editor = null;
         for (let i = 0; i < 30; i++) {
-            editor = candidateEditors(document).sort(
-                (a, b) => b.getBoundingClientRect().bottom - a.getBoundingClientRect().bottom
-            )[0];
+            editor = candidateEditors(document)
+                .filter(isCreateProjectEditor)
+                .sort((a, b) => {
+                    const ar = a.getBoundingClientRect();
+                    const br = b.getBoundingClientRect();
+                    return (br.width * br.height) - (ar.width * ar.height);
+                })[0];
             if (editor) break;
             await new Promise((r) => setTimeout(r, 300));
         }
-        if (!editor) throw new Error('Chat da dashboard não encontrado nesta página.');
+        if (!editor) throw new Error('Chat da tela inicial da Lovable não encontrado. Abra lovable.dev na tela inicial e tente novamente.');
 
         try { editor.focus?.(); } catch (_) {}
         setEditorText(editor, '.');
@@ -355,10 +408,7 @@
         if (btn) {
             btn.click();
         } else {
-            const evOpts = { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13 };
-            editor.dispatchEvent(new KeyboardEvent('keydown', evOpts));
-            editor.dispatchEvent(new KeyboardEvent('keypress', evOpts));
-            editor.dispatchEvent(new KeyboardEvent('keyup', evOpts));
+            dispatchEnter(editor);
         }
         return true;
     }

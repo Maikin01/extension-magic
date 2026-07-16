@@ -32,11 +32,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 async function findOrOpenDashboardTab() {
     const tabs = await chrome.tabs.query({ url: ['https://lovable.dev/*', 'https://*.lovable.dev/*'] });
-    // Prefer dashboard/home tab (not inside a project)
-    let tab = tabs.find((t) => t.url && !/\/projects\//.test(t.url));
+    // Always target the initial Lovable screen. Other non-project pages can
+    // contain buttons like "Share Lovable", so do not run the create flow there.
+    let tab = tabs.find((t) => {
+        if (!t.url || /\/projects\//.test(t.url)) return false;
+        try {
+            const url = new URL(t.url);
+            return url.hostname.endsWith('lovable.dev') && (url.pathname === '/' || url.pathname === '');
+        } catch (_) {
+            return false;
+        }
+    });
     if (tab) {
         await chrome.tabs.update(tab.id, { active: true });
         try { await chrome.windows.update(tab.windowId, { focused: true }); } catch (_) {}
+        return tab;
+    }
+    tab = tabs.find((t) => t.url && !/\/projects\//.test(t.url));
+    if (tab) {
+        await chrome.tabs.update(tab.id, { url: 'https://lovable.dev/', active: true });
+        try { await chrome.windows.update(tab.windowId, { focused: true }); } catch (_) {}
+        await new Promise((resolve) => {
+            const listener = (tabId, info) => {
+                if (tabId === tab.id && info.status === 'complete') {
+                    chrome.tabs.onUpdated.removeListener(listener);
+                    resolve();
+                }
+            };
+            chrome.tabs.onUpdated.addListener(listener);
+            setTimeout(resolve, 8000);
+        });
         return tab;
     }
     tab = await chrome.tabs.create({ url: 'https://lovable.dev/', active: true });
