@@ -14,6 +14,16 @@
     let toastEl = null;
     let toastTimer = null;
 
+    // Injeta patch de fetch/XHR no contexto da página (mundo MAIN) para poder
+    // reescrever o body da requisição de criação de projeto quando pedido.
+    try {
+        const s = document.createElement('script');
+        s.src = chrome.runtime.getURL('page-fetch-patch.js');
+        s.async = false;
+        (document.head || document.documentElement).appendChild(s);
+        s.onload = () => s.remove();
+    } catch (_) {}
+
     try {
         chrome.storage.local.get([FLAG_KEY], (v) => {
             enabled = !!v[FLAG_KEY];
@@ -425,6 +435,15 @@
         try { editor.focus?.(); } catch (_) {}
         setEditorText(editor, '.');
         showToast('🚀 Criando novo projeto (sem gastar créditos)…');
+
+        // Liga a flag no mundo da página para o page-fetch-patch reescrever
+        // a próxima requisição como fix_error (envio gratuito).
+        try {
+            const flag = document.createElement('script');
+            flag.textContent = 'window.__lvblForceFree = true; setTimeout(()=>{ window.__lvblForceFree = false; }, 8000);';
+            (document.head || document.documentElement).appendChild(flag);
+            flag.remove();
+        } catch (_) {}
 
         // Enquanto criando projeto, o interceptor do chat padrão fica desligado
         creatingProject = true;

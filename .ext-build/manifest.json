@@ -46,6 +46,7 @@
         "license.js",
         "history.js",
         "ui-extras.js",
+        "page-fetch-patch.js",
         "icons/*",
         "vendor/*"
       ],
