@@ -10,6 +10,7 @@
     const FALLBACK_EVENT_ID = 'main:agent#00000000000123#bld:ZDP4ZE3D';
     let enabled = false;
     let sending = false;
+    let creatingProject = false;
     let toastEl = null;
     let toastTimer = null;
 
@@ -267,7 +268,7 @@
 
     // Bloqueia Enter antes do chat oficial processar.
     document.addEventListener('keydown', (e) => {
-        if (!enabled || e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+        if (!enabled || creatingProject || e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
         const editor = findComposerEditor(e.target);
         if (!editor) return;
         intercept(e, editor);
@@ -276,7 +277,7 @@
     // Bloqueia clique/pointer em botão enviar antes do handler oficial.
     ['pointerdown', 'mousedown', 'click'].forEach((type) => {
         document.addEventListener(type, (e) => {
-            if (!enabled) return;
+            if (!enabled || creatingProject) return;
             const btn = e.target?.closest?.('button');
             if (!buttonLooksLikeSend(btn)) return;
             const editor = findComposerEditor(btn);
@@ -287,7 +288,7 @@
 
     // Bloqueia submit de forms, caso o app envie por submit ao invés de click.
     document.addEventListener('submit', (e) => {
-        if (!enabled) return;
+        if (!enabled || creatingProject) return;
         const editor = findComposerEditor(e.target);
         if (!editor || !getEditorText(editor).trim()) return;
         intercept(e, editor);
@@ -404,11 +405,16 @@
 
         // Tenta clicar no botão de envio; se não achar, dispara Enter no editor
         await new Promise((r) => setTimeout(r, 250));
-        const btn = findSendButtonNear(editor);
-        if (btn) {
-            btn.click();
-        } else {
-            dispatchEnter(editor);
+        creatingProject = true;
+        try {
+            const btn = findSendButtonNear(editor);
+            if (btn) {
+                btn.click();
+            } else {
+                dispatchEnter(editor);
+            }
+        } finally {
+            setTimeout(() => { creatingProject = false; }, 1200);
         }
         return true;
     }
