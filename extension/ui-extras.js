@@ -469,6 +469,29 @@
                     }
                 });
             }
+
+            if (label.includes('criar') && label.includes('projeto')) {
+                btn.addEventListener('click', async () => {
+                    const orig = btn.textContent;
+                    btn.disabled = true;
+                    btn.textContent = 'Criando…';
+                    try {
+                        const res = await chrome.runtime.sendMessage({ action: 'createNewProject' });
+                        if (res && res.success) {
+                            btn.textContent = '✓ Enviado à Lovable';
+                        } else {
+                            const msg = (res && res.error) || 'Falha ao criar projeto';
+                            alert(msg);
+                            btn.textContent = orig;
+                        }
+                    } catch (err) {
+                        alert('Erro: ' + err.message);
+                        btn.textContent = orig;
+                    } finally {
+                        setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2500);
+                    }
+                });
+            }
         });
     }
 
