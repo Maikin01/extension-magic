@@ -222,21 +222,27 @@
             return false;
         }
 
-        const res = await fetch(`https://api.lovable.dev/projects/${projectId}/chat`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(buildBody(message)),
+        // Envia via background service worker para replicar exatamente o
+        // fetch que o popup da extensão faz (mesmos headers Bearer/Cookie/
+        // Origin/Referer/User-Agent), que é o envio sem consumir créditos.
+        const resp = await new Promise((resolve) => {
+            try {
+                chrome.runtime.sendMessage(
+                    { action: 'sendStandardChat', projectId, body: buildBody(message) },
+                    (r) => resolve(r || { success: false, error: 'sem resposta' })
+                );
+            } catch (e) {
+                resolve({ success: false, error: e && e.message ? e.message : String(e) });
+            }
         });
 
-        if (!res.ok) {
-            const txt = await res.text().catch(() => '');
-            console.warn('[std-chat] send failed', res.status, txt);
-            showToast(`❌ Erro ${res.status} — envio nativo bloqueado`);
+        if (!resp || !resp.success) {
+            console.warn('[std-chat] send failed', resp);
+            showToast(`❌ Falha no envio: ${resp && resp.error ? resp.error : 'erro desconhecido'}`);
             return false;
         }
 
-        showToast('✅ Enviado pelo modo sem créditos');
+        showToast('✅ Enviado pelo método da extensão (sem créditos)');
         return true;
     }
 
