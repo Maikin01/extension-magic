@@ -192,13 +192,14 @@ function SupportCard() {
 function TutorialsCard() {
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      <VideoCard title="Como instalar" />
+      <VideoCard title="Como instalar" youtubeId="nBYuzg8csH0" />
       <VideoCard title="Como usar" />
     </div>
   );
 }
 
-function VideoCard({ title }: { title: string }) {
+function VideoCard({ title, youtubeId }: { title: string; youtubeId?: string }) {
+
   return (
     <Card className="border-primary/20 bg-black/40 p-6 backdrop-blur">
       <h3 className="mb-4 text-lg font-semibold text-gradient-red">{title}</h3>
