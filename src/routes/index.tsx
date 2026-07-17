@@ -27,6 +27,7 @@ import {
   Check,
   Download,
   CheckCircle2,
+  LifeBuoy,
 } from "lucide-react";
 import { getPublicPlans } from "@/lib/license.functions";
 import { formatPrice } from "@/lib/license-utils";
@@ -144,6 +145,7 @@ function LandingPage() {
         <Features />
         <Plans />
         <FinalCTA />
+        <SupportCTA />
       </main>
       <Footer />
     </div>
@@ -777,6 +779,36 @@ function FinalCTA() {
 /* ------------------------------------------------------------------ */
 /* FOOTER                                                              */
 /* ------------------------------------------------------------------ */
+
+function SupportCTA() {
+  const href =
+    "https://wa.me/5561992039398?text=Ol%C3%A1%21%20Tudo%20bem%3F%20Tenho%20algumas%20d%C3%BAvidas%20sobre%20a%20extens%C3%A3o.%20Pode%20me%20ajudar%2C%20por%20favor%3F";
+  return (
+    <section className="border-t border-white/5 bg-gradient-to-b from-black to-black/60 py-16">
+      <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 px-6 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-[0_0_40px_oklch(0.63_0.245_25/0.35)]">
+          <LifeBuoy className="h-7 w-7" />
+        </span>
+        <h2 className="font-display text-3xl font-bold tracking-tight md:text-4xl">
+          Ficou com <span className="text-gradient-red">dúvidas?</span>
+        </h2>
+        <p className="max-w-xl text-sm text-white/60 md:text-base">
+          Fale direto com o nosso suporte no WhatsApp. Respondemos rápido e
+          ajudamos você a instalar, ativar e tirar o máximo da extensão.
+        </p>
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-neon inline-flex h-12 items-center justify-center gap-2 rounded-full px-8 text-sm font-bold text-white"
+        >
+          <LifeBuoy className="h-4 w-4" />
+          Falar com o Suporte
+        </a>
+      </div>
+    </section>
+  );
+}
 
 function Footer() {
   return (
