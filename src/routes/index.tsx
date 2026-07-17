@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site/Header";
 import { Card } from "@/components/ui/card";
+import riseLogo from "@/assets/rise-logo.jpg.asset.json";
 import {
   ChevronRight,
   Sparkles,
@@ -814,13 +815,15 @@ function Footer() {
   return (
     <footer className="border-t border-white/5 bg-black py-10">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 text-xs text-white/40 md:flex-row">
-        <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/60 text-[10px] font-black text-white">
-            R
+        <Link to="/" className="flex items-center gap-2.5">
+          <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-primary to-primary/60 shadow-[0_0_24px_oklch(0.63_0.245_25/0.55)]">
+            <img src={riseLogo.url} alt="Rise Lovable" className="h-full w-full object-cover" />
           </span>
-          <span className="font-semibold text-white/70">Rise Lovable</span>
-          <span>© {new Date().getFullYear()}</span>
-        </div>
+          <span className="font-display text-sm font-semibold tracking-tight text-white">
+            RISE <span className="text-gradient-red">LOVABLE</span>
+          </span>
+          <span className="ml-2">© {new Date().getFullYear()}</span>
+        </Link>
         <div className="flex items-center gap-6">
           <a href="/#plans" className="hover:text-white">Planos</a>
           <Link to="/auth" className="hover:text-white">Entrar</Link>
