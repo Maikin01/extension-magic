@@ -76,27 +76,8 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
     return <UnlockStep onDone={() => refetch()} />;
   }
 
-  return (
-    <div>
-      <div className="mb-4 flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-2 text-sm">
-        <div className="flex items-center gap-2 text-primary">
-          <ShieldCheck className="h-4 w-4" />
-          <span>Painel desbloqueado (30 min). Trancará automaticamente.</span>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => lockMut.mutate()}
-          disabled={lockMut.isPending}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Trancar agora
-        </Button>
-      </div>
-      {children}
-    </div>
-  );
-}
+  return <>{children}</>;
+
 
 /** Passo 1: cadastrar Google Authenticator */
 function TotpEnrollStep({ onDone }: { onDone: () => void }) {
