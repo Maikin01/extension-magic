@@ -35,6 +35,7 @@ import { formatPrice } from "@/lib/license-utils";
 import { PixCheckoutDialog } from "@/components/checkout/PixCheckoutDialog";
 
 const PENDING_CHECKOUT_KEY = "rise_lovable_pending_checkout";
+const REFERRAL_KEY = "rise_lovable_referral_code";
 
 function savePendingCheckout(planSlug: string) {
   window.localStorage.setItem(PENDING_CHECKOUT_KEY, planSlug);
@@ -51,6 +52,20 @@ function readPendingCheckout() {
 function clearPendingCheckout() {
   window.localStorage.removeItem(PENDING_CHECKOUT_KEY);
   window.sessionStorage.removeItem(PENDING_CHECKOUT_KEY);
+}
+
+function captureReferralFromUrl() {
+  if (typeof window === "undefined") return;
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get("ref");
+  if (ref && ref.length >= 4 && ref.length <= 16) {
+    window.localStorage.setItem(REFERRAL_KEY, ref.toUpperCase());
+  }
+}
+
+export function readReferralCode(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(REFERRAL_KEY);
 }
 
 function getAuthHashParams() {
