@@ -27,6 +27,7 @@ import {
   Check,
   Download,
   CheckCircle2,
+  LifeBuoy,
 } from "lucide-react";
 import { getPublicPlans } from "@/lib/license.functions";
 import { formatPrice } from "@/lib/license-utils";
