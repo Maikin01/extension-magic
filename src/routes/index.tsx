@@ -152,6 +152,12 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
+  const brand = useBranding();
+  useEffect(() => {
+    if (brand.code && typeof document !== "undefined") {
+      document.title = `${brand.name} — Domine o Lovable em outro nível`;
+    }
+  }, [brand]);
   useEffect(() => {
     captureReferralFromUrl();
   }, []);
