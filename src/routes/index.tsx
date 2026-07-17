@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site/Header";
 import { Card } from "@/components/ui/card";
+import riseLogo from "@/assets/rise-logo.jpg.asset.json";
 import {
   ChevronRight,
   Sparkles,
