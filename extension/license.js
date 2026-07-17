@@ -510,6 +510,7 @@ async function handleLogout() {
         STORAGE_KEYS.lastCheck,
         STORAGE_KEYS.licenseInfo,
     ]);
+    try { await window.__lvblBranding?.setBrandingCode(null); } catch {}
     gateInput.value = '';
     setError('');
     showGate();
