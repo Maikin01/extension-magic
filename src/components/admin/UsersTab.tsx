@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { translateError } from "@/lib/translate-error";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -71,7 +72,7 @@ export function UsersTab() {
       toast.success("Cargo atualizado");
       qc.invalidateQueries({ queryKey: ["admin", "users"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(translateError(e)),
   });
 
   const delMut = useMutation({
@@ -80,7 +81,7 @@ export function UsersTab() {
       toast.success("Usuário excluído");
       qc.invalidateQueries({ queryKey: ["admin", "users"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(translateError(e)),
   });
 
   if (isLoading || !data) return <div className="p-4">Carregando…</div>;

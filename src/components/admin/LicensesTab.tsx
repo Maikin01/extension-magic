@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { translateError } from "@/lib/translate-error";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -76,7 +77,7 @@ export function LicensesTab() {
       toast.success("Status atualizado");
       qc.invalidateQueries({ queryKey: ["admin"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(translateError(e)),
   });
 
   const delMut = useMutation({
@@ -85,7 +86,7 @@ export function LicensesTab() {
       toast.success("Licença deletada");
       qc.invalidateQueries({ queryKey: ["admin"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(translateError(e)),
   });
 
   const bulkDelMut = useMutation({
@@ -100,7 +101,7 @@ export function LicensesTab() {
       setSelected(new Set());
       qc.invalidateQueries({ queryKey: ["admin"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(translateError(e)),
   });
 
   const genMut = useMutation({
@@ -138,7 +139,7 @@ export function LicensesTab() {
       setMaxDevicesOverride("");
       qc.invalidateQueries({ queryKey: ["admin"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(translateError(e)),
   });
 
   if (isLoading) return <div className="p-4">Carregando…</div>;
