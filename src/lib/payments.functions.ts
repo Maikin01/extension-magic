@@ -7,6 +7,7 @@ const createPixSchema = z.object({
   buyer_name: z.string().min(2).max(120),
   buyer_whatsapp: z.string().min(8).max(30),
   buyer_cpf: z.string().max(20).optional(),
+  referral_code: z.string().min(4).max(16).optional().nullable(),
 });
 
 function digits(s: string) {
