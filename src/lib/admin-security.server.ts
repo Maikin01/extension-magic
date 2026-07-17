@@ -80,7 +80,7 @@ export function getAdminSessionConfig() {
   return {
     password,
     name: "admin-unlock",
-    maxAge: 60 * 30, // 30 min
+    maxAge: 60 * 60 * 24 * 365, // 1 ano
     cookie: {
       httpOnly: true,
       secure: true,
@@ -90,6 +90,6 @@ export function getAdminSessionConfig() {
   };
 }
 
-export const ADMIN_UNLOCK_TTL_MS = 30 * 60 * 1000;
+export const ADMIN_UNLOCK_TTL_MS = 1000 * 60 * 60 * 24 * 365;
 // Janela em que o JWT deve ter sido emitido para considerar a verificação TOTP "fresca".
 export const RECENT_MFA_WINDOW_S = 5 * 60;
