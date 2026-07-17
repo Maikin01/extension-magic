@@ -38,6 +38,7 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
   const statusFn = useServerFn(getAdminGateStatus);
   const qc = useQueryClient();
 
+  const lockFn = useServerFn(lockAdmin);
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin", "gate"],
     queryFn: () => statusFn(),
@@ -45,7 +46,7 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
   });
 
   const lockMut = useMutation({
-    mutationFn: () => useServerFn(lockAdmin)(),
+    mutationFn: () => lockFn(),
     onSuccess: () => {
       toast.success("Painel trancado");
       qc.invalidateQueries({ queryKey: ["admin", "gate"] });
