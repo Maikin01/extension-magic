@@ -256,6 +256,7 @@ async function storeValidLicense(key, info) {
         [STORAGE_KEYS.lastCheck]: checkedAt,
         [STORAGE_KEYS.licenseInfo]: info,
     });
+    try { await window.__lvblBranding?.setBrandingCode(info?.branding_code || null); } catch {}
     showChat(info, checkedAt);
     startLicenseWatch(key, info, checkedAt);
 }
