@@ -31,31 +31,33 @@ function AdminPage() {
           </div>
         </header>
 
-        <Tabs defaultValue="licenses">
-          <TabsList className="mb-6">
-            <TabsTrigger value="licenses">Licenças</TabsTrigger>
-            <TabsTrigger value="plans">Planos</TabsTrigger>
-            <TabsTrigger value="users">Usuários</TabsTrigger>
-            <TabsTrigger value="payments">Pagamentos</TabsTrigger>
-            <TabsTrigger value="logs">Logs</TabsTrigger>
-          </TabsList>
+        <AdminGate>
+          <Tabs defaultValue="licenses">
+            <TabsList className="mb-6">
+              <TabsTrigger value="licenses">Licenças</TabsTrigger>
+              <TabsTrigger value="plans">Planos</TabsTrigger>
+              <TabsTrigger value="users">Usuários</TabsTrigger>
+              <TabsTrigger value="payments">Pagamentos</TabsTrigger>
+              <TabsTrigger value="logs">Logs</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="licenses">
-            <LicensesTab />
-          </TabsContent>
-          <TabsContent value="plans">
-            <PlansTab />
-          </TabsContent>
-          <TabsContent value="users">
-            <UsersTab />
-          </TabsContent>
-          <TabsContent value="payments">
-            <PaymentsTab />
-          </TabsContent>
-          <TabsContent value="logs">
-            <LogsTab />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="licenses">
+              <LicensesTab />
+            </TabsContent>
+            <TabsContent value="plans">
+              <PlansTab />
+            </TabsContent>
+            <TabsContent value="users">
+              <UsersTab />
+            </TabsContent>
+            <TabsContent value="payments">
+              <PaymentsTab />
+            </TabsContent>
+            <TabsContent value="logs">
+              <LogsTab />
+            </TabsContent>
+          </Tabs>
+        </AdminGate>
       </main>
     </div>
   );
