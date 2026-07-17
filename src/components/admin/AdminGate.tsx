@@ -17,13 +17,6 @@ import {
 } from "@/lib/admin-security.functions";
 import { ShieldCheck, ShieldAlert, Lock, KeyRound, LogOut } from "lucide-react";
 
-type Factor = {
-  id: string;
-  factor_type: string;
-  status: string;
-  friendly_name?: string | null;
-};
-
 function normalizeError(e: unknown): string {
   return translateError(e instanceof Error ? e : new Error(String(e)));
 }
