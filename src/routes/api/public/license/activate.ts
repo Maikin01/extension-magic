@@ -28,6 +28,7 @@ export const Route = createFileRoute("/api/public/license/activate")({
 
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { hashLicenseKey, normalizeLicenseKey } = await import("@/lib/license.server");
+          const { resolveLicenseBrandingCode } = await import("@/lib/license-branding.server");
 
           const key = normalizeLicenseKey(parsed.data.key);
           const keyHash = hashLicenseKey(key);
