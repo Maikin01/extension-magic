@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site/Header";
 import { Card } from "@/components/ui/card";
-import riseLogo from "@/assets/rise-logo.jpg.asset.json";
+import { useBranding } from "@/lib/branding";
 import {
   ChevronRight,
   Sparkles,
@@ -152,6 +152,12 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
+  const brand = useBranding();
+  useEffect(() => {
+    if (brand.code && typeof document !== "undefined") {
+      document.title = `${brand.name} — Domine o Lovable em outro nível`;
+    }
+  }, [brand]);
   useEffect(() => {
     captureReferralFromUrl();
   }, []);
@@ -176,6 +182,7 @@ function LandingPage() {
 /* ------------------------------------------------------------------ */
 
 function Hero() {
+  const brand = useBranding();
   return (
     <section className="rise-bg overflow-hidden border-b border-white/5">
       <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-20 md:py-28 lg:grid-cols-2 lg:gap-16">
@@ -245,14 +252,14 @@ function Hero() {
                 <span className="h-2.5 w-2.5 rounded-full bg-white/10" />
               </div>
               <span className="font-mono text-[10px] uppercase tracking-widest text-white/40">
-                Rise Lovable · Extension
+                {brand.name} · Extension
               </span>
               <div className="h-3 w-3" />
             </div>
 
             <div className="space-y-4 p-5">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-mono text-white/50">&gt; RISE LOVABLE 7.0</span>
+                <span className="font-mono text-white/50">&gt; {brand.displayFirst} {brand.displaySecond} 7.0</span>
                 <span className="rounded bg-primary/15 px-2 py-0.5 font-mono text-[10px] font-bold text-primary">
                   AUTH
                 </span>
@@ -407,6 +414,7 @@ function HowItWorks() {
 /* ------------------------------------------------------------------ */
 
 function Features() {
+  const brand = useBranding();
   const items = [
     {
       icon: Wand2,
@@ -460,7 +468,7 @@ function Features() {
             </h2>
           </div>
           <p className="text-sm leading-relaxed text-white/50 md:text-right">
-            Desenvolvemos a Rise Lovable para ser o núcleo operacional
+            Desenvolvemos a {brand.name} para ser o núcleo operacional
             <br className="hidden md:block" />
             do seu fluxo no Lovable. Sem ruído, apenas resultados.
           </p>
@@ -740,6 +748,7 @@ const FEATURE_LABEL: Record<string, string> = {
 /* ------------------------------------------------------------------ */
 
 function FinalCTA() {
+  const brand = useBranding();
   return (
     <section className="bg-band py-28">
       <div className="mx-auto max-w-4xl px-6 text-center">
@@ -764,7 +773,7 @@ function FinalCTA() {
             href="#plans"
             className="btn-neon group inline-flex h-14 items-center gap-2 rounded-2xl px-8 text-sm font-bold uppercase tracking-wider text-white"
           >
-            Ativar Rise Lovable agora
+            Ativar {brand.name} agora
             <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </a>
           <a
@@ -830,15 +839,16 @@ function SupportCTA() {
 }
 
 function Footer() {
+  const brand = useBranding();
   return (
     <footer className="border-t border-white/5 bg-black py-10">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 text-xs text-white/40 md:flex-row">
         <Link to="/" className="flex items-center gap-2.5">
           <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-primary to-primary/60 shadow-[0_0_24px_oklch(0.63_0.245_25/0.55)]">
-            <img src={riseLogo.url} alt="Rise Lovable" className="h-full w-full object-cover" />
+            <img src={brand.logoUrl} alt={brand.logoAlt} className="h-full w-full object-cover" />
           </span>
           <span className="font-display text-sm font-semibold tracking-tight text-white">
-            RISE <span className="text-gradient-red">LOVABLE</span>
+            {brand.displayFirst} <span className="text-gradient-red">{brand.displaySecond}</span>
           </span>
           <span className="ml-2">© {new Date().getFullYear()}</span>
         </Link>

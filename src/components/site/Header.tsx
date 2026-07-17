@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import riseLogo from "@/assets/rise-logo.jpg.asset.json";
+import { useBranding } from "@/lib/branding";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
@@ -13,6 +13,7 @@ export function SiteHeader() {
   const [isReseller, setIsReseller] = useState(false);
   const queryClient = useQueryClient();
   const router = useRouter();
+  const brand = useBranding();
 
   useEffect(() => {
     let cancelled = false;
@@ -65,10 +66,10 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2.5 font-semibold">
           <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-primary to-primary/60 shadow-[0_0_24px_oklch(0.63_0.245_25/0.55)]">
-            <img src={riseLogo.url} alt="Rise Lovable" className="h-full w-full object-cover" />
+            <img src={brand.logoUrl} alt={brand.logoAlt} className="h-full w-full object-cover" />
           </span>
           <span className="font-display text-base tracking-tight">
-            RISE <span className="text-gradient-red">LOVABLE</span>
+            {brand.displayFirst} <span className="text-gradient-red">{brand.displaySecond}</span>
           </span>
         </Link>
         <nav className="flex items-center gap-1 md:gap-2">
