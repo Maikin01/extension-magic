@@ -10,6 +10,7 @@ import { useRouter } from "@tanstack/react-router";
 export function SiteHeader() {
   const [session, setSession] = useState<{ email?: string | null } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isReseller, setIsReseller] = useState(false);
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -21,6 +22,7 @@ export function SiteHeader() {
       if (error || !data.user) {
         setSession(null);
         setIsAdmin(false);
+        setIsReseller(false);
         return;
       }
       setSession({ email: data.user.email });
@@ -29,13 +31,16 @@ export function SiteHeader() {
         .select("role")
         .eq("user_id", data.user.id);
       if (cancelled) return;
-      setIsAdmin(!!roles?.some((r) => r.role === "admin" || r.role === "owner"));
+      const roleSet = new Set((roles ?? []).map((r) => r.role));
+      setIsAdmin(roleSet.has("admin") || roleSet.has("owner"));
+      setIsReseller(roleSet.has("revendedor"));
     };
     verifyUser();
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       if (event === "SIGNED_OUT" || !s) {
         setSession(null);
         setIsAdmin(false);
+        setIsReseller(false);
         return;
       }
       if (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED") {
@@ -81,6 +86,14 @@ export function SiteHeader() {
               >
                 Painel
               </Link>
+              {isReseller && (
+                <Link
+                  to="/reseller"
+                  className="rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                  Revendedor
+                </Link>
+              )}
               {isAdmin && (
                 <Link
                   to="/admin"
