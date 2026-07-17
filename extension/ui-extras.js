@@ -359,6 +359,7 @@
         try {
             const headers = {
                 'Authorization': `Bearer ${st.token}`,
+                'Accept': 'application/json',
                 'Origin': 'https://lovable.dev',
                 'Referer': 'https://lovable.dev/',
             };
@@ -372,7 +373,22 @@
                 throw new Error(`Falha ao listar arquivos (${listRes.status}) ${t.slice(0, 200)}`);
             }
             const data = await listRes.json();
-            const files = Array.isArray(data.files) ? data.files : [];
+            // Aceita formatos: [ ... ], {files:[ ... ]}, {data:{files:[...]}},
+            // {tree:[ ... ]} — normaliza para array de {path}
+            let rawList = Array.isArray(data) ? data
+                : Array.isArray(data.files) ? data.files
+                : Array.isArray(data.data?.files) ? data.data.files
+                : Array.isArray(data.tree) ? data.tree
+                : Array.isArray(data.entries) ? data.entries
+                : [];
+            const files = rawList
+                .map((f) => {
+                    if (typeof f === 'string') return { path: f, type: 'blob' };
+                    const path = f.path || f.file_path || f.name || f.filename;
+                    const type = f.type || f.kind || (f.mode === '040000' ? 'tree' : 'blob');
+                    return path ? { path, type } : null;
+                })
+                .filter((f) => f && f.type !== 'tree' && f.type !== 'dir');
             if (!files.length) throw new Error('Nenhum arquivo retornado pelo projeto.');
 
             const zip = new JSZip();
@@ -384,9 +400,35 @@
                     const f = files[idx++];
                     const url = `https://api.lovable.dev/projects/${st.projectId}/git/file?path=${encodeURIComponent(f.path)}&ref=main`;
                     const r = await fetch(url, { headers, credentials: 'include' });
-                    if (!r.ok) throw new Error(`Falha em ${f.path} (${r.status})`);
-                    const buf = await r.arrayBuffer();
-                    zip.file(f.path, buf);
+                    if (!r.ok) {
+                        // pula arquivos que a API recuse (ex: LFS/binários grandes)
+                        // em vez de abortar o zip inteiro
+                        console.warn('[baixar-fonte] skip', f.path, r.status);
+                        done++;
+                        setLabel(`Baixando ${done}/${files.length}...`);
+                        continue;
+                    }
+                    const ct = (r.headers.get('content-type') || '').toLowerCase();
+                    let bytes;
+                    if (ct.includes('application/json')) {
+                        // resposta JSON estilo GitHub API: {content, encoding}
+                        const j = await r.json();
+                        const content = j.content ?? j.data?.content ?? j.text ?? '';
+                        const enc = (j.encoding || j.data?.encoding || '').toLowerCase();
+                        if (enc === 'base64' && typeof content === 'string') {
+                            const bin = atob(content.replace(/\s+/g, ''));
+                            const arr = new Uint8Array(bin.length);
+                            for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                            bytes = arr;
+                        } else if (typeof content === 'string') {
+                            bytes = new TextEncoder().encode(content);
+                        } else {
+                            bytes = new TextEncoder().encode(JSON.stringify(j));
+                        }
+                    } else {
+                        bytes = new Uint8Array(await r.arrayBuffer());
+                    }
+                    zip.file(f.path, bytes);
                     done++;
                     setLabel(`Baixando ${done}/${files.length}...`);
                 }
@@ -394,6 +436,7 @@
             await Promise.all(
                 Array.from({ length: Math.min(CONCURRENCY, files.length) }, worker)
             );
+
 
             setLabel('Compactando .zip...');
             const blob = await zip.generateAsync({ type: 'blob' });
