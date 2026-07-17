@@ -21,6 +21,7 @@ export const Route = createFileRoute("/api/public/license/validate")({
 
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { hashLicenseKey, normalizeLicenseKey } = await import("@/lib/license.server");
+          const { resolveLicenseBrandingCode } = await import("@/lib/license-branding.server");
 
           const key = normalizeLicenseKey(parsed.data.key);
           const keyHash = hashLicenseKey(key);
@@ -86,6 +87,8 @@ export const Route = createFileRoute("/api/public/license/validate")({
               .insert({ ...baseLog, license_id: license.id, result: "success" });
           }
 
+          const brandingCode = await resolveLicenseBrandingCode(supabaseAdmin, license.user_id);
+
           return jsonWithCors({
             valid: true,
             plan: license.plans?.slug ?? "custom",
@@ -96,6 +99,7 @@ export const Route = createFileRoute("/api/public/license/validate")({
             server_now: new Date(serverNowMs).toISOString(),
             activated_at: license.activated_at,
             max_devices: license.plans?.max_devices ?? 1,
+            branding_code: brandingCode,
           });
 
           async function finalize(

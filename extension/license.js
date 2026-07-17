@@ -256,6 +256,7 @@ async function storeValidLicense(key, info) {
         [STORAGE_KEYS.lastCheck]: checkedAt,
         [STORAGE_KEYS.licenseInfo]: info,
     });
+    try { await window.__lvblBranding?.setBrandingCode(info?.branding_code || null); } catch {}
     showChat(info, checkedAt);
     startLicenseWatch(key, info, checkedAt);
 }
@@ -308,6 +309,7 @@ async function validateActiveLicense(forceLockOnNetworkError) {
                     [STORAGE_KEYS.licenseInfo]: res.data,
                 });
             }
+            try { await window.__lvblBranding?.setBrandingCode(res.data?.branding_code || null); } catch {}
             setError('');
             return;
         }
@@ -509,6 +511,7 @@ async function handleLogout() {
         STORAGE_KEYS.lastCheck,
         STORAGE_KEYS.licenseInfo,
     ]);
+    try { await window.__lvblBranding?.setBrandingCode(null); } catch {}
     gateInput.value = '';
     setError('');
     showGate();
@@ -526,5 +529,8 @@ gateInput.addEventListener('input', () => {
     gateInput.value = gateInput.value.toUpperCase();
     gateInput.setSelectionRange(p, p);
 });
+
+// Aplica branding armazenado imediatamente (antes de qualquer chamada de rede)
+try { window.__lvblBranding?.applyStoredBranding(); } catch {}
 
 tryAutoValidate();
