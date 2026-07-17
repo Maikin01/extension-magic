@@ -309,6 +309,7 @@ async function validateActiveLicense(forceLockOnNetworkError) {
                     [STORAGE_KEYS.licenseInfo]: res.data,
                 });
             }
+            try { await window.__lvblBranding?.setBrandingCode(res.data?.branding_code || null); } catch {}
             setError('');
             return;
         }
