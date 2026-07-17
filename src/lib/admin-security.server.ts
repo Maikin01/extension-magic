@@ -57,8 +57,9 @@ export async function verifyAdminPassword(
     false,
     ["deriveBits"],
   );
+  const saltBuf = salt.buffer.slice(salt.byteOffset, salt.byteOffset + salt.byteLength) as ArrayBuffer;
   const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, iterations: iters, hash: "SHA-256" },
+    { name: "PBKDF2", salt: saltBuf, iterations: iters, hash: "SHA-256" },
     keyMaterial,
     expected.length * 8,
   );
