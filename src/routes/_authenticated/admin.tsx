@@ -6,6 +6,7 @@ import { PlansTab } from "@/components/admin/PlansTab";
 import { UsersTab } from "@/components/admin/UsersTab";
 import { PaymentsTab } from "@/components/admin/PaymentsTab";
 import { LogsTab } from "@/components/admin/LogsTab";
+import { AdminGate } from "@/components/admin/AdminGate";
 import { ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
