@@ -77,6 +77,8 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
+}
+
 
 
 /** Passo 1: cadastrar Google Authenticator */
