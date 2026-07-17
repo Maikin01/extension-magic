@@ -81,29 +81,16 @@
                 projEl.textContent = pid.length > 10 ? pid.slice(0, 8) + '…' : pid;
             }
 
-            // Timer da licença
-            if (countdownIv) clearInterval(countdownIv);
+            // Timer da licença: gerenciado exclusivamente por license.js
+            // (updateCountdown). Antes havia dois setInterval(1s) escrevendo
+            // no mesmo `.timer-value`, causando o efeito de piscar entre
+            // dois contadores diferentes. Aqui só limpamos o estado vazio.
+            if (countdownIv) {
+                clearInterval(countdownIv);
+                countdownIv = null;
+            }
             const expIso = info && (info.expires_at || info.expiresAt);
-            if (expIso && timerVal && timerFill) {
-                const exp = new Date(expIso).getTime();
-                const createdIso = info.created_at || info.issued_at;
-                const created = createdIso ? new Date(createdIso).getTime() : exp - 30 * 24 * 3600 * 1000;
-                const total = Math.max(1, exp - created);
-
-                const tick = () => {
-                    const now = Date.now();
-                    const left = exp - now;
-                    timerVal.textContent = fmtCountdown(left);
-                    const pct = Math.max(0, Math.min(100, (left / total) * 100));
-                    timerFill.style.width = pct + '%';
-                    if (left <= 0 && countdownIv) {
-                        clearInterval(countdownIv);
-                        timerVal.textContent = 'Expirada';
-                    }
-                };
-                tick();
-                countdownIv = setInterval(tick, 1000);
-            } else if (timerVal && timerLabel) {
+            if (!expIso && timerVal) {
                 timerVal.textContent = '—';
                 if (timerFill) timerFill.style.width = '0%';
             }
