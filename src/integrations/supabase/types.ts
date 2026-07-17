@@ -238,6 +238,7 @@ export type Database = {
           qr_code: string | null
           qr_code_base64: string | null
           raw: Json | null
+          reseller_id: string | null
           status: string
           ticket_url: string | null
           updated_at: string
@@ -259,6 +260,7 @@ export type Database = {
           qr_code?: string | null
           qr_code_base64?: string | null
           raw?: Json | null
+          reseller_id?: string | null
           status?: string
           ticket_url?: string | null
           updated_at?: string
@@ -280,6 +282,7 @@ export type Database = {
           qr_code?: string | null
           qr_code_base64?: string | null
           raw?: Json | null
+          reseller_id?: string | null
           status?: string
           ticket_url?: string | null
           updated_at?: string
@@ -356,6 +359,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          referral_code: string | null
           updated_at: string
         }
         Insert: {
@@ -363,6 +367,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          referral_code?: string | null
           updated_at?: string
         }
         Update: {
@@ -370,6 +375,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          referral_code?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -400,6 +406,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_referral_code: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
