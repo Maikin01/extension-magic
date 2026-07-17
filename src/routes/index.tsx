@@ -145,6 +145,7 @@ function LandingPage() {
         <Features />
         <Plans />
         <FinalCTA />
+        <SupportCTA />
       </main>
       <Footer />
     </div>
