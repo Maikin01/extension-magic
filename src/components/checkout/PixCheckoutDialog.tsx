@@ -84,12 +84,16 @@ export function PixCheckoutDialog({
     if (cleanCpf && cleanCpf.length !== 11) return toast.error("CPF inválido.");
     setLoading(true);
     try {
+      const referral = typeof window !== "undefined"
+        ? window.localStorage.getItem("rise_lovable_referral_code")
+        : null;
       const res = await createPix({
         data: {
           plan_slug: plan.slug,
           buyer_name: name.trim(),
           buyer_whatsapp: cleanWpp,
           buyer_cpf: cleanCpf || undefined,
+          referral_code: referral || undefined,
         },
       });
       setPix(res);
