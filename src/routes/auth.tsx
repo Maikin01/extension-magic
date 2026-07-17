@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { translateError } from "@/lib/translate-error";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -260,7 +261,7 @@ function LoginForm() {
       password: passR.data,
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(translateError(error));
     toast.success("Bem-vindo de volta!");
   };
 
@@ -328,7 +329,7 @@ function SignupForm({ next, plan }: { next: string; plan: string | null }) {
       },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(translateError(error));
     toast.success("Conta criada! Verifique seu email para confirmar (se solicitado).");
   };
 
@@ -389,7 +390,7 @@ function GoogleButton({ next, plan }: { next: string; plan: string | null }) {
     });
     if (result.error) {
       setLoading(false);
-      toast.error(result.error.message || "Falha ao entrar com Google");
+      toast.error(translateError(result.error) || "Falha ao entrar com Google");
       return;
     }
     // popup ou redirect — a onAuthStateChange faz o resto
@@ -426,7 +427,7 @@ function ForgotPasswordLink({ email }: { email: string }) {
     const { error } = await supabase.auth.resetPasswordForEmail(emailR.data, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(translateError(error));
     toast.success("Se o email existir, enviaremos as instruções.");
   };
   return (

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { translateError } from "@/lib/translate-error";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
@@ -62,7 +63,7 @@ function DashboardPage() {
       else toast.success("Licença de teste criada! 10 minutos de acesso.");
       qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast.error(translateError(err)),
   });
 
   // Auto-claim quando vier de "Testar grátis" (?claim=trial) e ainda não tiver licença
@@ -314,5 +315,5 @@ function downloadExtension() {
       a.click();
       URL.revokeObjectURL(a.href);
     })
-    .catch((err) => toast.error(err.message));
+    .catch((err) => toast.error(translateError(err)));
 }

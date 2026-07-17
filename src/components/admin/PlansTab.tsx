@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { translateError } from "@/lib/translate-error";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -91,7 +92,7 @@ export function PlansTab() {
       setForm(emptyForm);
       qc.invalidateQueries({ queryKey: ["admin"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(translateError(e)),
   });
 
   function openEdit(p: any) {

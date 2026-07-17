@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { translateError } from "@/lib/translate-error";
 import { useServerFn } from "@tanstack/react-start";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -94,7 +95,7 @@ export function PixCheckoutDialog({
       setPix(res);
       setStep("pix");
     } catch (err: any) {
-      toast.error(err?.message ?? "Falha ao gerar Pix.");
+      toast.error(translateError(err) || "Falha ao gerar Pix.");
     } finally {
       setLoading(false);
     }
