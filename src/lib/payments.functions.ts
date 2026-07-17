@@ -43,12 +43,34 @@ export const createPixCheckout = createServerFn({ method: "POST" })
       null;
     if (!buyerEmail) throw new Error("E-mail do usuário não encontrado. Faça login novamente.");
 
+    // Resolve reseller (se veio referral_code válido)
+    let resellerId: string | null = null;
+    if (data.referral_code) {
+      const code = data.referral_code.toUpperCase().trim();
+      const { data: refProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("referral_code", code)
+        .maybeSingle();
+      if (refProfile) {
+        const { data: roles } = await supabaseAdmin
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", refProfile.id)
+          .eq("role", "revendedor");
+        if (roles && roles.length > 0 && refProfile.id !== userId) {
+          resellerId = refProfile.id;
+        }
+      }
+    }
+
     // Cria linha em payments antes de chamar MP para ter external_reference
     const { data: payment, error: payErr } = await supabaseAdmin
       .from("payments")
       .insert({
         plan_id: plan.id,
         user_id: userId,
+        reseller_id: resellerId,
         amount_cents: plan.price_cents,
         buyer_name: data.buyer_name.trim(),
         buyer_whatsapp: digits(data.buyer_whatsapp),
