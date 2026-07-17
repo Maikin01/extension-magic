@@ -529,4 +529,7 @@ gateInput.addEventListener('input', () => {
     gateInput.setSelectionRange(p, p);
 });
 
+// Aplica branding armazenado imediatamente (antes de qualquer chamada de rede)
+try { window.__lvblBranding?.applyStoredBranding(); } catch {}
+
 tryAutoValidate();
