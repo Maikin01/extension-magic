@@ -9,8 +9,11 @@ function accessToken(): string {
   if (!t.startsWith("APP_USR-") && !t.startsWith("TEST-")) {
     throw new Error("Token do Mercado Pago inválido. Use o Access Token, não a Public Key.");
   }
-  if (t.length < 40) {
-    throw new Error("Token do Mercado Pago incompleto. Copie o Access Token completo da sua aplicação.");
+  if (/^APP_USR-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t)) {
+    throw new Error("A chave salva do Mercado Pago parece ser a Public Key. Copie o Access Token de produção completo.");
+  }
+  if (t.length < 60) {
+    throw new Error("Token do Mercado Pago incompleto. Copie o Access Token completo da sua aplicação, não a Public Key.");
   }
   return t;
 }
@@ -39,6 +42,7 @@ export interface CreatePixResult {
 }
 
 export async function createPixPayment(input: CreatePixInput): Promise<CreatePixResult> {
+  const token = accessToken();
   const [firstName, ...rest] = (input.buyerName || "Cliente").trim().split(/\s+/);
   const lastName = rest.join(" ") || "Rise";
   const expMs = (input.expiresInMinutes ?? 30) * 60_000;
@@ -78,7 +82,7 @@ export async function createPixPayment(input: CreatePixInput): Promise<CreatePix
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken()}`,
+      Authorization: `Bearer ${token}`,
       "X-Idempotency-Key": crypto.randomUUID(),
     },
     body: JSON.stringify(body),
@@ -105,8 +109,9 @@ export async function createPixPayment(input: CreatePixInput): Promise<CreatePix
 }
 
 export async function getPayment(id: string | number): Promise<any> {
+  const token = accessToken();
   const res = await fetch(`${MP_API}/v1/payments/${id}`, {
-    headers: { Authorization: `Bearer ${accessToken()}` },
+    headers: { Authorization: `Bearer ${token}` },
   });
   const json: any = await res.json().catch(() => ({}));
   if (!res.ok) {
