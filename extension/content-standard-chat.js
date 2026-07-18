@@ -8,6 +8,17 @@
 
     const FLAG_KEY = 'lvbl_use_standard_chat';
     const FALLBACK_EVENT_ID = 'main:agent#00000000000123#bld:ZDP4ZE3D';
+    const EDITOR_SELECTOR = [
+        'textarea',
+        'input[type="text"]',
+        'input:not([type])',
+        '[contenteditable]:not([contenteditable="false"])',
+        '[role="textbox"]',
+        '[aria-multiline="true"]',
+        '.ProseMirror',
+        '[data-lexical-editor="true"]',
+        '[data-slate-editor="true"]',
+    ].join(',');
     let enabled = false;
     let sending = false;
     let creatingProject = false;
@@ -158,20 +169,12 @@
 
     function candidateEditors(scope) {
         const root = scope && scope.querySelectorAll ? scope : document;
-        return Array.from(root.querySelectorAll([
-            'textarea',
-            'input[type="text"]',
-            'input:not([type])',
-            '[contenteditable="true"]',
-            '[role="textbox"]',
-            '.ProseMirror',
-            '[data-lexical-editor="true"]',
-        ].join(','))).filter(isVisible);
+        return Array.from(root.querySelectorAll(EDITOR_SELECTOR)).filter(isVisible);
     }
 
     function findComposerEditor(fromEl) {
         if (fromEl) {
-            const direct = fromEl.closest?.('textarea,input,[contenteditable="true"],[role="textbox"],.ProseMirror,[data-lexical-editor="true"]');
+            const direct = fromEl.closest?.(EDITOR_SELECTOR);
             if (direct && isVisible(direct)) return direct;
 
             const form = fromEl.closest?.('form');
@@ -277,9 +280,22 @@
             btn.textContent,
         ].filter(Boolean).join(' ').toLowerCase();
 
-        return btn.type === 'submit'
-            || /\b(send|enviar|submit)\b/i.test(label)
-            || btn.querySelector('svg[data-icon="send"], [data-testid*="send" i], [aria-label*="send" i], [aria-label*="enviar" i]');
+        if (/attach|anexar|upload|file|arquivo|voice|microphone|mic|dictate|áudio|audio|menu|settings|config|stop|cancel/.test(label)) {
+            return false;
+        }
+
+        if (btn.type === 'submit' || /\b(send|enviar|submit)\b/i.test(label)) return true;
+        if (btn.querySelector('svg[data-icon="send"], svg[data-icon="arrow-up"], [data-testid*="send" i], [data-testid*="arrow" i], [aria-label*="send" i], [aria-label*="enviar" i]')) {
+            return true;
+        }
+
+        const svgs = btn.querySelectorAll('svg');
+        for (const svg of svgs) {
+            const d = Array.from(svg.querySelectorAll('path')).map((p) => p.getAttribute('d') || '').join(' ');
+            if (/M\s*12\s+1?9?.*V\s*5|m?\s*5\s+12\s+7-?7\s+7\s+7|l-?7\s+7|arrow.*up|send/i.test(d)) return true;
+        }
+
+        return false;
     }
 
     // Bloqueia Enter antes do chat oficial processar.
@@ -482,6 +498,19 @@
 
     try {
         chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+            if (msg && msg.action === 'lvbl_standard_chat_set') {
+                enabled = !!msg.enabled;
+                window.__lvblStandardChatEnabled = enabled;
+                showToast(enabled ? '🛡 Chat Padrão ATIVO — envio sem créditos' : '⚪ Chat Padrão desativado');
+                sendResponse({ ok: true, enabled });
+                return false;
+            }
+
+            if (msg && msg.action === 'lvbl_standard_chat_status') {
+                sendResponse({ ok: true, enabled });
+                return false;
+            }
+
             if (msg && msg.action === 'lvbl_create_new_project') {
                 triggerCreateNewProject()
                     .then(() => sendResponse({ ok: true }))
