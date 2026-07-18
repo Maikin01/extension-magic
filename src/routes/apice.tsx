@@ -24,8 +24,8 @@ function ApiceRedirectPage() {
   }, []);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#050505] px-6 text-center text-white">
-      <p className="text-sm text-white/70">Abrindo Apice Lovable…</p>
+    <div className="flex min-h-screen items-center justify-center bg-background px-6 text-center text-foreground">
+      <p className="text-sm text-muted-foreground">Abrindo Apice Lovable…</p>
     </div>
   );
 }
