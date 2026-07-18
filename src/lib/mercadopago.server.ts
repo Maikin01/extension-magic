@@ -4,8 +4,14 @@
 const MP_API = "https://api.mercadopago.com";
 
 function accessToken(): string {
-  const t = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-  if (!t) throw new Error("MERCADO_PAGO_ACCESS_TOKEN não configurado.");
+  const t = (process.env.MERCADO_PAGO_ACCESS_TOKEN ?? "").trim();
+  if (!t) throw new Error("Token do Mercado Pago não configurado.");
+  if (!t.startsWith("APP_USR-") && !t.startsWith("TEST-")) {
+    throw new Error("Token do Mercado Pago inválido. Use o Access Token, não a Public Key.");
+  }
+  if (t.length < 40) {
+    throw new Error("Token do Mercado Pago incompleto. Copie o Access Token completo da sua aplicação.");
+  }
   return t;
 }
 
