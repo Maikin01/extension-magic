@@ -81,7 +81,8 @@ export const createPixCheckout = createServerFn({ method: "POST" })
       .single();
     if (payErr || !payment) throw payErr ?? new Error("Falha ao criar pagamento.");
 
-    const notificationUrl = `${process.env.PUBLIC_BASE_URL ?? "https://vamos-extend-buddy.lovable.app"}/api/public/mercadopago/webhook`;
+    const baseUrl = (process.env.PUBLIC_BASE_URL ?? "https://riselovable.lovable.app").replace(/\/$/, "");
+    const notificationUrl = `${baseUrl}/api/public/mercadopago/webhook`;
 
     try {
       const pix = await createPixPayment({
