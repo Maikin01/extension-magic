@@ -38,17 +38,33 @@ export async function createPixPayment(input: CreatePixInput): Promise<CreatePix
   const expMs = (input.expiresInMinutes ?? 30) * 60_000;
   const dateOfExpiration = new Date(Date.now() + expMs).toISOString();
 
+  const payer: Record<string, unknown> = {
+    email: input.buyerEmail,
+    first_name: firstName,
+    last_name: lastName,
+  };
+
+  // CPF (opcional): só envia se tiver 11 dígitos válidos
+  const cpfDigits = (input.buyerCpf ?? "").replace(/\D+/g, "");
+  if (cpfDigits.length === 11) {
+    payer.identification = { type: "CPF", number: cpfDigits };
+  }
+
+  // Telefone (opcional): só envia se tiver pelo menos 10 dígitos
+  const phoneDigits = (input.buyerWhatsapp ?? "").replace(/\D+/g, "");
+  if (phoneDigits.length >= 10) {
+    const areaCode = phoneDigits.slice(0, 2);
+    const number = phoneDigits.slice(2);
+    payer.phone = { area_code: areaCode, number };
+  }
+
   const body: Record<string, unknown> = {
     transaction_amount: Number((input.amountCents / 100).toFixed(2)),
     description: input.description,
     payment_method_id: "pix",
     external_reference: input.externalReference,
     date_of_expiration: dateOfExpiration,
-    payer: {
-      email: input.buyerEmail,
-      first_name: firstName,
-      last_name: lastName,
-    },
+    payer,
   };
   if (input.notificationUrl) body.notification_url = input.notificationUrl;
 
