@@ -12,6 +12,9 @@ export type Branding = {
 };
 
 const REFERRAL_KEY = "rise_lovable_referral_code";
+const RESELLER_BRAND_PATHS: Record<string, string> = {
+  "/apice": "UV78ZDXT",
+};
 
 const DEFAULT_BRAND: Branding = {
   code: null,
@@ -42,12 +45,18 @@ export function readBrandingSync(): Branding {
   if (typeof window === "undefined") return DEFAULT_BRAND;
   try {
     const url = new URL(window.location.href);
+    const pathCode = RESELLER_BRAND_PATHS[url.pathname.replace(/\/$/, "") || "/"];
+    if (pathCode) return getBrandingFor(pathCode);
+
     const refFromUrl = url.searchParams.get("ref");
     if (refFromUrl) {
       const b = getBrandingFor(refFromUrl);
       if (b.code) return b;
     }
-    return getBrandingFor(window.localStorage.getItem(REFERRAL_KEY));
+
+    // O domínio oficial puro sempre deve mostrar a marca principal. O referral
+    // salvo continua existindo para comissão/checkout, mas não força white-label.
+    return DEFAULT_BRAND;
   } catch {
     return DEFAULT_BRAND;
   }

@@ -97,7 +97,9 @@ function ResellerPage() {
   });
 
   const link = info.data?.referral_code
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/?ref=${info.data.referral_code}#plans`
+    ? info.data.referral_code.toUpperCase() === "UV78ZDXT"
+      ? `${typeof window !== "undefined" ? window.location.origin : ""}/apice`
+      : `${typeof window !== "undefined" ? window.location.origin : ""}/?ref=${info.data.referral_code}#plans`
     : "";
 
   const copy = async (text: string) => {
