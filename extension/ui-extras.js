@@ -464,6 +464,24 @@
         buttons.forEach((btn) => {
             const label = (btn.textContent || '').trim().toLowerCase();
 
+            const setStandardChatButton = (on) => {
+                btn.classList.toggle('is-active', !!on);
+                btn.textContent = on ? 'Chat Padrão ATIVO ✓' : 'Usar Chat Padrão';
+                btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            };
+
+            const notifyStandardChatTabs = async (enabled) => {
+                try {
+                    const tabs = await chrome.tabs.query({ url: ['https://lovable.dev/*', 'https://*.lovable.dev/*'] });
+                    await Promise.allSettled(tabs.map((tab) => {
+                        if (!tab.id) return Promise.resolve();
+                        return chrome.tabs.sendMessage(tab.id, { action: 'lvbl_standard_chat_set', enabled });
+                    }));
+                } catch (e) {
+                    console.warn('[ui-extras] sync chat padrão tabs failed:', e);
+                }
+            };
+
             if (label.includes('marca')) {
                 btn.addEventListener('click', () => {
                     if (!confirm('Enviar prompt para remover a marca d\'água do site?')) return;
@@ -481,22 +499,23 @@
             if (label.includes('chat padr')) {
                 btn.addEventListener('click', async () => {
                     try {
+                        btn.disabled = true;
                         const cur = await chrome.storage.local.get(['lvbl_use_standard_chat']);
                         const next = !cur.lvbl_use_standard_chat;
                         await chrome.storage.local.set({ lvbl_use_standard_chat: next });
-                        btn.classList.toggle('is-active', next);
-                        btn.textContent = next ? 'Chat Padrão ATIVO ✓' : 'Usar Chat Padrão';
+                        setStandardChatButton(next);
+                        await notifyStandardChatTabs(next);
                     } catch (e) {
                         console.warn('[ui-extras] toggle chat padrão failed:', e);
+                    } finally {
+                        btn.disabled = false;
                     }
                 });
 
                 // sincroniza estado inicial do botão
                 chrome.storage.local.get(['lvbl_use_standard_chat'], (v) => {
-                    if (v.lvbl_use_standard_chat) {
-                        btn.classList.add('is-active');
-                        btn.textContent = 'Chat Padrão ATIVO ✓';
-                    }
+                    setStandardChatButton(!!v.lvbl_use_standard_chat);
+                    notifyStandardChatTabs(!!v.lvbl_use_standard_chat);
                 });
             }
 
