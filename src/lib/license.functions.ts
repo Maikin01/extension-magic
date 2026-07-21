@@ -594,3 +594,26 @@ export const adminGetAuditLog = createServerFn({ method: "GET" })
     if (error) throw error;
     return data ?? [];
   });
+
+/**
+ * Admin: lista pagamentos (Mercado Pago Pix).
+ */
+export const adminListPayments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Acesso negado.");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("payments")
+      .select("id, status, amount_cents, buyer_name, buyer_whatsapp, buyer_email, provider_payment_id, paid_at, expires_at, created_at, plans(name, slug), licenses(license_key)")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) throw error;
+    return data ?? [];
+  });
