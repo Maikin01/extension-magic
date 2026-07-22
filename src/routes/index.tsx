@@ -227,17 +227,19 @@ function Hero() {
 
           <div className="mt-10 grid max-w-lg grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { icon: Cpu, label: "Sidebar IA" },
-              { icon: Mic, label: "Prompt por Voz" },
-              { icon: InfinityIcon, label: "Uso Infinito" },
-              { icon: Shield, label: "Licença PRO" },
+              { label: "Sidebar IA" },
+              { label: "Prompt por Voz" },
+              { label: "Uso Infinito" },
+              { label: "Licença PRO" },
             ].map((f) => (
               <div
                 key={f.label}
-                className="chip-neon inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-semibold"
+                className="chip-arrow group inline-flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-3.5 text-[11px] font-semibold"
               >
-                <f.icon className="h-3.5 w-3.5" />
-                {f.label}
+                <span className="chip-arrow-dot inline-flex h-5 w-5 items-center justify-center rounded-full">
+                  <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                </span>
+                <span className="truncate">{f.label}</span>
               </div>
             ))}
           </div>
