@@ -254,16 +254,19 @@ function HowItWorks() {
   const steps = [
     {
       n: "01",
+      icon: Download,
       title: "Baixe o instalador",
       desc: "Um clique no botão, download imediato. Sem cadastro, sem espera, sem loja de extensões.",
     },
     {
       n: "02",
+      icon: Puzzle,
       title: "Instale no navegador",
       desc: "Ative o modo desenvolvedor, arraste o ZIP e pronto. Funciona em Chrome, Edge, Brave, Opera, Arc.",
     },
     {
       n: "03",
+      icon: Zap,
       title: "Pronto pra usar",
       desc: "Abra o Lovable, ative a extensão com sua Key e envie quantos comandos quiser. Sem gastar créditos.",
     },
@@ -285,25 +288,44 @@ function HowItWorks() {
 
         <div className="relative grid gap-6 md:grid-cols-3">
           {/* linha conectora LED neon */}
-          <div className="led-line pointer-events-none absolute left-[10%] right-[10%] top-[62px] hidden md:block">
+          <div className="led-line pointer-events-none absolute left-[10%] right-[10%] top-[92px] hidden md:block">
             <span className="led-line-runner" />
           </div>
 
+          {steps.map((s) => {
+            const Icon = s.icon;
+            return (
+              <div
+                key={s.n}
+                className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-7 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_20px_60px_-20px_rgba(239,68,68,0.35)]"
+              >
+                {/* accent gradient no topo */}
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-          {steps.map((s) => (
-            <div
-              key={s.n}
-              className="relative rounded-2xl border border-white/5 bg-white/[0.02] p-8 text-center backdrop-blur-sm transition hover:border-primary/30"
-            >
-              <div className="ring-glow mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-2xl border border-primary/40 bg-black">
-                <span className="font-display text-3xl font-black text-gradient-red">
+                {/* número em marca d'água */}
+                <span className="pointer-events-none absolute -right-2 -top-4 select-none font-display text-[110px] font-black leading-none text-white/[0.04] transition-colors duration-300 group-hover:text-primary/10">
                   {s.n}
                 </span>
+
+                {/* ícone + badge */}
+                <div className="relative mb-6 flex items-center justify-between">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-primary/30 bg-gradient-to-br from-primary/15 to-primary/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-300 group-hover:border-primary/60 group-hover:shadow-[0_0_30px_-5px_rgba(239,68,68,0.5)]">
+                    <Icon className="h-6 w-6 text-primary" strokeWidth={2} />
+                  </div>
+                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[10px] font-bold tracking-widest text-white/50">
+                    PASSO {s.n}
+                  </span>
+                </div>
+
+                <h3 className="relative font-display text-xl font-bold tracking-tight text-white">
+                  {s.title}
+                </h3>
+                <p className="relative mt-2.5 text-[13.5px] leading-relaxed text-white/55">
+                  {s.desc}
+                </p>
               </div>
-              <h3 className="font-display text-xl font-bold">{s.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-white/60">{s.desc}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="mt-16 text-center">
