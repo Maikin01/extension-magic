@@ -237,8 +237,8 @@ function Hero() {
           <div className="pointer-events-none absolute -inset-8 -z-0 rounded-[40px] bg-primary/20 blur-[90px]" />
           <div className="ring-glow relative aspect-video overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0a]">
             <iframe
-              className="absolute inset-0 h-full w-full"
-              src="https://www.youtube-nocookie.com/embed/1qOVa4HY48c?rel=0&modestbranding=1&playsinline=1"
+              className="absolute left-1/2 top-1/2 h-[calc(100%+2px)] w-[calc(100%+2px)] -translate-x-1/2 -translate-y-1/2 scale-[1.02]"
+              src="https://www.youtube-nocookie.com/embed/1qOVa4HY48c?rel=0&modestbranding=1&playsinline=1&controls=1"
               title={`${brand.name} — Demo`}
               loading="eager"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
