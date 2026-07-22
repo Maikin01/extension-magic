@@ -609,7 +609,7 @@ function Plans() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {plans.slice(0, 6).map((plan) => {
+          {plans.slice(0, 6).map((plan, idx) => {
             const highlight = plan.slug === highlightSlug;
             const features = (plan.features as string[]) ?? [];
             const isLifetime = plan.slug === "lifetime";
@@ -619,94 +619,50 @@ function Plans() {
                 ? "Vitalício"
                 : `${plan.duration_days} ${plan.duration_days === 1 ? "dia" : "dias"}`;
             return (
-              <Card
+              <PlanCard
                 key={plan.id}
-                className={`relative flex flex-col overflow-hidden p-8 transition-all ${
-                  highlight
-                    ? "ring-glow border-primary/50 bg-gradient-to-b from-[#180606] to-black"
-                    : "border-white/5 bg-white/[0.02] hover:border-primary/30"
-                }`}
-              >
-                {highlight && (
-                  <div className="absolute -top-px left-1/2 -translate-x-1/2 rounded-b-full bg-gradient-to-r from-primary to-primary/60 px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-[0_0_20px_oklch(0.63_0.245_25/0.6)]">
-                    Mais popular
-                  </div>
-                )}
-
-                <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary">
-                  {durationLabel}
-                  {" · "}
-                  {plan.max_devices} disp.
-                </div>
-                <h3 className="font-display text-2xl font-extrabold">{plan.name}</h3>
-
-
-                <div className="my-6 flex items-baseline gap-1">
-                  {plan.price_cents === 0 ? (
-                    <span className="font-display text-5xl font-black">Grátis</span>
+                index={idx}
+                highlight={highlight}
+                durationLabel={durationLabel}
+                maxDevices={plan.max_devices}
+                name={plan.name}
+                priceCents={plan.price_cents}
+                description={plan.description}
+                features={features}
+                actionSlot={
+                  plan.slug === "trial" ? (
+                    <Link
+                      to="/auth"
+                      search={{ claim: "trial" } as any}
+                      className={`inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest transition ${
+                        highlight
+                          ? "btn-neon text-white"
+                          : "border border-white/10 bg-white/[0.04] text-white hover:border-primary/50 hover:bg-white/[0.08]"
+                      }`}
+                    >
+                      Testar grátis
+                    </Link>
                   ) : (
-                    <>
-                      <span className="text-sm font-bold text-white/60">R$</span>
-                      <span className="font-display text-5xl font-black tracking-tight">
-                        {formatPrice(plan.price_cents).replace(/^R\$\s?/, "")}
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                {plan.description && (
-                  <p className="mb-6 text-sm text-white/55">{plan.description}</p>
-                )}
-
-                <ul className="mb-8 flex-1 space-y-2.5 text-sm">
-                  <li className="flex items-center gap-2.5">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-primary">
-                      <Check className="h-3 w-3" />
-                    </div>
-                    Acesso ilimitado
-                  </li>
-                  {features.map((f) => (
-                    <li key={f} className="flex items-center gap-2.5">
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-primary">
-                        <Check className="h-3 w-3" />
-                      </div>
-                      {FEATURE_LABEL[f] ?? f}
-                    </li>
-                  ))}
-                </ul>
-
-                {plan.slug === "trial" ? (
-                  <Link
-                    to="/auth"
-                    search={{ claim: "trial" } as any}
-                    className={`inline-flex h-12 items-center justify-center rounded-xl text-xs font-bold uppercase tracking-widest transition ${
-                      highlight
-                        ? "btn-neon text-white"
-                        : "border border-white/10 bg-white/5 text-white hover:border-primary/40 hover:bg-white/10"
-                    }`}
-                  >
-                    Testar grátis
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleSubscribe({
-                        slug: plan.slug,
-                        name: plan.name,
-                        price_cents: plan.price_cents,
-                      })
-                    }
-                    className={`inline-flex h-12 items-center justify-center rounded-xl text-xs font-bold uppercase tracking-widest transition ${
-                      highlight
-                        ? "btn-neon text-white"
-                        : "border border-white/10 bg-white/5 text-white hover:border-primary/40 hover:bg-white/10"
-                    }`}
-                  >
-                    Assinar com Pix
-                  </button>
-                )}
-              </Card>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleSubscribe({
+                          slug: plan.slug,
+                          name: plan.name,
+                          price_cents: plan.price_cents,
+                        })
+                      }
+                      className={`inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest transition ${
+                        highlight
+                          ? "btn-neon text-white"
+                          : "border border-white/10 bg-white/[0.04] text-white hover:border-primary/50 hover:bg-white/[0.08]"
+                      }`}
+                    >
+                      Assinar com Pix
+                    </button>
+                  )
+                }
+              />
             );
           })}
         </div>
@@ -718,6 +674,88 @@ function Plans() {
         onOpenChange={(v) => !v && setCheckoutPlan(null)}
       />
     </section>
+  );
+}
+
+function PlanCard({
+  index,
+  highlight,
+  durationLabel,
+  maxDevices,
+  name,
+  priceCents,
+  description,
+  features,
+  actionSlot,
+}: {
+  index: number;
+  highlight: boolean;
+  durationLabel: string;
+  maxDevices: number;
+  name: string;
+  priceCents: number;
+  description: string | null;
+  features: string[];
+  actionSlot: React.ReactNode;
+}) {
+  const { ref, visible } = useReveal<HTMLDivElement>();
+
+  const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--mx", `${e.clientX - rect.left}px`);
+    el.style.setProperty("--my", `${e.clientY - rect.top}px`);
+  };
+
+  return (
+    <div
+      ref={ref}
+      onMouseMove={handleMove}
+      style={{ ["--reveal-delay" as never]: `${index * 80}ms` }}
+      className={`plan-card reveal-rise ${visible ? "is-visible" : ""} ${highlight ? "plan-card--highlight" : ""} flex flex-col overflow-hidden p-8`}
+    >
+      <span className="plan-top-glow" />
+      {highlight && <span className="plan-ribbon">Mais popular</span>}
+
+      <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary">
+        {durationLabel}
+        {" · "}
+        {maxDevices} disp.
+      </div>
+      <h3 className="font-display text-2xl font-extrabold">{name}</h3>
+
+      <div className="my-6 flex items-baseline gap-1">
+        {priceCents === 0 ? (
+          <span className="font-display text-5xl font-black">Grátis</span>
+        ) : (
+          <>
+            <span className="text-sm font-bold text-white/60">R$</span>
+            <span className="font-display text-5xl font-black tracking-tight">
+              {formatPrice(priceCents).replace(/^R\$\s?/, "")}
+            </span>
+          </>
+        )}
+      </div>
+
+      {description && (
+        <p className="mb-6 text-sm text-white/55">{description}</p>
+      )}
+
+      <ul className="mb-8 flex-1 space-y-2.5 text-sm">
+        <li className="flex items-center gap-2.5">
+          <span className="plan-check"><Check className="h-3 w-3" /></span>
+          Acesso ilimitado
+        </li>
+        {features.map((f) => (
+          <li key={f} className="flex items-center gap-2.5">
+            <span className="plan-check"><Check className="h-3 w-3" /></span>
+            {FEATURE_LABEL[f] ?? f}
+          </li>
+        ))}
+      </ul>
+
+      {actionSlot}
+    </div>
   );
 }
 
