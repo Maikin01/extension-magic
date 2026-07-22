@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -144,7 +145,7 @@ function RootComponent() {
     return () => sub.subscription.unsubscribe();
   }, [queryClient, router]);
 
-  const pathname = router.state.location.pathname;
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isLanding = pathname === "/" || pathname === "/apice";
 
   return (
