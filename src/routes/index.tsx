@@ -274,7 +274,7 @@ function HowItWorks() {
   ];
 
   return (
-    <section id="como-funciona" className="bg-panel-alt scroll-mt-20 border-b border-white/5 py-24">
+    <section className="bg-panel-alt border-b border-white/5 py-24">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-16 text-center">
           <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.35em] text-primary">
@@ -403,7 +403,7 @@ function Features() {
   ];
 
   return (
-    <section id="recursos" className="bg-deep scroll-mt-20 border-b border-white/5 py-24">
+    <section className="bg-deep border-b border-white/5 py-24">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-14 grid gap-6 md:grid-cols-2 md:items-end">
           <div>
