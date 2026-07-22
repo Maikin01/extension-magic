@@ -4,7 +4,6 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -14,7 +13,7 @@ import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
-import { CursorGlow } from "@/components/site/CursorGlow";
+
 
 function NotFoundComponent() {
   return (
@@ -145,12 +144,9 @@ function RootComponent() {
     return () => sub.subscription.unsubscribe();
   }, [queryClient, router]);
 
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isLanding = pathname === "/" || pathname === "/apice";
-
   return (
     <QueryClientProvider client={queryClient}>
-      {isLanding && <CursorGlow />}
+
       <Outlet />
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
