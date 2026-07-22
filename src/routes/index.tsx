@@ -708,7 +708,7 @@ function PlanCard({
       ref={ref}
       onMouseMove={handleMove}
       style={{ ["--reveal-delay" as never]: `${index * 80}ms` }}
-      className={`plan-card reveal-rise ${visible ? "is-visible" : ""} ${highlight ? "plan-card--highlight" : ""} flex flex-col overflow-hidden p-8`}
+      className={`plan-card reveal-rise ${visible ? "is-visible" : ""} ${highlight ? "plan-card--highlight" : ""} flex flex-col p-8`}
     >
       <span className="plan-top-glow" />
       {highlight && <span className="plan-ribbon">Mais popular</span>}
