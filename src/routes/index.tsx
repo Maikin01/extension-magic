@@ -634,11 +634,8 @@ function Plans() {
                     <Link
                       to="/auth"
                       search={{ claim: "trial" } as any}
-                      className={`inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest transition ${
-                        highlight
-                          ? "btn-neon text-white"
-                          : "btn-glossy-red text-white"
-                      }`}
+                      className={`btn-glossy-red inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest text-white transition`}
+
                     >
                       Testar grátis
                     </Link>
@@ -652,11 +649,8 @@ function Plans() {
                           price_cents: plan.price_cents,
                         })
                       }
-                      className={`inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest transition ${
-                        highlight
-                          ? "btn-neon text-white"
-                          : "btn-glossy-red text-white"
-                      }`}
+                      className={`btn-glossy-red inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest text-white transition`}
+
                     >
                       Assinar com Pix
                     </button>
