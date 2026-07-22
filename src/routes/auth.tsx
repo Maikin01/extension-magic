@@ -344,6 +344,7 @@ function SignupForm({ next, plan }: { next: string; plan: string | null }) {
         <Label htmlFor="signup-name">Nome</Label>
         <Input
           id="signup-name"
+          placeholder="Seu nome completo"
           value={name}
           onChange={(e) => setName(e.target.value)}
           autoComplete="name"
@@ -355,6 +356,7 @@ function SignupForm({ next, plan }: { next: string; plan: string | null }) {
         <Input
           id="signup-email"
           type="email"
+          placeholder="teste@gmail.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           autoComplete="email"
@@ -366,6 +368,7 @@ function SignupForm({ next, plan }: { next: string; plan: string | null }) {
         <Input
           id="signup-password"
           type="password"
+          placeholder="Mínimo 6 caracteres"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
