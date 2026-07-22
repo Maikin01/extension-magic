@@ -314,6 +314,57 @@
   text-shadow: 0 0 24px oklch(1 0 0 / 0.15);
 }
 
+/* LED neon line — glowing red runner across the 3 steps */
+.led-line {
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(0.63 0.245 25 / 0.15) 15%,
+    oklch(0.63 0.245 25 / 0.55) 50%,
+    oklch(0.63 0.245 25 / 0.15) 85%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 8px oklch(0.63 0.245 25 / 0.45),
+    0 0 24px oklch(0.63 0.245 25 / 0.35),
+    0 0 60px oklch(0.63 0.245 25 / 0.25);
+  overflow: hidden;
+  animation: led-line-pulse 2.6s ease-in-out infinite;
+}
+.led-line-runner {
+  position: absolute;
+  inset: -3px 0;
+  width: 30%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(0.85 0.22 25 / 0.9) 45%,
+    #ffffff 50%,
+    oklch(0.85 0.22 25 / 0.9) 55%,
+    transparent 100%
+  );
+  filter: blur(0.5px);
+  box-shadow:
+    0 0 12px oklch(0.72 0.24 22 / 0.9),
+    0 0 30px oklch(0.63 0.245 25 / 0.8),
+    0 0 80px oklch(0.63 0.245 25 / 0.6);
+  border-radius: 999px;
+  animation: led-line-run 3.2s linear infinite;
+}
+@keyframes led-line-run {
+  0%   { transform: translateX(-40%); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateX(360%); opacity: 0; }
+}
+@keyframes led-line-pulse {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.25); }
+}
+
+
 
 /* Ocultar completamente o badge "Made with Lovable" injetado no site publicado */
 #lovable-badge,
