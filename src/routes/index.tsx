@@ -655,7 +655,7 @@ function Plans() {
                       className={`inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest transition ${
                         highlight
                           ? "btn-neon text-white"
-                          : "btn-glass text-white"
+                          : "btn-glossy-red text-white"
                       }`}
                     >
                       Assinar com Pix
