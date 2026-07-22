@@ -32,6 +32,7 @@ import {
   LifeBuoy,
 } from "lucide-react";
 import { getPublicPlans } from "@/lib/license.functions";
+import { useReveal } from "@/hooks/useReveal";
 import { formatPrice } from "@/lib/license-utils";
 import { PixCheckoutDialog } from "@/components/checkout/PixCheckoutDialog";
 
