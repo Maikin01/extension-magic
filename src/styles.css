@@ -239,61 +239,86 @@
     0 0 12px oklch(0.6 0.245 25 / 0.55);
 }
 
-/* Botão vidro líquido vermelho (estilo Apple / liquid glass) */
+/* Botão neon com glow forte (primário vermelho) */
 .btn-neon {
+  background: linear-gradient(180deg, oklch(0.68 0.24 25), oklch(0.55 0.24 25));
+  box-shadow:
+    0 0 0 1px oklch(0.75 0.22 25 / 0.6),
+    0 10px 40px -8px oklch(0.63 0.245 25 / 0.65),
+    0 0 60px oklch(0.63 0.245 25 / 0.35),
+    inset 0 1px 0 oklch(1 0 0 / 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.btn-neon:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow:
+    0 0 0 1px oklch(0.8 0.22 25 / 0.8),
+    0 14px 50px -6px oklch(0.63 0.245 25 / 0.85),
+    0 0 90px oklch(0.63 0.245 25 / 0.5),
+    inset 0 1px 0 oklch(1 0 0 / 0.3);
+}
+
+/* Botão vidro líquido (estilo Apple liquid glass) — translúcido escuro */
+.btn-glass {
   position: relative;
   isolation: isolate;
   overflow: hidden;
   border-radius: 9999px;
   background:
-    radial-gradient(120% 180% at 50% 120%, oklch(0.48 0.24 25 / 0.95), oklch(0.42 0.22 25 / 0.75) 55%, oklch(0.38 0.2 25 / 0.6)),
-    linear-gradient(180deg, oklch(0.72 0.24 25 / 0.55), oklch(0.5 0.24 25 / 0.35));
-  backdrop-filter: blur(14px) saturate(160%);
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 40%, rgba(0,0,0,0.25) 100%),
+    rgba(20, 20, 22, 0.35);
+  backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.14);
   box-shadow:
-    inset 0 1px 0 oklch(1 0 0 / 0.55),
-    inset 0 0 0 1px oklch(1 0 0 / 0.14),
-    inset 0 -8px 20px oklch(0 0 0 / 0.35),
-    inset 0 12px 24px oklch(1 0 0 / 0.12),
-    0 10px 30px -10px oklch(0.5 0.24 25 / 0.6),
-    0 0 60px oklch(0.63 0.245 25 / 0.35);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+    inset 0 1px 0 rgba(255,255,255,0.35),
+    inset 0 -1px 0 rgba(255,255,255,0.06),
+    inset 0 0 24px rgba(255,255,255,0.04),
+    0 8px 30px -10px rgba(0,0,0,0.6);
+  color: #fff;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
-/* Reflexo superior (highlight glossy) */
-.btn-neon::before {
+/* Reflexo diagonal superior (highlight de vidro) */
+.btn-glass::before {
   content: "";
   position: absolute;
-  inset: 1px 6% auto 6%;
-  height: 42%;
-  border-radius: 9999px;
-  background: linear-gradient(180deg, oklch(1 0 0 / 0.55), oklch(1 0 0 / 0.05) 70%, transparent);
-  filter: blur(0.5px);
+  top: 0; left: 0; right: 0;
+  height: 55%;
+  border-radius: 9999px 9999px 40% 40% / 9999px 9999px 100% 100%;
+  background: linear-gradient(
+    160deg,
+    rgba(255,255,255,0.35) 0%,
+    rgba(255,255,255,0.14) 30%,
+    rgba(255,255,255,0.02) 60%,
+    transparent 80%
+  );
+  opacity: 0.9;
   pointer-events: none;
   z-index: 1;
 }
-/* Reflexo inferior sutil (glass bounce) */
-.btn-neon::after {
+/* Reflexo inferior sutil */
+.btn-glass::after {
   content: "";
   position: absolute;
-  inset: auto 12% 3% 12%;
-  height: 22%;
+  bottom: 2px; left: 15%; right: 15%;
+  height: 30%;
   border-radius: 9999px;
-  background: linear-gradient(180deg, transparent, oklch(1 0 0 / 0.18));
-  filter: blur(2px);
-  opacity: 0.85;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.14));
+  filter: blur(3px);
+  opacity: 0.7;
   pointer-events: none;
   z-index: 1;
 }
-.btn-neon > * { position: relative; z-index: 2; }
-.btn-neon:hover {
+.btn-glass > * { position: relative; z-index: 2; }
+.btn-glass:hover {
   transform: translateY(-1px);
-  filter: brightness(1.06) saturate(1.05);
+  border-color: rgba(255,255,255,0.25);
   box-shadow:
-    inset 0 1px 0 oklch(1 0 0 / 0.6),
-    inset 0 0 0 1px oklch(1 0 0 / 0.2),
-    inset 0 -10px 24px oklch(0 0 0 / 0.35),
-    inset 0 14px 28px oklch(1 0 0 / 0.16),
-    0 16px 42px -10px oklch(0.5 0.24 25 / 0.75),
-    0 0 90px oklch(0.63 0.245 25 / 0.5);
+    inset 0 1px 0 rgba(255,255,255,0.5),
+    inset 0 -1px 0 rgba(255,255,255,0.08),
+    inset 0 0 30px rgba(255,255,255,0.06),
+    0 14px 40px -10px rgba(0,0,0,0.7),
+    0 0 40px oklch(0.63 0.245 25 / 0.15);
 }
 
 /* Botão glossy pill vermelho (estilo Apple/iOS) */
