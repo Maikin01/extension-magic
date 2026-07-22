@@ -167,6 +167,7 @@ function LandingPage() {
       <SiteHeader />
       <main>
         <Hero />
+        <BrowserCompatibility />
         <HowItWorks />
         <Features />
         <Plans />
