@@ -225,23 +225,6 @@ function Hero() {
           </div>
 
 
-          <div className="mt-10 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3">
-            {[
-              { label: "Uso Infinito" },
-              { label: "Suporte 24h" },
-              { label: "Extensão exclusiva" },
-            ].map((f) => (
-              <div
-                key={f.label}
-                className="chip-arrow group inline-flex items-center gap-2.5 rounded-full py-2 pl-2 pr-5 text-[13px] font-semibold"
-              >
-                <span className="chip-arrow-dot inline-flex h-6 w-6 items-center justify-center rounded-full">
-                  <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                </span>
-                <span className="truncate">{f.label}</span>
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* Mockup */}
