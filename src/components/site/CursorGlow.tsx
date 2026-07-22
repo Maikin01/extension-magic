@@ -45,8 +45,9 @@ export function CursorGlow() {
     <div
       ref={ref}
       aria-hidden="true"
-      className="pointer-events-none fixed left-0 top-0 z-[9999] h-3 w-3 rounded-full opacity-0 transition-opacity duration-200"
-      style={{ background: "#ff2222" }}
+      className="pointer-events-none fixed left-0 top-0 z-[9999] h-8 w-8 rounded-full opacity-0 transition-opacity duration-200"
+      style={{ background: "transparent", border: "1.5px solid #ff2222" }}
     />
   );
+
 }
