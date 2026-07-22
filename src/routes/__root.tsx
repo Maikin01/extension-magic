@@ -144,9 +144,12 @@ function RootComponent() {
     return () => sub.subscription.unsubscribe();
   }, [queryClient, router]);
 
+  const pathname = router.state.location.pathname;
+  const isLanding = pathname === "/" || pathname === "/apice";
+
   return (
     <QueryClientProvider client={queryClient}>
-      <CursorGlow />
+      {isLanding && <CursorGlow />}
       <Outlet />
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
