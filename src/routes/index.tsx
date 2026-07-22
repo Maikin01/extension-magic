@@ -219,7 +219,7 @@ function Hero() {
             search={{ claim: "trial" } as any}
             className="inline-flex h-12 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
           >
-            <Sparkles className="h-4 w-4 text-primary" />
+            <Gift className="h-4 w-4 text-primary" />
             Testar grátis
           </Link>
         </div>
