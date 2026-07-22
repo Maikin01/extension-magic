@@ -3,6 +3,7 @@ import edgeLogo from "@/assets/edge.png.asset.json";
 import braveLogo from "@/assets/brave.png.asset.json";
 import operaLogo from "@/assets/opera.png.asset.json";
 import safariLogo from "@/assets/safari.png.asset.json";
+import firefoxLogo from "@/assets/firefox.png.asset.json";
 
 const BROWSERS = [
   { name: "Chrome", src: chromeLogo.url },
@@ -10,6 +11,7 @@ const BROWSERS = [
   { name: "Brave", src: braveLogo.url },
   { name: "Opera", src: operaLogo.url },
   { name: "Safari", src: safariLogo.url },
+  { name: "Firefox", src: firefoxLogo.url },
 ];
 
 export function BrowserCompatibility() {
