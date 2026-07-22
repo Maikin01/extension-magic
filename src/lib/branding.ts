@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import riseLogo from "@/assets/rise-logo.jpg.asset.json";
+import riseLogo from "@/assets/rise-owl-logo.png.asset.json";
 import apiceLogo from "@/assets/apice-lovable-logo.png.asset.json";
 
 export type Branding = {
