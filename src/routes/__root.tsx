@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -144,9 +145,12 @@ function RootComponent() {
     return () => sub.subscription.unsubscribe();
   }, [queryClient, router]);
 
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isLanding = pathname === "/" || pathname === "/apice";
+
   return (
     <QueryClientProvider client={queryClient}>
-      <CursorGlow />
+      {isLanding && <CursorGlow />}
       <Outlet />
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
