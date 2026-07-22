@@ -11,6 +11,7 @@ import { useBranding } from "@/lib/branding";
 import {
   ChevronRight,
   Sparkles,
+  Gift,
   Cpu,
   Mic,
   Infinity as InfinityIcon,
