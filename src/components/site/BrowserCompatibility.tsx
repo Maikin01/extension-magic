@@ -1,14 +1,18 @@
+import chromeLogo from "@/assets/crome.png.asset.json";
+import edgeLogo from "@/assets/edge.png.asset.json";
+import braveLogo from "@/assets/brave.webp.asset.json";
+import operaLogo from "@/assets/logo_opera.png.asset.json";
+import safariLogo from "@/assets/safari.png.asset.json";
+
 const BROWSERS = [
-  { name: "Chrome", slug: "googlechrome", color: "4285F4" },
-  { name: "Edge", slug: "microsoftedge", color: "0078D7" },
-  { name: "Firefox", slug: "firefoxbrowser", color: "FF7139" },
-  { name: "Brave", slug: "brave", color: "FB542B" },
-  { name: "Opera", slug: "opera", color: "FF1B2D" },
-  { name: "Safari", slug: "safari", color: "006CFF" },
+  { name: "Chrome", src: chromeLogo.url },
+  { name: "Edge", src: edgeLogo.url },
+  { name: "Brave", src: braveLogo.url },
+  { name: "Opera", src: operaLogo.url },
+  { name: "Safari", src: safariLogo.url },
 ];
 
 export function BrowserCompatibility() {
-  // Duplicate list for seamless infinite marquee
   const items = [...BROWSERS, ...BROWSERS, ...BROWSERS];
 
   return (
@@ -21,11 +25,11 @@ export function BrowserCompatibility() {
         <div className="browser-marquee mt-5">
           <div className="browser-marquee-track">
             {items.map((b, i) => (
-              <div key={`${b.slug}-${i}`} className="browser-item group">
+              <div key={`${b.name}-${i}`} className="browser-item group">
                 <img
-                  src={`https://cdn.simpleicons.org/${b.slug}/_/${b.color}`}
+                  src={b.src}
                   alt={b.name}
-                  className="browser-logo h-7 w-7 shrink-0"
+                  className="browser-logo h-8 w-8 shrink-0 object-contain"
                   loading="lazy"
                 />
                 <span className="browser-label">{b.name}</span>
