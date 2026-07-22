@@ -789,8 +789,8 @@ function FinalCTA() {
           </h2>
 
           <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-white/60 md:text-base">
-            15 dias de garantia. Setup em 60 segundos. Sem cartão, sem enrolação.
-            Se não gostar, devolvemos cada centavo.
+            Chega de ver seus créditos acabarem no meio de um projeto.
+            Instale a extensão, escolha seu plano e continue criando sem se preocupar com limites.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
@@ -812,15 +812,15 @@ function FinalCTA() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[11px] font-bold uppercase tracking-widest text-white/50">
             <span className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-primary dot-pulse" />
-              Garantia 15 dias
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary dot-pulse" />
               Suporte humano
             </span>
             <span className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-primary dot-pulse" />
-              Setup em 60s
+              Fácil de instalar
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary dot-pulse" />
+              Acesso imediato
             </span>
           </div>
         </div>
