@@ -391,7 +391,7 @@ function HowItWorks() {
           </div>
           <a
             href="#plans"
-            className="btn-neon inline-flex h-14 items-center gap-3 rounded-2xl px-8 text-sm font-bold uppercase tracking-wider text-white"
+            className="btn-glossy-red inline-flex h-14 items-center gap-3 rounded-full px-10 text-sm font-bold uppercase tracking-wider text-white"
           >
             <Download className="h-5 w-5" />
             Baixar extensão grátis
