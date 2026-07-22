@@ -655,8 +655,9 @@ iframe[src*="lovable.dev/badge"] {
 .plan-card--highlight {
   border-color: oklch(0.63 0.245 25 / 0.45);
   background:
-    radial-gradient(120% 90% at 50% 0%, oklch(0.63 0.245 25 / 0.14), transparent 55%),
-    linear-gradient(180deg, #14090c 0%, #0a0507 100%);
+    radial-gradient(85% 55% at 50% -10%, oklch(0.63 0.245 25 / 0.32), transparent 60%),
+    radial-gradient(70% 50% at 100% 100%, oklch(0.63 0.245 25 / 0.15), transparent 55%),
+    linear-gradient(180deg, #260a0e 0%, #120407 50%, #060203 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 40px 90px -30px oklch(0.63 0.245 25 / 0.55),
