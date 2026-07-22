@@ -311,72 +311,19 @@
     0 4px 10px oklch(0.1 0.05 25 / 0.6);
 }
 
-/* Botão vidro escuro glossy (estilo pill preto com reflexo diagonal) */
+/* Botão efeito vidro (glass-card) — translúcido com backdrop-blur */
 .btn-glass {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.20);
   border-radius: 9999px;
-  background:
-    radial-gradient(ellipse 120% 90% at 50% 120%, rgba(60,60,62,0.55) 0%, rgba(20,20,22,0.85) 55%, rgba(6,6,8,0.95) 100%),
-    linear-gradient(180deg, #1a1a1c 0%, #050506 100%);
-  border: 1px solid rgba(255,255,255,0.10);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.18),
-    inset 0 -1px 0 rgba(0,0,0,0.6),
-    inset 0 0 0 1px rgba(255,255,255,0.02),
-    0 10px 30px -10px rgba(0,0,0,0.8),
-    0 2px 6px rgba(0,0,0,0.4);
-  color: #fff;
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+  color: #ffffff;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
 }
-/* Reflexo superior (topo iluminado do vidro) */
-.btn-glass::before {
-  content: "";
-  position: absolute;
-  top: 1px; left: 3%; right: 3%;
-  height: 45%;
-  border-radius: 9999px 9999px 50% 50% / 9999px 9999px 100% 100%;
-  background: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.32) 0%,
-    rgba(255,255,255,0.12) 45%,
-    rgba(255,255,255,0.02) 80%,
-    transparent 100%
-  );
-  pointer-events: none;
-  z-index: 1;
-}
-/* Reflexo diagonal (streak de luz atravessando o vidro) */
-.btn-glass::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    115deg,
-    transparent 0%,
-    transparent 38%,
-    rgba(255,255,255,0.18) 46%,
-    rgba(255,255,255,0.28) 50%,
-    rgba(255,255,255,0.10) 54%,
-    transparent 62%,
-    transparent 100%
-  );
-  mix-blend-mode: screen;
-  pointer-events: none;
-  z-index: 2;
-}
-.btn-glass > * { position: relative; z-index: 3; }
 .btn-glass:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.32);
   transform: translateY(-1px);
-  border-color: rgba(255,255,255,0.18);
-  filter: brightness(1.08);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.28),
-    inset 0 -1px 0 rgba(0,0,0,0.7),
-    0 14px 40px -10px rgba(0,0,0,0.9),
-    0 4px 10px rgba(0,0,0,0.5);
 }
 
 /* Botão glossy pill vermelho (estilo Apple/iOS) */
