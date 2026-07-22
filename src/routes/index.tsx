@@ -637,7 +637,7 @@ function Plans() {
                       className={`inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest transition ${
                         highlight
                           ? "btn-neon text-white"
-                          : "border border-white/10 bg-white/[0.04] text-white hover:border-primary/50 hover:bg-white/[0.08]"
+                          : "btn-glass text-white"
                       }`}
                     >
                       Testar grátis
@@ -655,7 +655,7 @@ function Plans() {
                       className={`inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest transition ${
                         highlight
                           ? "btn-neon text-white"
-                          : "border border-white/10 bg-white/[0.04] text-white hover:border-primary/50 hover:bg-white/[0.08]"
+                          : "btn-glass text-white"
                       }`}
                     >
                       Assinar com Pix
