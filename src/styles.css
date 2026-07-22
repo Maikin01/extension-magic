@@ -239,18 +239,18 @@
     0 0 12px oklch(0.6 0.245 25 / 0.55);
 }
 
-/* Botão efeito vidro vermelho — translúcido, sem streak, blur leve */
+/* Botão efeito vidro (glass-card puro) */
 .btn-neon {
-  background: oklch(0.55 0.24 25 / 0.22);
-  backdrop-filter: blur(6px) saturate(160%);
-  border: 1px solid oklch(0.75 0.22 25 / 0.35);
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 9999px;
   color: #ffffff;
   transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
 }
 .btn-neon:hover {
-  background: oklch(0.6 0.24 25 / 0.32);
-  border-color: oklch(0.8 0.22 25 / 0.5);
+  background: rgba(255, 255, 255, 0.26);
+  border-color: rgba(255, 255, 255, 0.45);
   transform: translateY(-1px);
 }
 
