@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site/Header";
+import { BrowserCompatibility } from "@/components/site/BrowserCompatibility";
 import { Card } from "@/components/ui/card";
 import { useBranding } from "@/lib/branding";
 import {
