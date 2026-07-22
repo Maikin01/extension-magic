@@ -150,6 +150,13 @@ export const Route = createFileRoute("/")({
           "A extensão definitiva para power-users do Lovable.dev. Sidebar IA, prompt por voz, uso ilimitado e licenças validadas em tempo real.",
       },
     ],
+    links: [
+      { rel: "preconnect", href: "https://www.youtube-nocookie.com" },
+      { rel: "preconnect", href: "https://www.youtube.com" },
+      { rel: "preconnect", href: "https://i.ytimg.com" },
+      { rel: "preconnect", href: "https://s.ytimg.com" },
+      { rel: "dns-prefetch", href: "https://googlevideo.com" },
+    ],
   }),
   component: LandingPage,
 });
