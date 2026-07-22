@@ -329,7 +329,24 @@
     inset 0 -1px 0 oklch(0 0 0 / 0.3),
     0 12px 34px -6px oklch(0.55 0.24 25 / 0.75),
     0 0 90px oklch(0.6 0.245 25 / 0.5);
+
+/* Botão dark pill (planos não-destacados) */
+.btn-glossy-dark {
+  position: relative;
+  background: linear-gradient(180deg, oklch(0.28 0.01 260) 0%, oklch(0.18 0.008 260) 100%);
+  border: 1px solid oklch(1 0 0 / 0.08);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.08),
+    inset 0 -1px 0 oklch(0 0 0 / 0.4),
+    0 2px 8px oklch(0 0 0 / 0.35);
+  transition: transform 0.2s ease, filter 0.2s ease, border-color 0.2s ease;
 }
+.btn-glossy-dark:hover {
+  filter: brightness(1.15);
+  border-color: oklch(1 0 0 / 0.16);
+  transform: translateY(-1px);
+}
+
 
 /* Text gradient vermelho neon */
 .text-gradient-red {
