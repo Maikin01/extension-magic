@@ -259,74 +259,67 @@
     inset 0 1px 0 oklch(1 0 0 / 0.3);
 }
 
-/* Botão vidro líquido — glass real (referência: pílula preta com reflexo diagonal) */
+/* Botão vidro líquido (estilo Apple liquid glass) — translúcido escuro */
 .btn-glass {
   position: relative;
   isolation: isolate;
   overflow: hidden;
   border-radius: 9999px;
   background:
-    radial-gradient(120% 180% at 50% -40%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 35%, transparent 60%),
-    linear-gradient(180deg, rgba(60,60,64,0.55) 0%, rgba(20,20,22,0.75) 55%, rgba(8,8,10,0.9) 100%);
-  backdrop-filter: blur(22px) saturate(180%);
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-  border: 1px solid rgba(255,255,255,0.16);
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 40%, rgba(0,0,0,0.25) 100%),
+    rgba(20, 20, 22, 0.35);
+  backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.14);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.55),
-    inset 0 -1px 0 rgba(255,255,255,0.08),
-    inset 0 0 0 1px rgba(255,255,255,0.04),
-    inset 0 -14px 24px -14px rgba(0,0,0,0.7),
-    0 10px 34px -12px rgba(0,0,0,0.75);
+    inset 0 1px 0 rgba(255,255,255,0.35),
+    inset 0 -1px 0 rgba(255,255,255,0.06),
+    inset 0 0 24px rgba(255,255,255,0.04),
+    0 8px 30px -10px rgba(0,0,0,0.6);
   color: #fff;
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
-/* Highlight superior (topo do vidro) */
+/* Reflexo diagonal superior (highlight de vidro) */
 .btn-glass::before {
   content: "";
   position: absolute;
-  inset: 1px 1px auto 1px;
+  top: 0; left: 0; right: 0;
   height: 55%;
-  border-radius: 9999px 9999px 45% 45% / 9999px 9999px 100% 100%;
-  background: linear-gradient(180deg,
-    rgba(255,255,255,0.55) 0%,
-    rgba(255,255,255,0.18) 40%,
-    rgba(255,255,255,0.04) 75%,
-    transparent 100%);
-  opacity: 0.95;
+  border-radius: 9999px 9999px 40% 40% / 9999px 9999px 100% 100%;
+  background: linear-gradient(
+    160deg,
+    rgba(255,255,255,0.35) 0%,
+    rgba(255,255,255,0.14) 30%,
+    rgba(255,255,255,0.02) 60%,
+    transparent 80%
+  );
+  opacity: 0.9;
   pointer-events: none;
   z-index: 1;
 }
-/* Reflexo diagonal (streak) que atravessa o vidro */
+/* Reflexo inferior sutil */
 .btn-glass::after {
   content: "";
   position: absolute;
-  inset: 0;
+  bottom: 2px; left: 15%; right: 15%;
+  height: 30%;
   border-radius: 9999px;
-  background: linear-gradient(115deg,
-    transparent 0%,
-    transparent 38%,
-    rgba(255,255,255,0.28) 46%,
-    rgba(255,255,255,0.55) 50%,
-    rgba(255,255,255,0.20) 54%,
-    transparent 64%,
-    transparent 100%);
-  mix-blend-mode: screen;
-  opacity: 0.55;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.14));
+  filter: blur(3px);
+  opacity: 0.7;
   pointer-events: none;
-  z-index: 2;
+  z-index: 1;
 }
-.btn-glass > * { position: relative; z-index: 3; }
+.btn-glass > * { position: relative; z-index: 2; }
 .btn-glass:hover {
   transform: translateY(-1px);
-  border-color: rgba(255,255,255,0.28);
+  border-color: rgba(255,255,255,0.25);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.7),
-    inset 0 -1px 0 rgba(255,255,255,0.1),
-    inset 0 -14px 24px -14px rgba(0,0,0,0.75),
-    0 16px 44px -12px rgba(0,0,0,0.85),
-    0 0 40px oklch(0.63 0.245 25 / 0.18);
+    inset 0 1px 0 rgba(255,255,255,0.5),
+    inset 0 -1px 0 rgba(255,255,255,0.08),
+    inset 0 0 30px rgba(255,255,255,0.06),
+    0 14px 40px -10px rgba(0,0,0,0.7),
+    0 0 40px oklch(0.63 0.245 25 / 0.15);
 }
-
 
 /* Botão glossy pill vermelho (estilo Apple/iOS) */
 .btn-glossy-red {
