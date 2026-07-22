@@ -239,44 +239,43 @@
     0 0 12px oklch(0.6 0.245 25 / 0.55);
 }
 
-/* Botão efeito vidro vermelho com brilhos mínimos em cantos específicos */
+/* Botão vermelho glossy estilo "Access the platform" */
 .btn-neon {
   position: relative;
-  background: rgba(220, 38, 38, 0.28);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background:
+    radial-gradient(ellipse at center, #e11d1d 0%, #b91414 55%, #6b0a0a 100%);
+  border: 1px solid rgba(0, 0, 0, 0.55);
   border-radius: 9999px;
   color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.35);
   overflow: hidden;
-  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
-/* Brilho sutil no canto superior esquerdo */
+/* Brilho glossy no topo */
 .btn-neon::before {
   content: "";
   position: absolute;
   top: 0;
-  left: 0;
-  width: 40%;
-  height: 55%;
-  background: radial-gradient(ellipse at top left, rgba(255,255,255,0.35), transparent 70%);
-  pointer-events: none;
-}
-/* Brilho sutil no canto inferior direito */
-.btn-neon::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 35%;
-  height: 50%;
-  background: radial-gradient(ellipse at bottom right, rgba(255,255,255,0.18), transparent 70%);
+  left: 6%;
+  right: 6%;
+  height: 45%;
+  border-radius: 9999px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.35), rgba(255,255,255,0));
   pointer-events: none;
 }
 .btn-neon:hover {
-  background: rgba(220, 38, 38, 0.38);
-  border-color: rgba(255, 255, 255, 0.28);
+  filter: brightness(1.08);
   transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.45),
+    0 4px 10px rgba(220, 38, 38, 0.35);
 }
+
 
 
 /* Botão efeito vidro (glass-card) — translúcido com backdrop-blur */
