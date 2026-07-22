@@ -32,6 +32,7 @@ import {
   LifeBuoy,
 } from "lucide-react";
 import { getPublicPlans } from "@/lib/license.functions";
+import { useReveal } from "@/hooks/useReveal";
 import { formatPrice } from "@/lib/license-utils";
 import { PixCheckoutDialog } from "@/components/checkout/PixCheckoutDialog";
 
@@ -426,27 +427,63 @@ function Features() {
           {items.map((it, i) => {
             const num = String(i + 1).padStart(2, "0");
             return (
-              <Card
+              <FeatureCard
                 key={it.title}
-                className="group relative overflow-hidden border-white/5 bg-white/[0.015] p-6 transition-all hover:border-primary/40 hover:bg-white/[0.04]"
-              >
-                <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-primary/15 opacity-0 blur-3xl transition-opacity group-hover:opacity-100" />
-                <div className="mb-6 flex items-start justify-between">
-                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary shadow-[0_0_20px_oklch(0.63_0.245_25/0.2)]">
-                    <it.icon className="h-4.5 w-4.5" />
-                  </div>
-                  <span className="font-display text-2xl font-black text-white/10">
-                    {num}
-                  </span>
-                </div>
-                <h3 className="font-display text-lg font-bold">{it.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-white/55">{it.desc}</p>
-              </Card>
+                icon={it.icon}
+                title={it.title}
+                desc={it.desc}
+                num={num}
+                index={i}
+              />
             );
           })}
         </div>
       </div>
     </section>
+  );
+}
+
+function FeatureCard({
+  icon: Icon,
+  title,
+  desc,
+  num,
+  index,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  desc: string;
+  num: string;
+  index: number;
+}) {
+  const { ref, visible } = useReveal<HTMLDivElement>();
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--mx", `${e.clientX - rect.left}px`);
+    el.style.setProperty("--my", `${e.clientY - rect.top}px`);
+  };
+
+  return (
+    <div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      style={{ ["--reveal-delay" as never]: `${index * 90}ms` }}
+      className={`feature-card reveal-rise ${visible ? "is-visible" : ""} group relative overflow-hidden rounded-xl border border-white/5 bg-white/[0.015] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-white/[0.03] hover:shadow-[0_24px_60px_-24px_rgba(239,68,68,0.35)]`}
+    >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <div className="relative mb-6 flex items-start justify-between">
+        <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary shadow-[0_0_20px_oklch(0.63_0.245_25/0.2)] transition-transform duration-300 group-hover:scale-110">
+          <Icon className="h-4 w-4" />
+        </div>
+        <span className="font-display text-2xl font-black text-white/10 transition-colors duration-300 group-hover:text-primary/30">
+          {num}
+        </span>
+      </div>
+      <h3 className="relative font-display text-lg font-bold">{title}</h3>
+      <p className="relative mt-2 text-sm leading-relaxed text-white/55">{desc}</p>
+    </div>
   );
 }
 
