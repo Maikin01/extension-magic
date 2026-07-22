@@ -239,27 +239,28 @@
     0 0 12px oklch(0.6 0.245 25 / 0.55);
 }
 
-/* Botão vermelho básico e elegante (pill glossy) */
+/* Botão vermelho sólido e vibrante (pill) — referência flat red */
 .btn-neon {
   position: relative;
-  background: linear-gradient(180deg, #ef2a2a 0%, #d81616 55%, #a80f0f 100%);
-  border: 1px solid rgba(0, 0, 0, 0.35);
+  background:
+    radial-gradient(120% 140% at 50% 0%, #ff2b2b 0%, #e60e0e 55%, #b80808 100%);
+  border: 1px solid rgba(0, 0, 0, 0.25);
   border-radius: 9999px;
   color: #ffffff;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.28);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -2px 6px rgba(0, 0, 0, 0.25),
-    0 2px 6px rgba(0, 0, 0, 0.3);
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -10px 24px rgba(0, 0, 0, 0.28),
+    0 6px 16px rgba(0, 0, 0, 0.35);
   transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
 }
 .btn-neon:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.06);
   transform: translateY(-1px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    inset 0 -2px 6px rgba(0, 0, 0, 0.25),
-    0 6px 14px rgba(220, 38, 38, 0.4);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -10px 24px rgba(0, 0, 0, 0.28),
+    0 10px 22px rgba(220, 38, 38, 0.35);
 }
 
 
