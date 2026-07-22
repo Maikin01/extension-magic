@@ -770,53 +770,59 @@ function FinalCTA() {
   const brand = useBranding();
   return (
     <section className="bg-band py-28">
-      <div className="mx-auto max-w-4xl px-6 text-center">
-        <div className="chip-neon mb-8 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary dot-pulse" />
-          Última chamada
-        </div>
+      <div className="mx-auto max-w-5xl px-6">
+        <div className="cta-card text-center">
+          <span className="cta-led-top" />
+          <span className="cta-led-bottom" />
+          <span className="cta-corner cta-corner-tl" />
+          <span className="cta-corner cta-corner-br" />
 
-        <h2 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight md:text-6xl">
-          Pare de queimar créditos.
-          <br />
-          <span className="text-gradient-red">Comece a dominar.</span>
-        </h2>
+          <div className="chip-neon mb-8 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary dot-pulse" />
+            Última chamada
+          </div>
 
-        <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-white/60 md:text-base">
-          15 dias de garantia. Setup em 60 segundos. Sem cartão, sem enrolação.
-          Se não gostar, devolvemos cada centavo.
-        </p>
+          <h2 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight md:text-6xl">
+            Pare de queimar créditos.
+            <br />
+            <span className="text-gradient-red">Comece a dominar.</span>
+          </h2>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <a
-            href="#plans"
-            className="btn-neon group inline-flex h-14 items-center gap-2 rounded-2xl px-8 text-sm font-bold uppercase tracking-wider text-white"
-          >
-            Ativar {brand.name} agora
-            <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </a>
-          <a
-            href="#plans"
-            className="inline-flex h-14 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-8 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
-          >
-            Ver todos os planos
-          </a>
-        </div>
+          <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-white/60 md:text-base">
+            15 dias de garantia. Setup em 60 segundos. Sem cartão, sem enrolação.
+            Se não gostar, devolvemos cada centavo.
+          </p>
 
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <a
+              href="#plans"
+              className="btn-neon group inline-flex h-14 items-center gap-2 rounded-2xl px-8 text-sm font-bold uppercase tracking-wider text-white"
+            >
+              Ativar {brand.name} agora
+              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </a>
+            <a
+              href="#plans"
+              className="inline-flex h-14 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-8 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
+            >
+              Ver todos os planos
+            </a>
+          </div>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[11px] font-bold uppercase tracking-widest text-white/50">
-          <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            Garantia 15 dias
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            Suporte humano
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            Setup em 60s
-          </span>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[11px] font-bold uppercase tracking-widest text-white/50">
+            <span className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary dot-pulse" />
+              Garantia 15 dias
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary dot-pulse" />
+              Suporte humano
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary dot-pulse" />
+              Setup em 60s
+            </span>
+          </div>
         </div>
       </div>
     </section>
