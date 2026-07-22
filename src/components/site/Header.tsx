@@ -118,7 +118,7 @@ export function SiteHeader() {
               to="/auth"
               className="btn-neon inline-flex h-9 items-center justify-center rounded-full px-5 text-sm font-bold text-white"
             >
-              Quero Acesso
+              LOGIN
             </Link>
           )}
         </nav>
