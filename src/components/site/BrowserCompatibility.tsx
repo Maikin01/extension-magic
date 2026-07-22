@@ -1,7 +1,7 @@
-import chromeLogo from "@/assets/crome.png.asset.json";
+import chromeLogo from "@/assets/chrome.png.asset.json";
 import edgeLogo from "@/assets/edge.png.asset.json";
-import braveLogo from "@/assets/brave.webp.asset.json";
-import operaLogo from "@/assets/logo_opera.png.asset.json";
+import braveLogo from "@/assets/brave.png.asset.json";
+import operaLogo from "@/assets/opera.png.asset.json";
 import safariLogo from "@/assets/safari.png.asset.json";
 
 const BROWSERS = [
