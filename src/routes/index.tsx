@@ -363,8 +363,11 @@ function HowItWorks() {
         </div>
 
         <div className="relative grid gap-6 md:grid-cols-3">
-          {/* linha conectora */}
-          <div className="pointer-events-none absolute left-[10%] right-[10%] top-[62px] hidden h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent md:block" />
+          {/* linha conectora LED neon */}
+          <div className="led-line pointer-events-none absolute left-[10%] right-[10%] top-[62px] hidden md:block">
+            <span className="led-line-runner" />
+          </div>
+
 
           {steps.map((s) => (
             <div
