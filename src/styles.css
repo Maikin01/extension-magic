@@ -264,6 +264,56 @@
 }
 .dot-pulse { animation: pulse-glow 2s infinite; }
 
+/* Browser compatibility marquee */
+.browser-marquee {
+  position: relative;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+.browser-marquee-track {
+  display: flex;
+  gap: 4rem;
+  width: max-content;
+  animation: browser-scroll 40s linear infinite;
+}
+.browser-marquee:hover .browser-marquee-track {
+  animation-play-state: paused;
+}
+@keyframes browser-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-33.3333%); }
+}
+.browser-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.5rem 0.25rem;
+  cursor: default;
+}
+.browser-logo {
+  filter: grayscale(1) brightness(1.6) opacity(0.35);
+  transition: filter 0.35s ease, transform 0.35s ease;
+}
+.browser-label {
+  font-family: "Barlow Condensed", "Sora", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 1.9rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: oklch(1 0 0 / 0.35);
+  transition: color 0.35s ease, text-shadow 0.35s ease;
+  line-height: 1;
+}
+.browser-item:hover .browser-logo {
+  filter: grayscale(0) brightness(1) opacity(1);
+  transform: scale(1.05);
+}
+.browser-item:hover .browser-label {
+  color: #ffffff;
+  text-shadow: 0 0 24px oklch(1 0 0 / 0.15);
+}
+
 
 /* Ocultar completamente o badge "Made with Lovable" injetado no site publicado */
 #lovable-badge,
