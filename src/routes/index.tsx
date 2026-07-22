@@ -225,22 +225,18 @@ function Hero() {
           </Link>
         </div>
 
-        {/* Video showcase placeholder */}
+        {/* Video showcase */}
         <div className="relative mx-auto mt-16 w-full max-w-4xl">
           <div className="pointer-events-none absolute -inset-8 -z-0 rounded-[40px] bg-primary/20 blur-[90px]" />
           <div className="ring-glow relative aspect-video overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0a]">
-            {/* TODO: substituir por <video> quando o vídeo demo estiver pronto */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-primary/40 bg-primary/10 shadow-[0_0_40px_oklch(0.63_0.245_25/0.5)]">
-                <svg viewBox="0 0 24 24" fill="currentColor" className="ml-1 h-7 w-7 text-primary">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </div>
-              <div className="font-mono text-[10px] uppercase tracking-widest text-white/40">
-                {brand.name} · Demo em breve
-              </div>
-              <div className="text-sm text-white/50">Espaço reservado para o vídeo da extensão</div>
-            </div>
+            <iframe
+              className="absolute inset-0 h-full w-full"
+              src="https://www.youtube-nocookie.com/embed/1qOVa4HY48c?rel=0&modestbranding=1&playsinline=1"
+              title={`${brand.name} — Demo`}
+              loading="eager"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
           </div>
         </div>
       </div>
