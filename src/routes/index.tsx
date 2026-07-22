@@ -187,120 +187,57 @@ function Hero() {
   const brand = useBranding();
   return (
     <section className="rise-bg overflow-hidden border-b border-white/5">
-      <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-20 md:py-28 lg:grid-cols-2 lg:gap-16">
-        <div>
-          <div className="chip-neon mb-8 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
-            <Sparkles className="h-3 w-3" />
-            Ferramenta secreta dos usuários avançados de IA
-          </div>
-
-          <h1 className="font-display text-5xl font-extrabold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
-            USE O LOVABLE
-            <br />
-            EM <span className="text-gradient-red">OUTRO NÍVEL.</span>
-          </h1>
-
-          <p className="mt-6 max-w-lg text-lg leading-relaxed text-white/60">
-            A extensão definitiva para{" "}
-            <span className="font-medium text-white">produtividade com IA</span>
-            , automação e uso avançado do Lovable.
-          </p>
-
-          <div className="mt-10 flex flex-wrap items-center gap-4">
-            <a
-              href="#plans"
-              className="btn-neon group inline-flex h-12 items-center gap-2 rounded-full px-7 text-sm font-bold uppercase tracking-wider text-white"
-            >
-              Obter acesso
-              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </a>
-            <Link
-              to="/auth"
-              search={{ claim: "trial" } as any}
-              className="inline-flex h-12 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
-            >
-              <Sparkles className="h-4 w-4 text-primary" />
-              Testar grátis
-            </Link>
-          </div>
-
-
+      <div className="mx-auto max-w-5xl px-6 py-20 text-center md:py-28">
+        <div className="chip-neon mb-8 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
+          <Sparkles className="h-3 w-3" />
+          Ferramenta secreta dos usuários avançados de IA
         </div>
 
-        {/* Mockup */}
-        <div className="relative mx-auto w-full max-w-md">
-          <div className="pointer-events-none absolute -inset-10 -z-0 rounded-[40px] bg-primary/25 blur-[90px]" />
-          <div className="ring-glow relative overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0a]">
-            <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.02] px-4 py-3">
-              <div className="flex gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full border border-primary/50 bg-primary/20" />
-                <span className="h-2.5 w-2.5 rounded-full bg-white/10" />
-                <span className="h-2.5 w-2.5 rounded-full bg-white/10" />
+        <h1 className="font-display text-5xl font-extrabold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
+          USE O LOVABLE
+          <br />
+          EM <span className="text-gradient-red">OUTRO NÍVEL.</span>
+        </h1>
+
+        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-white/60">
+          A extensão definitiva para{" "}
+          <span className="font-medium text-white">produtividade com IA</span>
+          , automação e uso avançado do Lovable.
+        </p>
+
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          <a
+            href="#plans"
+            className="btn-neon group inline-flex h-12 items-center gap-2 rounded-full px-7 text-sm font-bold uppercase tracking-wider text-white"
+          >
+            Obter acesso
+            <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </a>
+          <Link
+            to="/auth"
+            search={{ claim: "trial" } as any}
+            className="inline-flex h-12 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
+          >
+            <Sparkles className="h-4 w-4 text-primary" />
+            Testar grátis
+          </Link>
+        </div>
+
+        {/* Video showcase placeholder */}
+        <div className="relative mx-auto mt-16 w-full max-w-4xl">
+          <div className="pointer-events-none absolute -inset-8 -z-0 rounded-[40px] bg-primary/20 blur-[90px]" />
+          <div className="ring-glow relative aspect-video overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0a]">
+            {/* TODO: substituir por <video> quando o vídeo demo estiver pronto */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-primary/40 bg-primary/10 shadow-[0_0_40px_oklch(0.63_0.245_25/0.5)]">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="ml-1 h-7 w-7 text-primary">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
               </div>
-              <span className="font-mono text-[10px] uppercase tracking-widest text-white/40">
-                {brand.name} · Extension
-              </span>
-              <div className="h-3 w-3" />
-            </div>
-
-            <div className="space-y-4 p-5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-mono text-white/50">&gt; {brand.displayFirst} {brand.displaySecond} 7.0</span>
-                <span className="rounded bg-primary/15 px-2 py-0.5 font-mono text-[10px] font-bold text-primary">
-                  AUTH
-                </span>
+              <div className="font-mono text-[10px] uppercase tracking-widest text-white/40">
+                {brand.name} · Demo em breve
               </div>
-
-              {[
-                { label: "Sessão", value: "PH Teste 2" },
-                { label: "Status", value: "Sincronizado" },
-                { label: "Workspace", value: "Lovable" },
-              ].map((row) => (
-                <div
-                  key={row.label}
-                  className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3 text-xs"
-                >
-                  <span className="text-white/50">{row.label}</span>
-                  <span className="font-semibold text-white/90">{row.value}</span>
-                </div>
-              ))}
-
-              <div className="flex gap-1 rounded-xl border border-white/5 bg-white/[0.02] p-1 text-[11px]">
-                <div className="flex-1 rounded-lg bg-primary/15 py-1.5 text-center font-semibold text-primary">
-                  Comando
-                </div>
-                <div className="flex-1 py-1.5 text-center text-white/50">Ações</div>
-                <div className="flex-1 py-1.5 text-center text-white/50">Histórico</div>
-              </div>
-
-              <div className="rounded-xl border border-white/5 bg-black/40 p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                    Insira seu prompt
-                  </span>
-                  <span className="chip-neon rounded-full px-2 py-0.5 text-[10px] font-bold">
-                    Assistido
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  <div className="h-1.5 w-4/5 rounded bg-white/10" />
-                  <div className="h-1.5 w-3/5 rounded bg-white/10" />
-                  <div className="h-1.5 w-2/3 rounded bg-white/10" />
-                </div>
-                <button className="btn-neon mt-4 w-full rounded-lg py-2 text-[11px] font-bold uppercase tracking-widest text-white">
-                  Enviar
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="absolute -bottom-4 -left-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/70 p-3 pr-4 backdrop-blur-xl">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 shadow-[0_0_20px_oklch(0.63_0.245_25/0.6)]">
-              <CheckCircle2 className="h-5 w-5 text-white" />
-            </div>
-            <div className="text-[11px] leading-tight">
-              <div className="font-bold">Licença ativa</div>
-              <div className="text-white/50">Validada em tempo real</div>
+              <div className="text-sm text-white/50">Espaço reservado para o vídeo da extensão</div>
             </div>
           </div>
         </div>
