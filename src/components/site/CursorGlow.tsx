@@ -24,8 +24,8 @@ export function CursorGlow() {
     };
 
     const tick = () => {
-      currentX += (targetX - currentX) * 0.18;
-      currentY += (targetY - currentY) * 0.18;
+      currentX += (targetX - currentX) * 0.22;
+      currentY += (targetY - currentY) * 0.22;
       el.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) translate(-50%, -50%)`;
       raf = requestAnimationFrame(tick);
     };
@@ -45,12 +45,8 @@ export function CursorGlow() {
     <div
       ref={ref}
       aria-hidden="true"
-      className="pointer-events-none fixed left-0 top-0 z-[9999] h-[380px] w-[380px] rounded-full opacity-0 transition-opacity duration-300 mix-blend-screen"
-      style={{
-        background:
-          "radial-gradient(circle, rgba(255,40,40,0.35) 0%, rgba(255,20,20,0.18) 25%, rgba(255,0,0,0.06) 50%, transparent 70%)",
-        filter: "blur(20px)",
-      }}
+      className="pointer-events-none fixed left-0 top-0 z-[9999] h-3 w-3 rounded-full opacity-0 transition-opacity duration-200"
+      style={{ background: "#ff2222" }}
     />
   );
 }
