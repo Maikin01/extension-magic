@@ -467,8 +467,9 @@
   cursor: default;
 }
 .browser-logo {
-  filter: grayscale(1) brightness(1.6) opacity(0.35);
-  transition: filter 0.35s ease, transform 0.35s ease;
+  filter: none;
+  opacity: 1;
+  transition: transform 0.35s ease, filter 0.35s ease;
 }
 .browser-label {
   font-family: "Barlow Condensed", "Sora", system-ui, sans-serif;
@@ -476,17 +477,17 @@
   font-size: 2rem;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: oklch(1 0 0 / 0.35);
+  color: oklch(1 0 0 / 0.55);
   transition: color 0.35s ease, text-shadow 0.35s ease;
   line-height: 1;
 }
 .browser-item:hover .browser-logo {
-  filter: grayscale(0) brightness(1) opacity(1);
-  transform: scale(1.05);
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 12px oklch(1 0 0 / 0.25));
 }
 .browser-item:hover .browser-label {
   color: #ffffff;
-  text-shadow: 0 0 24px oklch(1 0 0 / 0.15);
+  text-shadow: 0 0 24px oklch(1 0 0 / 0.25);
 }
 
 /* LED neon line — glowing red runner across the 3 steps */
