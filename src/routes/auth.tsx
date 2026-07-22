@@ -205,15 +205,18 @@ function AuthPage() {
 
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-background to-muted/30 px-4 py-12">
+      <div className="auth-shell w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2 font-semibold">
-          <span className="font-display text-xl tracking-tight">
+          <span className="auth-wordmark font-display text-2xl tracking-tight">
             RISE <span className="text-gradient-red">LOVABLE</span>
           </span>
         </Link>
 
-        <Card className="p-6">
+        <div className="auth-card p-6">
+          <span className="auth-led auth-led-top" />
+          <span className="auth-led auth-led-bottom" />
+
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AuthTab)}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Entrar</TabsTrigger>
@@ -228,15 +231,15 @@ function AuthPage() {
           </Tabs>
 
           <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">ou</span>
-            <div className="h-px flex-1 bg-border" />
+            <div className="h-px flex-1 bg-white/10" />
+            <span className="text-xs uppercase tracking-wider text-white/50">ou</span>
+            <div className="h-px flex-1 bg-white/10" />
           </div>
 
           <GoogleButton next={authParams.next} plan={authParams.plan} />
-        </Card>
+        </div>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
+        <p className="mt-6 text-center text-xs text-white/50">
           Ao continuar você concorda com nossos termos de uso.
         </p>
       </div>
