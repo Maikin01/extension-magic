@@ -515,8 +515,9 @@
 
                 // sincroniza estado inicial do botão
                 chrome.storage.local.get(['lvbl_use_standard_chat'], (v) => {
-                    setStandardChatButton(!!v.lvbl_use_standard_chat);
-                    notifyStandardChatTabs(!!v.lvbl_use_standard_chat);
+                    const active = v.lvbl_use_standard_chat === false ? false : true;
+                    setStandardChatButton(active);
+                    notifyStandardChatTabs(active);
                 });
             }
 
