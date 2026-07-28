@@ -147,7 +147,7 @@ export function KeyStore() {
       </section>
 
       <section>
-        <Card className="relative overflow-hidden border-border/60 bg-card/60 p-6 backdrop-blur">
+        <Card className="relative overflow-hidden border-border/60 bg-card p-6">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0"

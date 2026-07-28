@@ -114,7 +114,7 @@ function ResellerPanelPage() {
           />
         </div>
 
-        <nav className="mb-8 inline-flex flex-wrap gap-2 rounded-full border border-border/60 bg-card/50 p-1 backdrop-blur">
+        <nav className="mb-8 inline-flex flex-wrap gap-2 rounded-full border border-border/60 bg-card p-1">
           {(
             [
               { key: "chaves", label: "Comprar chaves", icon: KeyRound },
