@@ -120,18 +120,8 @@
             selected_elements: [],
             chat_only: false,
             optimisticImageUrls: [],
-            intent: 'fix_error',
-            message_intent_metadata: {
-                fix_error_metadata: {
-                    errors: [{
-                        error_type: 'build',
-                        error_message: '',
-                        build_event_id: FALLBACK_EVENT_ID,
-                    }],
-                },
-            },
-            contains_error: true,
-            error_ids: [FALLBACK_EVENT_ID],
+            contains_error: false,
+            error_ids: [],
             ai_message_id: ids.aiMessageId,
             thread_id: 'main',
             current_page: location.pathname,
