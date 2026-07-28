@@ -117,13 +117,13 @@ async function claimTrialLicense(context: AuthContext) {
   }
   const { data: plan, error } = await admin.from("plans").select("*").eq("slug", "trial").single();
   if (error || !plan) throw new Error("Plano de teste não encontrado.");
-  const now = new Date();
+  // A contagem do tempo só começa na primeira ativação da chave na extensão.
   const license = await insertUniqueLicense(admin, {
     user_id: userId,
     plan_id: plan.id,
-    status: "active",
-    activated_at: now.toISOString(),
-    expires_at: new Date(now.getTime() + 10 * 60_000).toISOString(),
+    status: "pending",
+    activated_at: null,
+    expires_at: null,
   });
   return { license, existed: false };
 }
@@ -198,9 +198,37 @@ async function adminUpdateLicenseStatus(context: AuthContext, input: unknown) {
       status: z.enum(["active", "expired", "suspended", "revoked", "pending"]),
     })
     .parse(input);
+  const patch: Record<string, unknown> = { status: data.status };
+  if (data.status === "pending") {
+    // Volta a chave para "não ativada": o tempo recomeça na próxima ativação.
+    patch.activated_at = null;
+    patch.expires_at = null;
+  } else if (data.status === "active") {
+    const { data: license } = await context.admin
+      .from("licenses")
+      .select("*, plans(duration_days, duration_minutes)")
+      .eq("id", data.license_id)
+      .maybeSingle();
+    if (license && !license.expires_at) {
+      const durationMs = license.custom_duration_seconds
+        ? license.custom_duration_seconds * 1_000
+        : license.custom_duration_minutes
+          ? license.custom_duration_minutes * 60_000
+          : license.plans?.duration_minutes
+            ? license.plans.duration_minutes * 60_000
+            : license.plans?.duration_days
+              ? license.plans.duration_days * 86_400_000
+              : 0;
+      if (durationMs) {
+        const now = Date.now();
+        patch.activated_at = new Date(now).toISOString();
+        patch.expires_at = new Date(now + durationMs).toISOString();
+      }
+    }
+  }
   const { error } = await context.admin
     .from("licenses")
-    .update({ status: data.status })
+    .update(patch)
     .eq("id", data.license_id);
   if (error) throw error;
   await context.admin.from("admin_audit_log").insert({
