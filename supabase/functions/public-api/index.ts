@@ -1,10 +1,6 @@
 import { createAdminClient, hasRole } from "../_shared/supabase.ts";
 import { errorResponse, json, options, readJson } from "../_shared/http.ts";
-import {
-  hashLicenseKey,
-  normalizeLicenseKey,
-  resolveLicenseBrandingCode,
-} from "../_shared/license.ts";
+import { hashLicenseKey, normalizeLicenseKey } from "../_shared/license.ts";
 
 function clientIp(request: Request): string | null {
   return (
@@ -190,7 +186,6 @@ async function activateLicense(request: Request, payload: any): Promise<Response
     server_now: new Date(nowMs).toISOString(),
     activated_at: effective.activated_at,
     max_devices: maxDevices,
-    branding_code: await resolveLicenseBrandingCode(admin, effective.user_id),
   });
 }
 
@@ -258,7 +253,6 @@ async function validateLicense(request: Request, payload: any): Promise<Response
     server_now: new Date(nowMs).toISOString(),
     activated_at: license.activated_at,
     max_devices: maxDevices,
-    branding_code: await resolveLicenseBrandingCode(admin, license.user_id),
   });
 }
 
