@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Rise Lovable",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Rise Lovable — assistente para Lovable.dev",
   "permissions": [
     "activeTab",
@@ -17,7 +17,6 @@
     "https://*.storage.googleapis.com/*",
     "https://*.googleapis.com/*",
     "https://riselovable.lovable.app/*",
-    "https://paokcsxuxipnbnbgnlzs.supabase.co/*",
     "https://*.lovable.app/*"
   ],
   "action": {
