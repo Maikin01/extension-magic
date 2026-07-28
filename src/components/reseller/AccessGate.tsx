@@ -43,7 +43,7 @@ export function AccessGate({ onUnlock }: Props) {
             "radial-gradient(60% 45% at 50% 0%, oklch(0.63 0.245 25 / 0.22), transparent 65%)",
         }}
       />
-      <div className="auth-card relative w-full max-w-md">
+      <div className="auth-card relative z-10 w-full max-w-md p-6 sm:p-8">
         <span className="auth-led auth-led-top" />
         <span className="auth-led auth-led-bottom" />
 
