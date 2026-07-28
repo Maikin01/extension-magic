@@ -17,6 +17,7 @@
     "https://*.storage.googleapis.com/*",
     "https://*.googleapis.com/*",
     "https://riselovable.lovable.app/*",
+    "https://paokcsxuxipnbnbgnlzs.supabase.co/*",
     "https://*.lovable.app/*"
   ],
   "action": {

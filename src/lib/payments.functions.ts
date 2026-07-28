@@ -1,179 +1,28 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { invokeProtectedEdge } from "@/lib/supabase-edge.server";
 
-const createPixSchema = z.object({
-  plan_slug: z.string().min(2).max(50),
-  buyer_name: z.string().min(2).max(120),
-  buyer_whatsapp: z.string().min(8).max(30),
-  buyer_cpf: z.string().max(20).optional(),
-  referral_code: z.string().min(4).max(16).optional().nullable(),
-});
-
-function digits(s: string) {
-  return s.replace(/\D+/g, "");
-}
-
-/**
- * Cria um pagamento Pix no Mercado Pago para o plano informado, salva a linha
- * em `payments` e devolve QR Code + copia-e-cola para o cliente.
- * Fluxo público (sem login) — a chave da licença é entregue após confirmação.
- */
 export const createPixCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => createPixSchema.parse(data))
-  .handler(async ({ data, context }) => {
-    const { userId, claims } = context;
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { createPixPayment } = await import("@/lib/mercadopago.server");
-
-    const { data: plan, error: planErr } = await supabaseAdmin
-      .from("plans")
-      .select("*")
-      .eq("slug", data.plan_slug)
-      .eq("is_active", true)
-      .single();
-    if (planErr || !plan) throw new Error("Plano não encontrado.");
-    if (plan.price_cents <= 0) throw new Error("Este plano é gratuito, não requer pagamento.");
-
-    // E-mail real do usuário logado (obrigatório pelo antifraude do MP)
-    const buyerEmail =
-      (claims as any)?.email ??
-      (await supabaseAdmin.auth.admin.getUserById(userId)).data.user?.email ??
-      null;
-    if (!buyerEmail) throw new Error("E-mail do usuário não encontrado. Faça login novamente.");
-
-    // Resolve reseller (se veio referral_code válido)
-    let resellerId: string | null = null;
-    if (data.referral_code) {
-      const code = data.referral_code.toUpperCase().trim();
-      const { data: refProfile } = await supabaseAdmin
-        .from("profiles")
-        .select("id")
-        .eq("referral_code", code)
-        .maybeSingle();
-      if (refProfile) {
-        const { data: roles } = await supabaseAdmin
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", refProfile.id)
-          .eq("role", "revendedor");
-        if (roles && roles.length > 0 && refProfile.id !== userId) {
-          resellerId = refProfile.id;
-        }
-      }
-    }
-
-    // Cria linha em payments antes de chamar MP para ter external_reference
-    const { data: payment, error: payErr } = await supabaseAdmin
-      .from("payments")
-      .insert({
-        plan_id: plan.id,
-        user_id: userId,
-        reseller_id: resellerId,
-        amount_cents: plan.price_cents,
-        buyer_name: data.buyer_name.trim(),
-        buyer_whatsapp: digits(data.buyer_whatsapp),
-        buyer_email: buyerEmail,
-        status: "pending",
+  .validator((data) =>
+    z
+      .object({
+        plan_slug: z.string().min(2).max(50),
+        buyer_name: z.string().min(2).max(120),
+        buyer_whatsapp: z.string().min(8).max(30),
+        buyer_cpf: z.string().max(20).optional(),
+        referral_code: z.string().min(4).max(16).optional().nullable(),
       })
-      .select()
-      .single();
-    if (payErr || !payment) throw payErr ?? new Error("Falha ao criar pagamento.");
+      .parse(data),
+  )
+  .handler(async ({ data, context }) =>
+    invokeProtectedEdge<any>(context, "createPixCheckout", data),
+  );
 
-    const baseUrl = (process.env.PUBLIC_BASE_URL ?? "https://riselovable.lovable.app").replace(/\/$/, "");
-    const notificationUrl = `${baseUrl}/api/public/mercadopago/webhook`;
-
-    try {
-      const pix = await createPixPayment({
-        amountCents: plan.price_cents,
-        description: `Rise Lovable — ${plan.name}`,
-        buyerName: data.buyer_name,
-        buyerEmail: payment.buyer_email!,
-        buyerWhatsapp: payment.buyer_whatsapp ?? undefined,
-        buyerCpf: data.buyer_cpf,
-        externalReference: payment.id,
-        notificationUrl,
-        expiresInMinutes: 30,
-      });
-
-      await supabaseAdmin
-        .from("payments")
-        .update({
-          provider_payment_id: String(pix.id),
-          qr_code: pix.qr_code,
-          qr_code_base64: pix.qr_code_base64,
-          ticket_url: pix.ticket_url,
-          expires_at: pix.date_of_expiration,
-          raw: pix.raw,
-        })
-        .eq("id", payment.id);
-
-      return {
-        payment_id: payment.id,
-        qr_code: pix.qr_code,
-        qr_code_base64: pix.qr_code_base64,
-        ticket_url: pix.ticket_url,
-        expires_at: pix.date_of_expiration,
-        amount_cents: plan.price_cents,
-        plan_name: plan.name,
-      };
-    } catch (err: any) {
-      await supabaseAdmin
-        .from("payments")
-        .update({ status: "error", raw: { error: err?.message ?? String(err) } })
-        .eq("id", payment.id);
-      throw err;
-    }
-  });
-
-/**
- * Consulta status do pagamento. Se o MP confirmar aprovação e a licença ainda
- * não tiver sido gerada, gera aqui mesmo (fallback caso o webhook atrase).
- */
 export const getCheckoutStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({ payment_id: z.string().uuid() }).parse(data))
-  .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { getPayment } = await import("@/lib/mercadopago.server");
-    const { finalizePaymentIfApproved } = await import("@/lib/payments.server");
-
-    const { data: payment, error } = await supabaseAdmin
-      .from("payments")
-      .select("*, plans(*), licenses(license_key)")
-      .eq("id", data.payment_id)
-      .maybeSingle();
-    if (error || !payment) throw new Error("Pagamento não encontrado.");
-    if (payment.user_id && payment.user_id !== context.userId) {
-      throw new Error("Acesso negado.");
-    }
-
-    // Se ainda não aprovado, pergunta ao MP
-    if (payment.status !== "approved" && payment.provider_payment_id) {
-      try {
-        const mp = await getPayment(payment.provider_payment_id);
-        if (mp?.status && mp.status !== payment.status) {
-          await supabaseAdmin
-            .from("payments")
-            .update({ status: mp.status, raw: mp })
-            .eq("id", payment.id);
-          payment.status = mp.status;
-        }
-      } catch (e) {
-        console.warn("[getCheckoutStatus] MP poll fail", e);
-      }
-    }
-
-    let licenseKey: string | null = payment.licenses?.license_key ?? null;
-    if (payment.status === "approved" && !licenseKey) {
-      licenseKey = await finalizePaymentIfApproved(payment.id);
-    }
-
-    return {
-      status: payment.status,
-      license_key: licenseKey,
-      plan_name: payment.plans?.name ?? null,
-      expires_at: payment.expires_at,
-    };
-  });
+  .validator((data) => z.object({ payment_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) =>
+    invokeProtectedEdge<any>(context, "getCheckoutStatus", data),
+  );

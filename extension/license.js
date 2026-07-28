@@ -1,7 +1,7 @@
 // License gate — controla acesso ao chat sem tocar em popup.js
 // Roda ANTES de popup.js e mantém o chat oculto até validar a chave.
 
-const LICENSE_API_BASE = 'https://riselovable.lovable.app';
+const LICENSE_API_BASE = 'https://paokcsxuxipnbnbgnlzs.supabase.co/functions/v1/public-api';
 const STORAGE_KEYS = {
     key: 'lvbl_license_key',
     deviceHash: 'lvbl_device_hash',
@@ -158,7 +158,7 @@ function updateCountdown(info, checkedAt) {
 
 async function apiActivate(key, deviceHash) {
     try {
-        const res = await fetch(`${LICENSE_API_BASE}/api/public/license/activate`, {
+        const res = await fetch(`${LICENSE_API_BASE}/license/activate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -178,7 +178,7 @@ async function apiActivate(key, deviceHash) {
 
 async function apiValidate(key, deviceHash, silent = false) {
     try {
-        const res = await fetch(`${LICENSE_API_BASE}/api/public/license/validate`, {
+        const res = await fetch(`${LICENSE_API_BASE}/license/validate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ key, device_hash: deviceHash, silent }),

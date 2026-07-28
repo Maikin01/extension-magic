@@ -1,0 +1,878 @@
+import { z } from "npm:zod@3.25.76";
+import { errorResponse, json, options, readJson } from "../_shared/http.ts";
+import { assertRole, hasRole, requireUser, type AuthContext } from "../_shared/supabase.ts";
+import { insertUniqueLicense } from "../_shared/license.ts";
+import { createPixPayment, getPayment } from "../_shared/mercadopago.ts";
+import { finalizePaymentIfApproved } from "../_shared/payments.ts";
+import { hashAdminPassword, verifyAdminPassword } from "../_shared/admin-password.ts";
+
+const ADMIN_ROLES = ["admin", "owner"];
+const rangeSchema = z.object({
+  from: z.string().datetime().optional().nullable(),
+  to: z.string().datetime().optional().nullable(),
+});
+const planSchema = z.object({
+  slug: z
+    .string()
+    .min(2)
+    .max(50)
+    .regex(/^[a-z0-9_-]+$/),
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional().nullable(),
+  duration_days: z.number().int().min(1).max(3650),
+  price_cents: z.number().int().min(0),
+  max_devices: z.number().int().min(1).max(50),
+  is_active: z.boolean(),
+  sort_order: z.number().int().min(0).max(999),
+  features: z.array(z.string()).optional(),
+});
+
+async function assertAdmin(context: AuthContext) {
+  await assertRole(context.admin, context.userId, ADMIN_ROLES);
+  return context.userId;
+}
+
+function assertRecentMfa(claims: Record<string, unknown>) {
+  if (claims.aal !== "aal2") throw new Error("Verificação em duas etapas exigida.");
+  const issuedAt = Number(claims.iat ?? 0);
+  if (!issuedAt || Math.floor(Date.now() / 1000) - issuedAt > 5 * 60) {
+    throw new Error("Código do autenticador expirou. Verifique novamente.");
+  }
+}
+
+function summarize(rows: any[]) {
+  const paid = rows.filter((row) => row.status === "approved");
+  return {
+    total_sales: paid.length,
+    total_amount_cents: paid.reduce((total, row) => total + (row.amount_cents ?? 0), 0),
+    pending_count: rows.filter((row) => row.status === "pending").length,
+    all_count: rows.length,
+  };
+}
+
+function mapSales(rows: any[]) {
+  return rows.map((row) => ({
+    id: row.id,
+    status: row.status,
+    amount_cents: row.amount_cents,
+    created_at: row.created_at,
+    paid_at: row.paid_at,
+    buyer_name: row.buyer_name,
+    buyer_email: row.buyer_email,
+    plan_name: row.plans?.name ?? null,
+  }));
+}
+
+async function getMyDashboard(context: AuthContext) {
+  const { admin, userId } = context;
+  const [licensesResult, profileResult] = await Promise.all([
+    admin
+      .from("licenses")
+      .select("*, plans(*)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false }),
+    admin.from("profiles").select("*").eq("id", userId).maybeSingle(),
+  ]);
+  if (licensesResult.error) throw licensesResult.error;
+  if (profileResult.error) throw profileResult.error;
+  const licenses = licensesResult.data ?? [];
+  const currentLicense =
+    licenses.find((license) => license.status === "active") ??
+    licenses.find((license) => license.status === "pending") ??
+    licenses[0] ??
+    null;
+  let devices: any[] = [];
+  let logs: any[] = [];
+  if (currentLicense) {
+    const [devicesResult, logsResult] = await Promise.all([
+      admin.from("devices").select("*").eq("license_id", currentLicense.id),
+      admin
+        .from("activation_logs")
+        .select("*")
+        .eq("license_id", currentLicense.id)
+        .order("created_at", { ascending: false })
+        .limit(20),
+    ]);
+    if (devicesResult.error) throw devicesResult.error;
+    if (logsResult.error) throw logsResult.error;
+    devices = devicesResult.data ?? [];
+    logs = logsResult.data ?? [];
+  }
+  return { profile: profileResult.data, licenses, currentLicense, devices, logs };
+}
+
+async function claimTrialLicense(context: AuthContext) {
+  const { admin, userId } = context;
+  const { data: existing } = await admin
+    .from("licenses")
+    .select("*, plans!inner(slug)")
+    .eq("user_id", userId)
+    .eq("plans.slug", "trial")
+    .in("status", ["active", "pending"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existing && (!existing.expires_at || new Date(existing.expires_at).getTime() > Date.now())) {
+    return { license: existing, existed: true };
+  }
+  const { data: plan, error } = await admin.from("plans").select("*").eq("slug", "trial").single();
+  if (error || !plan) throw new Error("Plano de teste não encontrado.");
+  const now = new Date();
+  const license = await insertUniqueLicense(admin, {
+    user_id: userId,
+    plan_id: plan.id,
+    status: "active",
+    activated_at: now.toISOString(),
+    expires_at: new Date(now.getTime() + 10 * 60_000).toISOString(),
+  });
+  return { license, existed: false };
+}
+
+async function createManualLicense(context: AuthContext, input: unknown) {
+  const data = z.object({ plan_slug: z.string().min(1) }).parse(input);
+  const { data: plan, error } = await context.admin
+    .from("plans")
+    .select("*")
+    .eq("slug", data.plan_slug)
+    .eq("is_active", true)
+    .single();
+  if (error || !plan) throw new Error("Plano não encontrado.");
+  return {
+    license: await insertUniqueLicense(context.admin, {
+      user_id: context.userId,
+      plan_id: plan.id,
+      status: "pending",
+    }),
+  };
+}
+
+async function getAdminOverview(context: AuthContext) {
+  await assertAdmin(context);
+  const { admin } = context;
+  const [licensesResult, profilesResult, usersResult, plansResult, logsResult] = await Promise.all([
+    admin
+      .from("licenses")
+      .select("*, plans(name, slug)")
+      .order("created_at", { ascending: false })
+      .limit(500),
+    admin.from("profiles").select("id, full_name, avatar_url"),
+    admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
+    admin.from("plans").select("*").order("sort_order"),
+    admin.from("activation_logs").select("*").order("created_at", { ascending: false }).limit(50),
+  ]);
+  if (licensesResult.error) throw licensesResult.error;
+  if (usersResult.error) throw usersResult.error;
+  const profiles = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile]));
+  const emails = new Map(
+    (usersResult.data.users ?? []).map((user) => [user.id, user.email ?? null]),
+  );
+  const licenses = (licensesResult.data ?? []).map((license) => ({
+    ...license,
+    profiles: license.user_id
+      ? {
+          full_name: profiles.get(license.user_id)?.full_name ?? null,
+          email: emails.get(license.user_id) ?? null,
+        }
+      : null,
+  }));
+  return {
+    counts: {
+      active: licenses.filter((license) => license.status === "active").length,
+      pending: licenses.filter((license) => license.status === "pending").length,
+      expired: licenses.filter((license) => license.status === "expired").length,
+      revoked: licenses.filter((license) => license.status === "revoked").length,
+      suspended: licenses.filter((license) => license.status === "suspended").length,
+      total_users: usersResult.data.users.length,
+    },
+    licenses,
+    plans: plansResult.data ?? [],
+    logs: logsResult.data ?? [],
+  };
+}
+
+async function adminUpdateLicenseStatus(context: AuthContext, input: unknown) {
+  const adminId = await assertAdmin(context);
+  const data = z
+    .object({
+      license_id: z.string().uuid(),
+      status: z.enum(["active", "expired", "suspended", "revoked", "pending"]),
+    })
+    .parse(input);
+  const { error } = await context.admin
+    .from("licenses")
+    .update({ status: data.status })
+    .eq("id", data.license_id);
+  if (error) throw error;
+  await context.admin.from("admin_audit_log").insert({
+    admin_id: adminId,
+    action: "update_license_status",
+    target_type: "license",
+    target_id: data.license_id,
+    details: { new_status: data.status },
+  });
+  return { ok: true };
+}
+
+async function adminGenerateLicenses(context: AuthContext, input: unknown) {
+  const adminId = await assertAdmin(context);
+  const data = z
+    .object({
+      plan_slug: z.string().min(1).optional().nullable(),
+      count: z.number().int().min(1).max(100),
+      email: z.string().email().optional().nullable(),
+      notes: z.string().max(500).optional().nullable(),
+      custom_duration_minutes: z
+        .number()
+        .int()
+        .min(1)
+        .max(60 * 24 * 3650)
+        .optional()
+        .nullable(),
+      custom_duration_seconds: z
+        .number()
+        .int()
+        .min(1)
+        .max(60 * 60 * 24 * 3650)
+        .optional()
+        .nullable(),
+      max_devices_override: z.number().int().min(1).max(50).optional().nullable(),
+    })
+    .refine(
+      (value) =>
+        !!value.plan_slug || !!value.custom_duration_minutes || !!value.custom_duration_seconds,
+    )
+    .parse(input);
+  let planId: string | null = null;
+  if (data.plan_slug) {
+    const { data: plan, error } = await context.admin
+      .from("plans")
+      .select("id")
+      .eq("slug", data.plan_slug)
+      .single();
+    if (error || !plan) throw new Error("Plano não encontrado.");
+    planId = plan.id;
+  }
+  let targetUserId: string | null = null;
+  if (data.email) {
+    const { data: users, error } = await context.admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 500,
+    });
+    if (error) throw error;
+    targetUserId =
+      users.users.find((user) => user.email?.toLowerCase() === data.email?.toLowerCase())?.id ??
+      null;
+    if (!targetUserId) throw new Error(`Usuário com email ${data.email} não encontrado.`);
+  }
+  const licenses = [];
+  for (let index = 0; index < data.count; index++) {
+    licenses.push(
+      await insertUniqueLicense(context.admin, {
+        user_id: targetUserId,
+        plan_id: planId,
+        status: "pending",
+        notes: data.notes ?? null,
+        custom_duration_minutes: data.custom_duration_minutes ?? null,
+        custom_duration_seconds: data.custom_duration_seconds ?? null,
+        max_devices_override: data.max_devices_override ?? null,
+      }),
+    );
+  }
+  await context.admin.from("admin_audit_log").insert({
+    admin_id: adminId,
+    action: "generate_licenses",
+    target_type: "license",
+    details: { ...data, count: licenses.length },
+  });
+  return { licenses };
+}
+
+async function adminDeleteLicense(context: AuthContext, input: unknown) {
+  const adminId = await assertAdmin(context);
+  const data = z.object({ license_id: z.string().uuid() }).parse(input);
+  const { error } = await context.admin.from("licenses").delete().eq("id", data.license_id);
+  if (error) throw error;
+  await context.admin.from("admin_audit_log").insert({
+    admin_id: adminId,
+    action: "delete_license",
+    target_type: "license",
+    target_id: data.license_id,
+  });
+  return { ok: true };
+}
+
+async function adminCreatePlan(context: AuthContext, input: unknown) {
+  const adminId = await assertAdmin(context);
+  const data = planSchema.parse(input);
+  const { data: plan, error } = await context.admin
+    .from("plans")
+    .insert({ ...data, features: data.features ?? [] })
+    .select()
+    .single();
+  if (error) throw error;
+  await context.admin.from("admin_audit_log").insert({
+    admin_id: adminId,
+    action: "create_plan",
+    target_type: "plan",
+    target_id: plan.id,
+    details: data,
+  });
+  return { plan };
+}
+
+async function adminUpdatePlan(context: AuthContext, input: unknown) {
+  const adminId = await assertAdmin(context);
+  const data = planSchema.extend({ id: z.string().uuid() }).parse(input);
+  const { id, ...updates } = data;
+  const { data: plan, error } = await context.admin
+    .from("plans")
+    .update({ ...updates, features: updates.features ?? [] })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  await context.admin.from("admin_audit_log").insert({
+    admin_id: adminId,
+    action: "update_plan",
+    target_type: "plan",
+    target_id: id,
+    details: updates,
+  });
+  return { plan };
+}
+
+async function adminListUsers(context: AuthContext) {
+  await assertAdmin(context);
+  const [usersResult, profilesResult, rolesResult, licensesResult] = await Promise.all([
+    context.admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
+    context.admin.from("profiles").select("*"),
+    context.admin.from("user_roles").select("*"),
+    context.admin.from("licenses").select("user_id, status"),
+  ]);
+  if (usersResult.error) throw usersResult.error;
+  const profiles = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile]));
+  const roles = new Map<string, string[]>();
+  for (const role of rolesResult.data ?? [])
+    roles.set(role.user_id, [...(roles.get(role.user_id) ?? []), role.role]);
+  const licenseCounts = new Map<string, number>();
+  for (const license of licensesResult.data ?? []) {
+    if (license.user_id)
+      licenseCounts.set(license.user_id, (licenseCounts.get(license.user_id) ?? 0) + 1);
+  }
+  return usersResult.data.users.map((user) => ({
+    id: user.id,
+    email: user.email ?? null,
+    created_at: user.created_at,
+    last_sign_in_at: user.last_sign_in_at ?? null,
+    full_name: profiles.get(user.id)?.full_name ?? null,
+    avatar_url: profiles.get(user.id)?.avatar_url ?? null,
+    roles: roles.get(user.id) ?? [],
+    license_count: licenseCounts.get(user.id) ?? 0,
+  }));
+}
+
+async function adminSetUserRole(context: AuthContext, input: unknown) {
+  const adminId = await assertAdmin(context);
+  const data = z
+    .object({
+      user_id: z.string().uuid(),
+      role: z.enum(["admin", "user", "cliente", "revendedor", "owner"]),
+      action: z.enum(["grant", "revoke"]),
+    })
+    .parse(input);
+  if (
+    data.user_id === adminId &&
+    ["admin", "owner"].includes(data.role) &&
+    data.action === "revoke"
+  ) {
+    throw new Error("Você não pode remover seu próprio acesso de admin/owner.");
+  }
+  if (data.action === "grant") {
+    const { error } = await context.admin
+      .from("user_roles")
+      .insert({ user_id: data.user_id, role: data.role });
+    if (error && !/duplicate|unique/i.test(error.message)) throw error;
+  } else {
+    const { error } = await context.admin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", data.user_id)
+      .eq("role", data.role);
+    if (error) throw error;
+  }
+  await context.admin.from("admin_audit_log").insert({
+    admin_id: adminId,
+    action: `${data.action}_role`,
+    target_type: "user",
+    target_id: data.user_id,
+    details: { role: data.role },
+  });
+  return { ok: true };
+}
+
+async function adminDeleteUser(context: AuthContext, input: unknown) {
+  const adminId = await assertAdmin(context);
+  const data = z.object({ user_id: z.string().uuid() }).parse(input);
+  if (data.user_id === adminId) throw new Error("Você não pode excluir sua própria conta.");
+  const { error } = await context.admin.auth.admin.deleteUser(data.user_id);
+  if (error) throw error;
+  await context.admin.from("admin_audit_log").insert({
+    admin_id: adminId,
+    action: "delete_user",
+    target_type: "user",
+    target_id: data.user_id,
+    details: {},
+  });
+  return { ok: true };
+}
+
+async function adminGetAuditLog(context: AuthContext) {
+  await assertAdmin(context);
+  const { data, error } = await context.admin
+    .from("admin_audit_log")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return data ?? [];
+}
+
+async function adminListPayments(context: AuthContext) {
+  await assertAdmin(context);
+  const { data, error } = await context.admin
+    .from("payments")
+    .select(
+      "id, status, amount_cents, buyer_name, buyer_whatsapp, buyer_email, provider_payment_id, paid_at, expires_at, created_at, plans(name, slug), licenses(license_key)",
+    )
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  return data ?? [];
+}
+
+async function getMyResellerInfo(context: AuthContext) {
+  await assertRole(context.admin, context.userId, "revendedor");
+  const profileResult = await context.admin
+    .from("profiles")
+    .select("id, full_name, referral_code")
+    .eq("id", context.userId)
+    .maybeSingle();
+  if (profileResult.error) throw profileResult.error;
+  let profile = profileResult.data;
+  if (!profile?.referral_code) {
+    const generated = await context.admin.rpc("generate_referral_code", {
+      _user_id: context.userId,
+    });
+    if (generated.error) throw generated.error;
+    const refreshed = await context.admin
+      .from("profiles")
+      .select("id, full_name, referral_code")
+      .eq("id", context.userId)
+      .single();
+    if (refreshed.error) throw refreshed.error;
+    profile = refreshed.data;
+  }
+  return { referral_code: profile?.referral_code ?? null, full_name: profile?.full_name ?? null };
+}
+
+async function getResellerStats(context: AuthContext, input: unknown) {
+  await assertRole(context.admin, context.userId, "revendedor");
+  const range = rangeSchema.parse(input);
+  let query = context.admin
+    .from("payments")
+    .select("id, status, amount_cents, created_at, paid_at, buyer_name, buyer_email, plans(name)")
+    .eq("reseller_id", context.userId)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (range.from) query = query.gte("created_at", range.from);
+  if (range.to) query = query.lte("created_at", range.to);
+  const { data, error } = await query;
+  if (error) throw error;
+  const sales = mapSales(data ?? []);
+  return { sales, summary: summarize(sales) };
+}
+
+async function adminListResellers(context: AuthContext, input: unknown) {
+  await assertAdmin(context);
+  const range = rangeSchema.parse(input);
+  const { data: roles, error } = await context.admin
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "revendedor");
+  if (error) throw error;
+  const resellerIds = (roles ?? []).map((role) => role.user_id);
+  if (!resellerIds.length)
+    return { resellers: [], global: { total_amount_cents: 0, total_sales: 0, pending_count: 0 } };
+
+  let paymentsQuery = context.admin
+    .from("payments")
+    .select("reseller_id, status, amount_cents, created_at")
+    .in("reseller_id", resellerIds);
+  if (range.from) paymentsQuery = paymentsQuery.gte("created_at", range.from);
+  if (range.to) paymentsQuery = paymentsQuery.lte("created_at", range.to);
+  const [profilesResult, usersResult, paymentsResult] = await Promise.all([
+    context.admin.from("profiles").select("id, full_name, referral_code").in("id", resellerIds),
+    context.admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
+    paymentsQuery,
+  ]);
+  if (usersResult.error) throw usersResult.error;
+  if (paymentsResult.error) throw paymentsResult.error;
+  const emails = new Map(usersResult.data.users.map((user) => [user.id, user.email ?? null]));
+  const profiles = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile]));
+  const totals = new Map(resellerIds.map((id) => [id, { paid: 0, paidCents: 0, pending: 0 }]));
+  let globalPaidCents = 0;
+  let globalPaid = 0;
+  let globalPending = 0;
+  for (const payment of paymentsResult.data ?? []) {
+    const bucket = totals.get(payment.reseller_id);
+    if (!bucket) continue;
+    if (payment.status === "approved") {
+      bucket.paid++;
+      bucket.paidCents += payment.amount_cents ?? 0;
+      globalPaid++;
+      globalPaidCents += payment.amount_cents ?? 0;
+    } else if (payment.status === "pending") {
+      bucket.pending++;
+      globalPending++;
+    }
+  }
+  const resellers = resellerIds
+    .map((id) => ({
+      user_id: id,
+      email: emails.get(id) ?? null,
+      full_name: profiles.get(id)?.full_name ?? null,
+      referral_code: profiles.get(id)?.referral_code ?? null,
+      total_sales: totals.get(id)?.paid ?? 0,
+      total_amount_cents: totals.get(id)?.paidCents ?? 0,
+      pending_count: totals.get(id)?.pending ?? 0,
+    }))
+    .sort((a, b) => b.total_amount_cents - a.total_amount_cents);
+  return {
+    resellers,
+    global: {
+      total_amount_cents: globalPaidCents,
+      total_sales: globalPaid,
+      pending_count: globalPending,
+    },
+  };
+}
+
+async function adminGetResellerDetail(context: AuthContext, input: unknown) {
+  await assertAdmin(context);
+  const range = rangeSchema.extend({ user_id: z.string().uuid() }).parse(input);
+  let query = context.admin
+    .from("payments")
+    .select("id, status, amount_cents, created_at, paid_at, buyer_name, buyer_email, plans(name)")
+    .eq("reseller_id", range.user_id)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (range.from) query = query.gte("created_at", range.from);
+  if (range.to) query = query.lte("created_at", range.to);
+  const { data, error } = await query;
+  if (error) throw error;
+  const sales = mapSales(data ?? []);
+  return { sales, summary: summarize(sales) };
+}
+
+async function adminGetGlobalRevenue(context: AuthContext, input: unknown) {
+  await assertAdmin(context);
+  const range = rangeSchema.parse(input);
+  let query = context.admin
+    .from("payments")
+    .select("status, amount_cents, reseller_id, created_at");
+  if (range.from) query = query.gte("created_at", range.from);
+  if (range.to) query = query.lte("created_at", range.to);
+  const { data, error } = await query;
+  if (error) throw error;
+  const totals = {
+    total_amount_cents: 0,
+    total_sales: 0,
+    pending_count: 0,
+    via_reseller_amount_cents: 0,
+    via_reseller_sales: 0,
+    direct_amount_cents: 0,
+    direct_sales: 0,
+  };
+  for (const payment of data ?? []) {
+    if (payment.status === "pending") totals.pending_count++;
+    if (payment.status !== "approved") continue;
+    totals.total_amount_cents += payment.amount_cents ?? 0;
+    totals.total_sales++;
+    if (payment.reseller_id) {
+      totals.via_reseller_amount_cents += payment.amount_cents ?? 0;
+      totals.via_reseller_sales++;
+    } else {
+      totals.direct_amount_cents += payment.amount_cents ?? 0;
+      totals.direct_sales++;
+    }
+  }
+  return totals;
+}
+
+async function createPixCheckout(context: AuthContext, input: unknown) {
+  const data = z
+    .object({
+      plan_slug: z.string().min(2).max(50),
+      buyer_name: z.string().min(2).max(120),
+      buyer_whatsapp: z.string().min(8).max(30),
+      buyer_cpf: z.string().max(20).optional(),
+      referral_code: z.string().min(4).max(16).optional().nullable(),
+    })
+    .parse(input);
+  const { data: plan, error } = await context.admin
+    .from("plans")
+    .select("*")
+    .eq("slug", data.plan_slug)
+    .eq("is_active", true)
+    .single();
+  if (error || !plan) throw new Error("Plano não encontrado.");
+  if (plan.price_cents <= 0) throw new Error("Este plano é gratuito, não requer pagamento.");
+  if (!context.email) throw new Error("E-mail do usuário não encontrado. Faça login novamente.");
+  let resellerId: string | null = null;
+  if (data.referral_code) {
+    const code = data.referral_code.toUpperCase().trim();
+    const { data: profile } = await context.admin
+      .from("profiles")
+      .select("id")
+      .eq("referral_code", code)
+      .maybeSingle();
+    if (
+      profile &&
+      profile.id !== context.userId &&
+      (await hasRole(context.admin, profile.id, "revendedor"))
+    )
+      resellerId = profile.id;
+  }
+  const digits = (value: string) => value.replace(/\D+/g, "");
+  const { data: payment, error: insertError } = await context.admin
+    .from("payments")
+    .insert({
+      plan_id: plan.id,
+      user_id: context.userId,
+      reseller_id: resellerId,
+      amount_cents: plan.price_cents,
+      buyer_name: data.buyer_name.trim(),
+      buyer_whatsapp: digits(data.buyer_whatsapp),
+      buyer_email: context.email,
+      status: "pending",
+    })
+    .select()
+    .single();
+  if (insertError || !payment) throw insertError ?? new Error("Falha ao criar pagamento.");
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "");
+    if (!supabaseUrl) throw new Error("SUPABASE_URL não configurada.");
+    const pix = await createPixPayment({
+      amountCents: plan.price_cents,
+      description: `Rise Lovable — ${plan.name}`,
+      buyerName: data.buyer_name,
+      buyerEmail: context.email,
+      buyerWhatsapp: payment.buyer_whatsapp ?? undefined,
+      buyerCpf: data.buyer_cpf,
+      externalReference: payment.id,
+      notificationUrl: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
+      expiresInMinutes: 30,
+    });
+    const { error: updateError } = await context.admin
+      .from("payments")
+      .update({
+        provider_payment_id: String(pix.id),
+        qr_code: pix.qr_code,
+        qr_code_base64: pix.qr_code_base64,
+        ticket_url: pix.ticket_url,
+        expires_at: pix.date_of_expiration,
+        raw: pix.raw,
+      })
+      .eq("id", payment.id);
+    if (updateError) throw updateError;
+    return {
+      payment_id: payment.id,
+      qr_code: pix.qr_code,
+      qr_code_base64: pix.qr_code_base64,
+      ticket_url: pix.ticket_url,
+      expires_at: pix.date_of_expiration,
+      amount_cents: plan.price_cents,
+      plan_name: plan.name,
+    };
+  } catch (error) {
+    await context.admin
+      .from("payments")
+      .update({
+        status: "error",
+        raw: { error: error instanceof Error ? error.message : String(error) },
+      })
+      .eq("id", payment.id);
+    throw error;
+  }
+}
+
+async function getCheckoutStatus(context: AuthContext, input: unknown) {
+  const data = z.object({ payment_id: z.string().uuid() }).parse(input);
+  const { data: payment, error } = await context.admin
+    .from("payments")
+    .select("*, plans(*), licenses(license_key)")
+    .eq("id", data.payment_id)
+    .maybeSingle();
+  if (error || !payment) throw new Error("Pagamento não encontrado.");
+  if (payment.user_id && payment.user_id !== context.userId) throw new Error("Acesso negado.");
+  if (payment.status !== "approved" && payment.provider_payment_id) {
+    try {
+      const remote = await getPayment(payment.provider_payment_id);
+      if (remote?.status && remote.status !== payment.status) {
+        await context.admin
+          .from("payments")
+          .update({ status: remote.status, raw: remote })
+          .eq("id", payment.id);
+        payment.status = remote.status;
+      }
+    } catch (error) {
+      console.warn("[payment-poll]", error);
+    }
+  }
+  let licenseKey = payment.licenses?.license_key ?? null;
+  if (payment.status === "approved" && !licenseKey)
+    licenseKey = await finalizePaymentIfApproved(context.admin, payment.id);
+  return {
+    status: payment.status,
+    license_key: licenseKey,
+    plan_name: payment.plans?.name ?? null,
+    expires_at: payment.expires_at,
+  };
+}
+
+async function getAdminGateStatus(context: AuthContext) {
+  const isAdmin = await hasRole(context.admin, context.userId, ADMIN_ROLES);
+  if (!isAdmin) return { isAdmin: false, hasPassword: false, hasTotp: false };
+  const [credentialResult, factorsResult] = await Promise.all([
+    context.admin
+      .from("admin_credentials")
+      .select("user_id")
+      .eq("user_id", context.userId)
+      .maybeSingle(),
+    context.admin.auth.admin.mfa.listFactors({ userId: context.userId }),
+  ]);
+  if (credentialResult.error) throw credentialResult.error;
+  if (factorsResult.error) throw factorsResult.error;
+  const hasTotp = (factorsResult.data.factors ?? []).some(
+    (factor: any) => factor.factor_type === "totp" && factor.status === "verified",
+  );
+  return { isAdmin: true, hasPassword: !!credentialResult.data, hasTotp };
+}
+
+async function setAdminPassword(context: AuthContext, input: unknown) {
+  await assertAdmin(context);
+  assertRecentMfa(context.claims);
+  const data = z
+    .object({
+      newPassword: z.string().min(8).max(128),
+      currentPassword: z.string().max(128).optional(),
+    })
+    .parse(input);
+  const { data: existing, error } = await context.admin
+    .from("admin_credentials")
+    .select("password_hash")
+    .eq("user_id", context.userId)
+    .maybeSingle();
+  if (error) throw error;
+  if (existing) {
+    if (!data.currentPassword) throw new Error("Senha atual obrigatória.");
+    if (!(await verifyAdminPassword(data.currentPassword, existing.password_hash)))
+      throw new Error("Senha atual incorreta.");
+  }
+  const passwordHash = await hashAdminPassword(data.newPassword);
+  const { error: saveError } = await context.admin
+    .from("admin_credentials")
+    .upsert({ user_id: context.userId, password_hash: passwordHash });
+  if (saveError) throw saveError;
+  return { ok: true };
+}
+
+async function verifyAdminUnlock(context: AuthContext, input: unknown) {
+  await assertAdmin(context);
+  assertRecentMfa(context.claims);
+  const data = z.object({ password: z.string().min(1).max(128) }).parse(input);
+  const { data: credential, error } = await context.admin
+    .from("admin_credentials")
+    .select("password_hash")
+    .eq("user_id", context.userId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!credential) throw new Error("Senha do painel não configurada.");
+  if (!(await verifyAdminPassword(data.password, credential.password_hash)))
+    throw new Error("Senha do painel incorreta.");
+  return { ok: true };
+}
+
+async function dispatch(action: string, input: unknown, context: AuthContext): Promise<unknown> {
+  switch (action) {
+    case "getMyDashboard":
+      return getMyDashboard(context);
+    case "claimTrialLicense":
+      return claimTrialLicense(context);
+    case "createManualLicense":
+      return createManualLicense(context, input);
+    case "getAdminOverview":
+      return getAdminOverview(context);
+    case "adminUpdateLicenseStatus":
+      return adminUpdateLicenseStatus(context, input);
+    case "adminGenerateLicenses":
+      return adminGenerateLicenses(context, input);
+    case "adminDeleteLicense":
+      return adminDeleteLicense(context, input);
+    case "adminCreatePlan":
+      return adminCreatePlan(context, input);
+    case "adminUpdatePlan":
+      return adminUpdatePlan(context, input);
+    case "adminListUsers":
+      return adminListUsers(context);
+    case "adminSetUserRole":
+      return adminSetUserRole(context, input);
+    case "adminDeleteUser":
+      return adminDeleteUser(context, input);
+    case "adminGetAuditLog":
+      return adminGetAuditLog(context);
+    case "adminListPayments":
+      return adminListPayments(context);
+    case "getMyResellerInfo":
+      return getMyResellerInfo(context);
+    case "getResellerStats":
+      return getResellerStats(context, input);
+    case "adminListResellers":
+      return adminListResellers(context, input);
+    case "adminGetResellerDetail":
+      return adminGetResellerDetail(context, input);
+    case "adminGetGlobalRevenue":
+      return adminGetGlobalRevenue(context, input);
+    case "createPixCheckout":
+      return createPixCheckout(context, input);
+    case "getCheckoutStatus":
+      return getCheckoutStatus(context, input);
+    case "getAdminGateStatus":
+      return getAdminGateStatus(context);
+    case "setAdminPassword":
+      return setAdminPassword(context, input);
+    case "verifyAdminUnlock":
+      return verifyAdminUnlock(context, input);
+    default:
+      throw new Error("Ação desconhecida.");
+  }
+}
+
+Deno.serve(async (request) => {
+  if (request.method === "OPTIONS") return options();
+  if (request.method !== "POST") return json({ error: "Método não permitido." }, 405);
+  try {
+    const body = await readJson(request);
+    if (typeof body?.action !== "string") return json({ error: "Ação obrigatória." }, 400);
+    const context = await requireUser(request);
+    return json(await dispatch(body.action, body.data, context));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const status = /autenticado|sessão/i.test(message)
+      ? 401
+      : /acesso negado/i.test(message)
+        ? 403
+        : 400;
+    return errorResponse(error, status);
+  }
+});

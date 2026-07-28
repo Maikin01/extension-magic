@@ -1,1 +1,7 @@
-project_id = "wjkohjslyzogffunfgim"
+project_id = "paokcsxuxipnbnbgnlzs"
+
+[functions.public-api]
+verify_jwt = false
+
+[functions.mercadopago-webhook]
+verify_jwt = false
