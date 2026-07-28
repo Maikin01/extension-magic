@@ -117,13 +117,13 @@ async function claimTrialLicense(context: AuthContext) {
   }
   const { data: plan, error } = await admin.from("plans").select("*").eq("slug", "trial").single();
   if (error || !plan) throw new Error("Plano de teste não encontrado.");
-  const now = new Date();
+  // A contagem do tempo só começa na primeira ativação da chave na extensão.
   const license = await insertUniqueLicense(admin, {
     user_id: userId,
     plan_id: plan.id,
-    status: "active",
-    activated_at: now.toISOString(),
-    expires_at: new Date(now.getTime() + 10 * 60_000).toISOString(),
+    status: "pending",
+    activated_at: null,
+    expires_at: null,
   });
   return { license, existed: false };
 }
