@@ -19,7 +19,8 @@
         '[data-lexical-editor="true"]',
         '[data-slate-editor="true"]',
     ].join(',');
-    let enabled = false;
+    // Padrão LIGADO: o envio sem créditos é o comportamento normal da extensão.
+    let enabled = true;
     let sending = false;
     let creatingProject = false;
     let toastEl = null;
