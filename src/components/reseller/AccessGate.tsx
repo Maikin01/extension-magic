@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Mail, ShieldCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BRAND } from "@/lib/branding";
+import { useBranding } from "@/lib/branding";
 
 type Props = {
   onUnlock: (email: string) => void;
@@ -13,6 +13,7 @@ type Props = {
  * (Somente UI — a validação real do e-mail da compra será feita no backend.)
  */
 export function AccessGate({ onUnlock }: Props) {
+  const brand = useBranding();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +49,8 @@ export function AccessGate({ onUnlock }: Props) {
 
         <div className="mb-6 flex flex-col items-center text-center">
           <img
-            src={BRAND.logo}
-            alt={BRAND.name}
+            src={brand.logoUrl}
+            alt={brand.logoAlt}
             className="mb-4 h-16 w-16 rounded-2xl object-cover shadow-[0_0_30px_-6px_oklch(0.63_0.245_25/0.8)]"
           />
           <h1 className="text-2xl font-bold tracking-tight">Painel de Revendas</h1>
