@@ -1,4 +1,5 @@
 import { readFile, readdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
@@ -8,7 +9,13 @@ const args = process.argv.slice(2);
 const sourceOnly = args.includes("--source-only");
 const bundleOnly = args.includes("--bundle-only");
 const clientDirectoryArgument = args.find((argument) => !argument.startsWith("--"));
-const clientDirectory = path.resolve(projectRoot, clientDirectoryArgument ?? ".output/public");
+const defaultClientDirectories = [".output/public", "dist/client"];
+const clientDirectory = clientDirectoryArgument
+  ? path.resolve(projectRoot, clientDirectoryArgument)
+  : (defaultClientDirectories
+      .map((candidate) => path.resolve(projectRoot, candidate))
+      .find((candidate) => existsSync(candidate)) ??
+    path.resolve(projectRoot, defaultClientDirectories[0]));
 
 if (sourceOnly && bundleOnly) {
   console.error("[architecture-boundary] Use apenas um modo: --source-only ou --bundle-only.");

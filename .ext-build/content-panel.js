@@ -1,6 +1,10 @@
 // content-panel.js — injeta o popup da extensão como painel flutuante arrastável
-// nas páginas do Lovable, com botão minimizar que colapsa para uma bolha.
+// nas páginas do Lovable, com bolha minimizada.
 // Não altera nenhuma lógica de envio, cookies ou auth.
+//
+// v2: guardião persistente. O app do Lovable é uma SPA e pode remover/limpar o
+// body em trocas de rota; por isso o painel e a bolha são REINJETADOS sempre
+// que somem do DOM.
 
 (function () {
     'use strict';
@@ -8,6 +12,7 @@
     if (window.__lovableExtPanelInjected) return;
     window.__lovableExtPanelInjected = true;
 
+    const LOG = '[rise:panel]';
     const PANEL_W = 360;
     const PANEL_H = 580;
     const BUBBLE_SIZE = 56;
@@ -27,15 +32,31 @@
 
     function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
 
+    function sanitizeCoord(value, size) {
+        if (typeof value !== 'number' || !isFinite(value)) return null;
+        if (value < -size || value > window.innerWidth + size) return null;
+        return value;
+    }
+
+    function sanitizeState(raw) {
+        const next = {
+            minimized: raw && typeof raw.minimized === 'boolean' ? raw.minimized : true,
+            panel: { x: null, y: null },
+            bubble: { x: null, y: null },
+        };
+        const p = (raw && raw.panel) || {};
+        const b = (raw && raw.bubble) || {};
+        next.panel.x = sanitizeCoord(p.x, PANEL_W);
+        next.panel.y = typeof p.y === 'number' && isFinite(p.y) && p.y > -PANEL_H && p.y < window.innerHeight + PANEL_H ? p.y : null;
+        next.bubble.x = sanitizeCoord(b.x, BUBBLE_SIZE);
+        next.bubble.y = typeof b.y === 'number' && isFinite(b.y) && b.y > -BUBBLE_SIZE && b.y < window.innerHeight + BUBBLE_SIZE ? b.y : null;
+        return next;
+    }
+
     function loadState(cb) {
         try {
             chrome.storage.local.get([STORAGE_KEY], (res) => {
-                const saved = res && res[STORAGE_KEY];
-                if (saved && typeof saved === 'object') {
-                    state = { ...defaultState, ...saved,
-                        panel: { ...defaultState.panel, ...(saved.panel || {}) },
-                        bubble: { ...defaultState.bubble, ...(saved.bubble || {}) } };
-                }
+                state = sanitizeState(res && res[STORAGE_KEY]);
                 cb();
             });
         } catch (_) { cb(); }
@@ -45,8 +66,8 @@
     }
 
     // ---------- Styles ----------
-    const style = document.createElement('style');
-    style.textContent = `
+    const STYLE_ID = 'lovable-ext-style';
+    const STYLE_TEXT = `
     #lovable-ext-panel, #lovable-ext-bubble {
         position: fixed;
         z-index: 2147483646;
@@ -93,7 +114,14 @@
     }
     #lovable-ext-bubble:hover { box-shadow: 0 10px 30px rgba(0,0,0,.6), 0 0 0 2px rgba(255,60,60,.6); }
     `;
-    document.documentElement.appendChild(style);
+
+    function ensureStyle() {
+        if (document.getElementById(STYLE_ID)) return;
+        const style = document.createElement('style');
+        style.id = STYLE_ID;
+        style.textContent = STYLE_TEXT;
+        (document.head || document.documentElement).appendChild(style);
+    }
 
     // ---------- DOM ----------
     const panel = document.createElement('div');
@@ -154,6 +182,8 @@
 
     // ---------- Dragging (pointer events + rAF + pointer capture) ----------
     function makeDraggable(el, handle, kind) {
+        if (!el || !handle || handle.__lvblDraggable) return;
+        handle.__lvblDraggable = true;
         let dragging = false, pointerId = null;
         let startX = 0, startY = 0, origX = 0, origY = 0;
         let curX = 0, curY = 0, moved = false, rafId = 0;
@@ -221,16 +251,56 @@
         handle.addEventListener('pointercancel', endDrag);
     }
 
+    // ---------- Mount / guardião ----------
+    function mount() {
+        if (!document.body) return false;
+        ensureStyle();
+        let changed = false;
+        if (!panel.isConnected) { document.body.appendChild(panel); changed = true; }
+        if (!bubble.isConnected) { document.body.appendChild(bubble); changed = true; }
+        if (changed) {
+            makeDraggable(panel, panel.querySelector('#lovable-ext-dragbar'), 'panel');
+            makeDraggable(bubble, bubble, 'bubble');
+            render();
+            console.log(LOG, 'painel/bolha injetados');
+        }
+        return true;
+    }
+
+    function startGuardian() {
+        // 1) Observa mutações no documento (SPA pode limpar o body).
+        try {
+            const observer = new MutationObserver(() => {
+                if (!panel.isConnected || !bubble.isConnected) mount();
+            });
+            observer.observe(document.documentElement, { childList: true, subtree: true });
+        } catch (_) {}
+
+        // 2) Rede de segurança periódica (barata) para qualquer caso não coberto.
+        setInterval(() => {
+            if (!panel.isConnected || !bubble.isConnected || !document.getElementById(STYLE_ID)) mount();
+        }, 2000);
+
+        // 3) Trocas de rota do SPA.
+        const onRoute = () => setTimeout(mount, 50);
+        window.addEventListener('popstate', onRoute);
+        window.addEventListener('hashchange', onRoute);
+        try {
+            ['pushState', 'replaceState'].forEach((fn) => {
+                const orig = history[fn];
+                history[fn] = function () {
+                    const r = orig.apply(this, arguments);
+                    onRoute();
+                    return r;
+                };
+            });
+        } catch (_) {}
+    }
+
     // ---------- Init ----------
     function init() {
-        document.body.appendChild(panel);
-        document.body.appendChild(bubble);
-
-        const minBtn = document.getElementById('lovable-ext-min');
-        if (minBtn) minBtn.addEventListener('click', (e) => { e.stopPropagation(); minimize(); });
-
-        makeDraggable(panel, document.getElementById('lovable-ext-dragbar'), 'panel');
-        makeDraggable(bubble, bubble, 'bubble');
+        mount();
+        startGuardian();
 
         // Messages coming from inside the iframe (minimize + drag via topbar)
         let iframeDrag = null;
@@ -297,6 +367,26 @@
         render();
     }
 
-    if (document.body) init();
-    else document.addEventListener('DOMContentLoaded', init);
+    function boot() {
+        loadState(() => {
+            if (document.body) {
+                init();
+                return;
+            }
+            // run_at document_start: espera o body existir.
+            const waiter = new MutationObserver(() => {
+                if (document.body) {
+                    waiter.disconnect();
+                    init();
+                }
+            });
+            waiter.observe(document.documentElement, { childList: true, subtree: true });
+            document.addEventListener('DOMContentLoaded', () => {
+                waiter.disconnect();
+                if (!panel.isConnected) init();
+            });
+        });
+    }
+
+    boot();
 })();
