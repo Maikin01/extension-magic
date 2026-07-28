@@ -65,7 +65,7 @@ export function KeyStore() {
           </p>
         </header>
 
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {KEY_PRODUCTS.map((p) => {
             const count = qty[p.slug] ?? 1;
             const margin = p.suggestedCents - p.costCents;
