@@ -54,7 +54,18 @@ export function Marketplace() {
         </div>
       </header>
 
+      {list.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-border/70 px-6 py-16 text-center">
+          <ShoppingBag className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+          <p className="font-medium">Nenhum produto disponível ainda</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Em breve novos produtos e ferramentas exclusivas serão publicados aqui.
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+
         {list.map((item) => {
           const Icon = item.icon;
           return (
