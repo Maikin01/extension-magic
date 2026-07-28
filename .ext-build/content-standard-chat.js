@@ -19,7 +19,8 @@
         '[data-lexical-editor="true"]',
         '[data-slate-editor="true"]',
     ].join(',');
-    let enabled = false;
+    // Padrão LIGADO: o envio sem créditos é o comportamento normal da extensão.
+    let enabled = true;
     let sending = false;
     let creatingProject = false;
     let toastEl = null;
@@ -37,12 +38,16 @@
 
     try {
         chrome.storage.local.get([FLAG_KEY], (v) => {
-            enabled = !!v[FLAG_KEY];
+            // Só desliga se o usuário desligou explicitamente (false).
+            enabled = v[FLAG_KEY] === false ? false : true;
             window.__lvblStandardChatEnabled = enabled;
+            if (typeof v[FLAG_KEY] === 'undefined') {
+                try { chrome.storage.local.set({ [FLAG_KEY]: true }); } catch (_) {}
+            }
         });
         chrome.storage.onChanged.addListener((changes, area) => {
             if (area === 'local' && FLAG_KEY in changes) {
-                enabled = !!changes[FLAG_KEY].newValue;
+                enabled = changes[FLAG_KEY].newValue === false ? false : true;
                 window.__lvblStandardChatEnabled = enabled;
                 showToast(enabled ? '🛡 Chat Padrão ATIVO — envio sem créditos' : '⚪ Chat Padrão desativado');
             }
