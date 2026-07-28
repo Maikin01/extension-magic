@@ -1,4 +1,5 @@
 import { readFile, readdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
@@ -8,7 +9,17 @@ const args = process.argv.slice(2);
 const sourceOnly = args.includes("--source-only");
 const bundleOnly = args.includes("--bundle-only");
 const clientDirectoryArgument = args.find((argument) => !argument.startsWith("--"));
-const clientDirectory = path.resolve(projectRoot, clientDirectoryArgument ?? ".output/public");
+const defaultClientDirectories = ["dist/client", ".output/public"];
+
+function resolveClientDirectory() {
+  if (clientDirectoryArgument) return path.resolve(projectRoot, clientDirectoryArgument);
+  return (
+    defaultClientDirectories
+      .map((candidate) => path.resolve(projectRoot, candidate))
+      .find((candidate) => existsSync(candidate)) ?? null
+  );
+}
+
 
 if (sourceOnly && bundleOnly) {
   console.error("[architecture-boundary] Use apenas um modo: --source-only ou --bundle-only.");
@@ -103,12 +114,21 @@ async function scanSource() {
 }
 
 async function scanBundle() {
+  const clientDirectory = resolveClientDirectory();
+  if (!clientDirectory || !existsSync(clientDirectory)) {
+    console.warn(
+      "[architecture-boundary] Nenhum diretório de client encontrado (dist/client ou .output/public); checagem de bundle ignorada.",
+    );
+    return { filesScanned: 0, violations: [] };
+  }
+
   const javaScriptFiles = await listFiles(clientDirectory, (name) => name.endsWith(".js"));
   const violations = [];
 
   if (javaScriptFiles.length === 0) {
     violations.push(`${toProjectPath(clientDirectory)}: nenhum JavaScript encontrado`);
   }
+
 
   for (const file of javaScriptFiles) {
     const source = await readFile(file, "utf8");

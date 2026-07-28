@@ -1,30 +1,38 @@
-## Plano de teste — Performance da landing (clean minimal)
+## Causa raiz encontrada
 
-Este é um exercício de modo plano com base nas suas respostas: foco em **Site/landing**, prioridade **Performance**, estilo **Clean minimal** (branco/cinza/preto/azul #3b82f6), escopo médio (3/5).
+A extensão está falando com **outro backend**, não com o do site atual.
 
-### Objetivo
-Deixar `/` (e rotas públicas próximas) mais rápida sem redesenhar tudo — cortes cirúrgicos em imagem, fontes, JS e render.
+- `extension/license.js` chama `https://paokcsxuxipnbnbgnlzs.supabase.co/functions/v1/public-api` (projeto antigo).
+- O backend real deste site é outro (`.env` aponta para outro projeto).
+- Resultado: nenhuma chave gerada aqui existe lá → toda ativação volta como `not_found` → "Chave não encontrada".
 
-### Etapas
-1. **Baseline** — medir LCP, CLS, TBT da rota `/` no preview atual e listar os 3 maiores ofensores (imagem herói, bundle, fontes).
-2. **Imagens** — converter o og/hero para WebP/AVIF via `vite-imagetools`, adicionar `width/height` e `fetchpriority="high"` no LCP, `loading="lazy"` no resto.
-3. **Preload do LCP** — `head().links` da rota `/` com `rel="preload" as="image"` da imagem herói.
-4. **Fontes** — garantir `font-display: swap`, `preconnect` no provedor, e reduzir para no máximo 2 pesos por família.
-5. **JS da landing** — auditar imports pesados na rota `/` e mover o que não é crítico para `lazy()`/dynamic import; remover libs não usadas.
-6. **CSS** — revisar `styles.css` para tokens clean minimal (bg `#ffffff`, surface `#f4f4f5`, foreground `#18181b`, primary `#3b82f6`) sem quebrar o resto.
-7. **Validação** — rodar Lighthouse/Playwright no preview e comparar contra o baseline.
+O site já expõe rotas próprias que encaminham para o backend certo, com a chave de API correta:
+`/api/public/license/activate` e `/api/public/license/validate`.
 
-### Riscos
-- Mexer em tokens globais pode afetar `/auth`, `/planos`, `/admin`. Mitigação: alterar apenas variáveis do tema claro e testar cada rota.
-- `vite-imagetools` exige que o asset esteja em `src/assets/`. Se a imagem herói vem de URL externa (R2), o ganho vem via `<img>` correto + preload, não via transform.
-- Lazy-loading agressivo pode piorar LCP se atingir o elemento errado.
+## O que vou fazer
 
-### Próximos passos (após aprovação)
-- Rodar baseline com Playwright + screenshot.
-- Aplicar etapas 2–4 primeiro (maior ROI, menor risco).
-- Reavaliar antes de mexer em JS/CSS globais.
+1. **Apontar a extensão para o site, não para um projeto fixo**
+   - Em `extension/license.js`, trocar o endereço fixo por `https://riselovable.lovable.app/api/public/license`.
+   - Assim, se o backend mudar de novo, a extensão continua funcionando sem novo pacote.
 
-### Detalhes técnicos
-- Tokens em `src/styles.css` via `oklch`, mantendo contraste AA.
-- Preload no `head()` da rota, não no `__root` (evita custo em rotas que não usam a imagem).
-- Nenhuma alteração na extensão nem no backend nesta rodada.
+2. **Atualizar permissões da extensão**
+   - Em `extension/manifest.json`, remover o domínio antigo e manter/garantir `https://riselovable.lovable.app/*`.
+   - Subir a versão (1.0.2).
+
+3. **Conferir os outros pontos de rede da extensão**
+   - Varrer `background.js`, `popup.js`, `content-*.js` e `history.js` atrás de qualquer outro endereço antigo e corrigir.
+
+4. **Validar de ponta a ponta**
+   - Testar `POST /api/public/license/activate` e `/validate` com uma chave real do banco, confirmando resposta de sucesso (e que o tempo só começa na 1ª ativação, como combinado).
+   - Confirmar que a função `public-api` está publicada no backend atual; se não estiver, publicar.
+
+5. **"Algumas partes não carregam" no site**
+   - Abrir a página no navegador de teste, capturar erros de console e requisições falhando, e corrigir o que aparecer (provavelmente chamadas apontando para o backend antigo ou recurso 404).
+   - Reporto o que encontrei junto com a correção.
+
+6. **Reempacotar o ZIP** da extensão e te mandar o link atualizado para baixar e testar.
+
+## Detalhes técnicos
+
+- Arquivos tocados: `extension/license.js`, `extension/manifest.json`, ZIP em `public/rise-lovable-extension.zip`, e o que aparecer no passo 5.
+- Nenhuma mudança na lógica de envio de mensagem da extensão (`send-core.js`, popup, background) — só endereço/permissão, conforme a regra do projeto.

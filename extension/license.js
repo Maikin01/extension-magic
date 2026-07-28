@@ -1,7 +1,7 @@
 // License gate — controla acesso ao chat sem tocar em popup.js
 // Roda ANTES de popup.js e mantém o chat oculto até validar a chave.
 
-const LICENSE_API_BASE = 'https://paokcsxuxipnbnbgnlzs.supabase.co/functions/v1/public-api';
+const LICENSE_API_BASE = 'https://riselovable.lovable.app';
 const STORAGE_KEYS = {
     key: 'lvbl_license_key',
     deviceHash: 'lvbl_device_hash',
@@ -158,7 +158,7 @@ function updateCountdown(info, checkedAt) {
 
 async function apiActivate(key, deviceHash) {
     try {
-        const res = await fetch(`${LICENSE_API_BASE}/license/activate`, {
+        const res = await fetch(`${LICENSE_API_BASE}/api/public/license/activate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -178,7 +178,7 @@ async function apiActivate(key, deviceHash) {
 
 async function apiValidate(key, deviceHash, silent = false) {
     try {
-        const res = await fetch(`${LICENSE_API_BASE}/license/validate`, {
+        const res = await fetch(`${LICENSE_API_BASE}/api/public/license/validate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ key, device_hash: deviceHash, silent }),
@@ -256,6 +256,7 @@ async function storeValidLicense(key, info) {
         [STORAGE_KEYS.lastCheck]: checkedAt,
         [STORAGE_KEYS.licenseInfo]: info,
     });
+    try { await window.__lvblBranding?.setBrandingCode(info?.branding_code || null); } catch {}
     showChat(info, checkedAt);
     startLicenseWatch(key, info, checkedAt);
 }
@@ -308,6 +309,7 @@ async function validateActiveLicense(forceLockOnNetworkError) {
                     [STORAGE_KEYS.licenseInfo]: res.data,
                 });
             }
+            try { await window.__lvblBranding?.setBrandingCode(res.data?.branding_code || null); } catch {}
             setError('');
             return;
         }
@@ -509,6 +511,7 @@ async function handleLogout() {
         STORAGE_KEYS.lastCheck,
         STORAGE_KEYS.licenseInfo,
     ]);
+    try { await window.__lvblBranding?.setBrandingCode(null); } catch {}
     gateInput.value = '';
     setError('');
     showGate();
@@ -527,5 +530,7 @@ gateInput.addEventListener('input', () => {
     gateInput.setSelectionRange(p, p);
 });
 
+// Aplica branding armazenado imediatamente (antes de qualquer chamada de rede)
+try { window.__lvblBranding?.applyStoredBranding(); } catch {}
 
 tryAutoValidate();
