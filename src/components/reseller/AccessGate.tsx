@@ -43,11 +43,11 @@ export function AccessGate({ onUnlock }: Props) {
             "radial-gradient(60% 45% at 50% 0%, oklch(0.63 0.245 25 / 0.22), transparent 65%)",
         }}
       />
-      <div className="auth-card relative w-full max-w-md">
+      <div className="auth-card relative z-10 w-full max-w-md p-6 sm:p-8">
         <span className="auth-led auth-led-top" />
         <span className="auth-led auth-led-bottom" />
 
-        <div className="mb-6 flex flex-col items-center text-center">
+        <div className="relative z-[2] mb-6 flex flex-col items-center text-center">
           <img
             src={brand.logoUrl}
             alt={brand.logoAlt}
@@ -59,7 +59,7 @@ export function AccessGate({ onUnlock }: Props) {
           </p>
         </div>
 
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="relative z-[2] space-y-4">
           <div className="space-y-2">
             <label htmlFor="reseller-email" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               E-mail da compra
@@ -91,7 +91,7 @@ export function AccessGate({ onUnlock }: Props) {
           </Button>
         </form>
 
-        <p className="mt-5 text-center text-xs text-muted-foreground">
+        <p className="relative z-[2] mt-5 text-center text-xs text-muted-foreground">
           Acesso vitalício ao painel • Suporte humano • Liberação imediata
         </p>
       </div>
