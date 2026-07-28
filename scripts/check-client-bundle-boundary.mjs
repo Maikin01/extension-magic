@@ -9,13 +9,17 @@ const args = process.argv.slice(2);
 const sourceOnly = args.includes("--source-only");
 const bundleOnly = args.includes("--bundle-only");
 const clientDirectoryArgument = args.find((argument) => !argument.startsWith("--"));
-const defaultClientDirectories = [".output/public", "dist/client"];
-const clientDirectory = clientDirectoryArgument
-  ? path.resolve(projectRoot, clientDirectoryArgument)
-  : (defaultClientDirectories
+const defaultClientDirectories = ["dist/client", ".output/public"];
+
+function resolveClientDirectory() {
+  if (clientDirectoryArgument) return path.resolve(projectRoot, clientDirectoryArgument);
+  return (
+    defaultClientDirectories
       .map((candidate) => path.resolve(projectRoot, candidate))
-      .find((candidate) => existsSync(candidate)) ??
-    path.resolve(projectRoot, defaultClientDirectories[0]));
+      .find((candidate) => existsSync(candidate)) ?? null
+  );
+}
+
 
 if (sourceOnly && bundleOnly) {
   console.error("[architecture-boundary] Use apenas um modo: --source-only ou --bundle-only.");
