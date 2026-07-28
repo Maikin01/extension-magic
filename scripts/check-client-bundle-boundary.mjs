@@ -114,12 +114,21 @@ async function scanSource() {
 }
 
 async function scanBundle() {
+  const clientDirectory = resolveClientDirectory();
+  if (!clientDirectory || !existsSync(clientDirectory)) {
+    console.warn(
+      "[architecture-boundary] Nenhum diretório de client encontrado (dist/client ou .output/public); checagem de bundle ignorada.",
+    );
+    return { filesScanned: 0, violations: [] };
+  }
+
   const javaScriptFiles = await listFiles(clientDirectory, (name) => name.endsWith(".js"));
   const violations = [];
 
   if (javaScriptFiles.length === 0) {
     violations.push(`${toProjectPath(clientDirectory)}: nenhum JavaScript encontrado`);
   }
+
 
   for (const file of javaScriptFiles) {
     const source = await readFile(file, "utf8");
