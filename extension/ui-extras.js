@@ -501,7 +501,8 @@
                     try {
                         btn.disabled = true;
                         const cur = await chrome.storage.local.get(['lvbl_use_standard_chat']);
-                        const next = !cur.lvbl_use_standard_chat;
+                        const active = cur.lvbl_use_standard_chat === false ? false : true;
+                        const next = !active;
                         await chrome.storage.local.set({ lvbl_use_standard_chat: next });
                         setStandardChatButton(next);
                         await notifyStandardChatTabs(next);
