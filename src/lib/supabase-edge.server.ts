@@ -1,3 +1,5 @@
+import { getSupabasePublicConfig } from "@/integrations/supabase/public-config";
+
 type SupabaseFunctionContext = {
   supabase: any;
 };
@@ -28,15 +30,12 @@ export async function invokeProtectedEdge<T>(
 }
 
 function edgeBaseUrl(): string {
-  const url = (process.env.SUPABASE_URL ?? "").trim().replace(/\/$/, "");
-  if (!url) throw new Error("SUPABASE_URL não configurada no ambiente Lovable.");
+  const { url } = getSupabasePublicConfig();
   return `${url}/functions/v1`;
 }
 
 function publishableKey(): string {
-  const key = (process.env.SUPABASE_PUBLISHABLE_KEY ?? "").trim();
-  if (!key) throw new Error("SUPABASE_PUBLISHABLE_KEY não configurada no ambiente Lovable.");
-  return key;
+  return getSupabasePublicConfig().publishableKey;
 }
 
 export async function invokePublicEdge<T>(action: string, data?: unknown): Promise<T> {

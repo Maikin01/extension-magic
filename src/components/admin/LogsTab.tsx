@@ -7,6 +7,7 @@ import {
   adminGetAuditLog,
 } from "@/lib/license.functions";
 import { formatDateBR } from "@/lib/license-utils";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 export function LogsTab() {
   const getOverview = useServerFn(getAdminOverview);
@@ -15,16 +16,26 @@ export function LogsTab() {
   const overview = useQuery({
     queryKey: ["admin", "overview"],
     queryFn: () => getOverview(),
+    retry: 1,
   });
   const audit = useQuery({
     queryKey: ["admin", "audit"],
     queryFn: () => getAudit(),
+    retry: 1,
   });
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card className="p-6">
         <h2 className="mb-4 font-semibold">Últimas validações (extensão)</h2>
+        {overview.isLoading && <div className="text-muted-foreground">Carregando…</div>}
+        {overview.isError && (
+          <QueryErrorState
+            error={overview.error}
+            onRetry={() => void overview.refetch()}
+            isRetrying={overview.isFetching}
+          />
+        )}
         <ul className="divide-y text-sm">
           {overview.data?.logs.map((l: any) => (
             <li key={l.id} className="flex items-center justify-between py-2">
@@ -49,6 +60,14 @@ export function LogsTab() {
 
       <Card className="p-6">
         <h2 className="mb-4 font-semibold">Ações administrativas</h2>
+        {audit.isLoading && <div className="text-muted-foreground">Carregando…</div>}
+        {audit.isError && (
+          <QueryErrorState
+            error={audit.error}
+            onRetry={() => void audit.refetch()}
+            isRetrying={audit.isFetching}
+          />
+        )}
         <ul className="divide-y text-sm">
           {audit.data?.map((l: any) => (
             <li key={l.id} className="py-2">

@@ -25,6 +25,7 @@ import {
 } from "@/lib/license.functions";
 import { formatPrice } from "@/lib/license-utils";
 import { Plus, Pencil } from "lucide-react";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 type PlanForm = {
   id?: string;
@@ -60,9 +61,10 @@ export function PlansTab() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<PlanForm>(emptyForm);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, isFetching, refetch } = useQuery({
     queryKey: ["admin", "overview"],
     queryFn: () => getOverview(),
+    retry: 1,
   });
 
   const save = useMutation({
@@ -116,7 +118,16 @@ export function PlansTab() {
     setOpen(true);
   }
 
-  if (isLoading || !data) return <div className="p-4">Carregando…</div>;
+  if (isLoading) return <div className="p-4">Carregando…</div>;
+  if (error || !data)
+    return (
+      <QueryErrorState
+        error={error ?? new Error("Resposta vazia ao carregar os planos.")}
+        title="Não foi possível carregar os planos administrativos"
+        onRetry={() => void refetch()}
+        isRetrying={isFetching}
+      />
+    );
 
   return (
     <Card className="p-6">

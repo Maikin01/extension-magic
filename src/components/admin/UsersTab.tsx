@@ -32,6 +32,7 @@ import {
 } from "@/lib/license.functions";
 import { formatDateBR } from "@/lib/license-utils";
 import { Trash2 } from "lucide-react";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 type AssignableRole = "cliente" | "revendedor" | "owner";
 const ASSIGNABLE_ROLES: AssignableRole[] = ["cliente", "revendedor", "owner"];
@@ -57,9 +58,10 @@ export function UsersTab() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, isFetching, refetch } = useQuery({
     queryKey: ["admin", "users"],
     queryFn: () => listUsers(),
+    retry: 1,
   });
 
   const roleMut = useMutation({
@@ -84,7 +86,16 @@ export function UsersTab() {
     onError: (e: Error) => toast.error(translateError(e)),
   });
 
-  if (isLoading || !data) return <div className="p-4">Carregando…</div>;
+  if (isLoading) return <div className="p-4">Carregando…</div>;
+  if (error || !data)
+    return (
+      <QueryErrorState
+        error={error ?? new Error("Resposta vazia ao carregar os usuários.")}
+        title="Não foi possível carregar os usuários"
+        onRetry={() => void refetch()}
+        isRetrying={isFetching}
+      />
+    );
 
   const filtered = data.filter((u: any) => {
     const q = search.trim().toLowerCase();

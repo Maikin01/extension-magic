@@ -18,6 +18,7 @@ import {
   adminGetGlobalRevenue,
 } from "@/lib/reseller.functions";
 import { formatPrice, formatDateBR } from "@/lib/license-utils";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 type RangeKey = "today" | "yesterday" | "7d" | "30d" | "all" | "custom";
 
@@ -90,21 +91,35 @@ export function ResellersTab() {
   const global = useQuery({
     queryKey: ["admin", "global-revenue", range, customFrom, customTo],
     queryFn: () => getGlobal({ data: params as any }),
+    retry: 1,
   });
 
   const resellers = useQuery({
     queryKey: ["admin", "resellers", range, customFrom, customTo],
     queryFn: () => listResellers({ data: params as any }),
+    retry: 1,
   });
 
   const detail = useQuery({
     queryKey: ["admin", "reseller-detail", detailUser?.id, range, customFrom, customTo],
     queryFn: () => getDetail({ data: { ...(params as any), user_id: detailUser!.id } }),
     enabled: !!detailUser,
+    retry: 1,
   });
 
   return (
     <div className="space-y-4">
+      {(global.isError || resellers.isError) && (
+        <QueryErrorState
+          error={global.error ?? resellers.error}
+          title="Não foi possível carregar os dados dos revendedores"
+          onRetry={() => {
+            void global.refetch();
+            void resellers.refetch();
+          }}
+          isRetrying={global.isFetching || resellers.isFetching}
+        />
+      )}
       <div className="flex flex-wrap items-center gap-2">
         {RANGES.map((r) => (
           <Button
@@ -225,6 +240,14 @@ export function ResellersTab() {
             <DialogTitle>Vendas de {detailUser?.email}</DialogTitle>
           </DialogHeader>
           {detail.isLoading && <div className="text-muted-foreground">Carregando…</div>}
+          {detail.isError && (
+            <QueryErrorState
+              error={detail.error}
+              title="Não foi possível carregar os detalhes do revendedor"
+              onRetry={() => void detail.refetch()}
+              isRetrying={detail.isFetching}
+            />
+          )}
           {detail.data && (
             <>
               <div className="mb-4 grid grid-cols-3 gap-2 text-sm">

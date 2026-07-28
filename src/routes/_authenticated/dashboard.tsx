@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Copy, Download, Key, MessageCircle, PlayCircle, Sparkles } from "lucide-react";
 import { getMyDashboard, claimTrialLicense } from "@/lib/license.functions";
+import { QueryErrorState } from "@/components/QueryErrorState";
 import {
   LICENSE_STATUS_LABEL,
   formatDateBR,
@@ -50,10 +51,11 @@ function DashboardPage() {
   const qc = useQueryClient();
   const autoClaimedRef = useRef(false);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, isFetching, refetch } = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => getDash(),
     refetchInterval: 30_000,
+    retry: 1,
   });
 
   const trialMut = useMutation({
@@ -105,7 +107,12 @@ function DashboardPage() {
 
         {isLoading && <Card className="p-6">Carregando…</Card>}
         {error && (
-          <Card className="p-6 text-destructive">Erro: {(error as Error).message}</Card>
+          <QueryErrorState
+            error={error}
+            title="Não foi possível carregar seu painel"
+            onRetry={() => void refetch()}
+            isRetrying={isFetching}
+          />
         )}
 
         {data && !data.currentLicense && (

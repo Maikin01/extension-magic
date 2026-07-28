@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Copy, Check, Users, DollarSign, TrendingUp, Clock } from "lucide-react";
 import { getMyResellerInfo, getResellerStats } from "@/lib/reseller.functions";
+import { QueryErrorState } from "@/components/QueryErrorState";
 import { formatPrice, formatDateBR } from "@/lib/license-utils";
 import { translateError } from "@/lib/translate-error";
 
@@ -94,6 +95,7 @@ function ResellerPage() {
     queryKey: ["reseller", "stats", range, customFrom, customTo],
     queryFn: () => getStats({ data: rangeParams as any }),
     enabled: !!info.data,
+    retry: 1,
   });
 
   const link = info.data?.referral_code
@@ -239,6 +241,14 @@ function ResellerPage() {
         <Card className="p-6">
           <h2 className="mb-4 font-semibold">Vendas no período</h2>
           {stats.isLoading && <div className="text-muted-foreground">Carregando…</div>}
+          {stats.isError && (
+            <QueryErrorState
+              error={stats.error}
+              title="Não foi possível carregar suas vendas"
+              onRetry={() => void stats.refetch()}
+              isRetrying={stats.isFetching}
+            />
+          )}
           {!stats.isLoading && sales.length === 0 && (
             <div className="text-sm text-muted-foreground">
               Nenhuma venda registrada no período.

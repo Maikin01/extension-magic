@@ -36,9 +36,11 @@ import { getPublicPlans } from "@/lib/license.functions";
 import { useReveal } from "@/hooks/useReveal";
 import { formatPrice } from "@/lib/license-utils";
 import { PixCheckoutDialog } from "@/components/checkout/PixCheckoutDialog";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 const PENDING_CHECKOUT_KEY = "rise_lovable_pending_checkout";
 const REFERRAL_KEY = "rise_lovable_referral_code";
+const EMPTY_PLANS: never[] = [];
 
 function savePendingCheckout(planSlug: string) {
   window.localStorage.setItem(PENDING_CHECKOUT_KEY, planSlug);
@@ -497,10 +499,12 @@ function FeatureCard({
 
 function Plans() {
   const getPlans = useServerFn(getPublicPlans);
-  const { data: plans = [] } = useQuery({
+  const plansQuery = useQuery({
     queryKey: ["plans", "public"],
     queryFn: () => getPlans(),
+    retry: 1,
   });
+  const plans = plansQuery.data ?? EMPTY_PLANS;
 
   const [checkoutPlan, setCheckoutPlan] = useState<
     { slug: string; name: string; price_cents: number } | null
@@ -613,7 +617,23 @@ function Plans() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {plans.slice(0, 6).map((plan, idx) => {
+          {plansQuery.isLoading ? (
+            <Card className="p-8 text-center text-muted-foreground md:col-span-2 lg:col-span-3">
+              Carregando planos…
+            </Card>
+          ) : plansQuery.isError ? (
+            <QueryErrorState
+              error={plansQuery.error}
+              title="Não foi possível carregar os planos"
+              onRetry={() => void plansQuery.refetch()}
+              isRetrying={plansQuery.isFetching}
+              className="md:col-span-2 lg:col-span-3"
+            />
+          ) : plans.length === 0 ? (
+            <Card className="p-8 text-center text-muted-foreground md:col-span-2 lg:col-span-3">
+              Nenhum plano está disponível no momento.
+            </Card>
+          ) : plans.slice(0, 6).map((plan, idx) => {
             const highlight = plan.slug === highlightSlug;
             const features = (plan.features as string[]) ?? [];
             const isLifetime = plan.slug === "lifetime";

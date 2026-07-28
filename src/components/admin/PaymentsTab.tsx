@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CreditCard, Copy, Check, Search } from "lucide-react";
 import { toast } from "sonner";
 import { adminListPayments } from "@/lib/license.functions";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 type PaymentRow = {
   id: string;
@@ -58,10 +59,11 @@ const statusInfo = (s: string): { label: string; variant: "default" | "secondary
 
 export function PaymentsTab() {
   const listFn = useServerFn(adminListPayments);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, isFetching, refetch } = useQuery({
     queryKey: ["admin", "payments"],
     queryFn: () => listFn(),
     refetchInterval: 15_000,
+    retry: 1,
   });
   const [filter, setFilter] = useState<"all" | "approved" | "pending" | "failed">("all");
   const [q, setQ] = useState("");
@@ -104,6 +106,17 @@ export function PaymentsTab() {
     toast.success("Copiado!");
     setTimeout(() => setCopied(null), 1500);
   };
+
+  if (error) {
+    return (
+      <QueryErrorState
+        error={error}
+        title="Não foi possível carregar os pagamentos"
+        onRetry={() => void refetch()}
+        isRetrying={isFetching}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -16,6 +16,7 @@ import {
   lockAdmin,
 } from "@/lib/admin-security.functions";
 import { ShieldCheck, ShieldAlert, Lock, KeyRound, LogOut } from "lucide-react";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 function normalizeError(e: unknown): string {
   return translateError(e instanceof Error ? e : new Error(String(e)));
@@ -32,10 +33,11 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient();
 
   const lockFn = useServerFn(lockAdmin);
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, error, isFetching, refetch } = useQuery({
     queryKey: ["admin", "gate"],
     queryFn: () => statusFn(),
     staleTime: 0,
+    retry: 1,
   });
 
   const lockMut = useMutation({
@@ -46,8 +48,21 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
     },
   });
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return <div className="p-8 text-center text-muted-foreground">Verificando permissões…</div>;
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="mx-auto max-w-lg p-8">
+        <QueryErrorState
+          error={error ?? new Error("Resposta vazia ao verificar as permissões.")}
+          title="Não foi possível verificar suas permissões"
+          onRetry={() => void refetch()}
+          isRetrying={isFetching}
+        />
+      </div>
+    );
   }
 
   if (!data.isAdmin) {
