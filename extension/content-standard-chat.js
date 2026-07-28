@@ -38,12 +38,16 @@
 
     try {
         chrome.storage.local.get([FLAG_KEY], (v) => {
-            enabled = !!v[FLAG_KEY];
+            // Só desliga se o usuário desligou explicitamente (false).
+            enabled = v[FLAG_KEY] === false ? false : true;
             window.__lvblStandardChatEnabled = enabled;
+            if (typeof v[FLAG_KEY] === 'undefined') {
+                try { chrome.storage.local.set({ [FLAG_KEY]: true }); } catch (_) {}
+            }
         });
         chrome.storage.onChanged.addListener((changes, area) => {
             if (area === 'local' && FLAG_KEY in changes) {
-                enabled = !!changes[FLAG_KEY].newValue;
+                enabled = changes[FLAG_KEY].newValue === false ? false : true;
                 window.__lvblStandardChatEnabled = enabled;
                 showToast(enabled ? '🛡 Chat Padrão ATIVO — envio sem créditos' : '⚪ Chat Padrão desativado');
             }
