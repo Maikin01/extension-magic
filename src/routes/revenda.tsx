@@ -5,6 +5,7 @@ import {
   KeyRound,
   LogOut,
   ShoppingBag,
+  Trophy,
   TrendingUp,
   Wallet,
 } from "lucide-react";
@@ -15,6 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { AccessGate } from "@/components/reseller/AccessGate";
 import { KeyStore } from "@/components/reseller/KeyStore";
 import { Marketplace } from "@/components/reseller/Marketplace";
+import { ResellerRanking } from "@/components/reseller/ResellerRanking";
+import { ResellerSupport } from "@/components/reseller/ResellerSupport";
 import { formatPrice } from "@/lib/license-utils";
 import { toast } from "sonner";
 
@@ -43,7 +46,7 @@ export const Route = createFileRoute("/revenda")({
 
 const STORAGE_KEY = "rise_reseller_access_email";
 
-type Tab = "chaves" | "minhas" | "marketplace";
+type Tab = "chaves" | "minhas" | "marketplace" | "ranking";
 
 function ResellerPanelPage() {
   const [email, setEmail] = useState<string | null>(null);
@@ -120,6 +123,7 @@ function ResellerPanelPage() {
               { key: "chaves", label: "Comprar chaves", icon: KeyRound },
               { key: "minhas", label: "Minhas chaves", icon: Wallet },
               { key: "marketplace", label: "Marketplace", icon: ShoppingBag },
+              { key: "ranking", label: "Ranking", icon: Trophy },
             ] as const
           ).map((t) => (
             <Button
@@ -138,6 +142,11 @@ function ResellerPanelPage() {
         {tab === "chaves" && <KeyStore />}
         {tab === "minhas" && <MyKeys />}
         {tab === "marketplace" && <Marketplace />}
+        {tab === "ranking" && <ResellerRanking />}
+
+        <div className="mt-12">
+          <ResellerSupport />
+        </div>
       </main>
     </div>
   );
