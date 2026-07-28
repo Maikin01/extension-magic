@@ -1,7 +1,7 @@
 // content-standard-chat.js
 // Modo "Chat Padrão": quando ativo, o chat original do lovable.dev NÃO usa o
 // envio nativo. A mensagem é capturada antes do app e enviada pelo mesmo
-// payload sem crédito usado pela extensão.
+// mesmo endpoint da plataforma, com consumo normal de créditos.
 
 (function () {
     'use strict';
