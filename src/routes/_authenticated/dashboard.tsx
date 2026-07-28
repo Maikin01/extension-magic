@@ -120,7 +120,9 @@ function DashboardPage() {
             <Key className="mx-auto mb-3 h-10 w-10 text-primary" />
             <h2 className="text-lg font-semibold">Você ainda não tem uma licença</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Gere sua chave de teste gratuita — 10 minutos de acesso.
+              Gere sua chave de teste gratuita — 10 minutos que só começam a contar quando você
+              ativar a chave na extensão.
+
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Button
