@@ -284,9 +284,13 @@ function LicenseRow({ license, isCurrent }: { license: any; isCurrent: boolean }
         <Badge className="chip-neon border-0" variant={badgeVariant as any}>
           {license.plans?.name ?? LICENSE_STATUS_LABEL[status] ?? status}
         </Badge>
-        {license.expires_at && (
+        {license.expires_at ? (
           <span className="text-xs text-muted-foreground">
             Expira em {formatDateBR(license.expires_at)}
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            O tempo começa na primeira ativação na extensão
           </span>
         )}
         {isCurrent && countdown && (
