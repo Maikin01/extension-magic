@@ -8,11 +8,7 @@ import {
   options,
   readJson,
 } from "../_shared/http.ts";
-import {
-  hashLicenseKey,
-  normalizeLicenseKey,
-  resolveLicenseBrandingCode,
-} from "../_shared/license.ts";
+import { hashLicenseKey, normalizeLicenseKey } from "../_shared/license.ts";
 import { clientIp, consumeRateLimit } from "../_shared/rate-limit.ts";
 
 function isString(value: unknown, min: number, max: number): value is string {
@@ -192,10 +188,6 @@ async function activateLicense(
       max_devices: typeof activation.max_devices === "number"
         ? activation.max_devices
         : 1,
-      branding_code: await resolveLicenseBrandingCode(
-        admin,
-        typeof activation.user_id === "string" ? activation.user_id : null,
-      ),
     },
     200,
     http,
@@ -312,7 +304,6 @@ async function validateLicense(
       server_now: new Date(nowMs).toISOString(),
       activated_at: license.activated_at,
       max_devices: maxDevices,
-      branding_code: await resolveLicenseBrandingCode(admin, license.user_id),
     },
     200,
     http,

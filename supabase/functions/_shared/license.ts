@@ -25,32 +25,6 @@ export async function hashLicenseKey(value: string): Promise<string> {
     .join("");
 }
 
-export async function resolveLicenseBrandingCode(
-  admin: SupabaseClient,
-  licenseUserId: string | null | undefined,
-): Promise<string | null> {
-  if (!licenseUserId) return null;
-  try {
-    const { data: payment } = await admin
-      .from("payments")
-      .select("reseller_id")
-      .eq("user_id", licenseUserId)
-      .not("reseller_id", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!payment?.reseller_id) return null;
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("referral_code")
-      .eq("id", payment.reseller_id)
-      .maybeSingle();
-    return profile?.referral_code ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export async function insertUniqueLicense(
   admin: SupabaseClient,
   values: Record<string, unknown>,

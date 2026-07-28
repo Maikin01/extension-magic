@@ -1,4 +1,11 @@
+import { useRouterState } from "@tanstack/react-router";
+
 export function BottomBlur() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // Painel de revendedores não usa o efeito de vidro inferior
+  if (pathname.startsWith("/revenda")) return null;
+
   return (
     <div
       aria-hidden="true"

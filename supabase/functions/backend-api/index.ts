@@ -222,7 +222,7 @@ async function claimTrialLicense(context: AuthContext) {
         p_plan_id: plan.id,
         p_license_key: licenseKey,
         p_license_key_hash: licenseKeyHash,
-        p_expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+        p_expires_at: null,
       },
     );
     if (!claimError && data && typeof data === "object") {
@@ -296,11 +296,57 @@ async function adminUpdateLicenseStatus(context: AuthContext, input: unknown) {
       status: z.enum(["active", "expired", "suspended", "revoked", "pending"]),
     })
     .parse(input);
-  const { error } = await context.admin
+  const patch: Record<string, unknown> = { status: data.status };
+  if (data.status === "pending") {
+    // Volta a chave para "não ativada": o tempo recomeça na próxima ativação.
+    patch.activated_at = null;
+    patch.expires_at = null;
+  } else if (data.status === "active") {
+    const { data: license, error: licenseError } = await context.admin
+      .from("licenses")
+      .select("*, plans(duration_days, duration_minutes)")
+      .eq("id", data.license_id)
+      .maybeSingle();
+    if (licenseError) throw licenseError;
+    if (!license) {
+      throw new ApiHttpError(
+        404,
+        "LICENSE_NOT_FOUND",
+        "Licença não encontrada.",
+      );
+    }
+    if (!license.expires_at) {
+      const durationMs = license.custom_duration_seconds
+        ? license.custom_duration_seconds * 1_000
+        : license.custom_duration_minutes
+        ? license.custom_duration_minutes * 60_000
+        : license.plans?.duration_minutes
+        ? license.plans.duration_minutes * 60_000
+        : license.plans?.duration_days
+        ? license.plans.duration_days * 86_400_000
+        : 0;
+      if (!durationMs) {
+        throw new ApiHttpError(
+          400,
+          "INVALID_LICENSE_DURATION",
+          "A licença não possui uma duração válida.",
+        );
+      }
+      const now = Date.now();
+      patch.activated_at = new Date(now).toISOString();
+      patch.expires_at = new Date(now + durationMs).toISOString();
+    }
+  }
+  const { data: updated, error } = await context.admin
     .from("licenses")
-    .update({ status: data.status })
-    .eq("id", data.license_id);
+    .update(patch)
+    .eq("id", data.license_id)
+    .select("id")
+    .maybeSingle();
   if (error) throw error;
+  if (!updated) {
+    throw new ApiHttpError(404, "LICENSE_NOT_FOUND", "Licença não encontrada.");
+  }
   await context.admin.from("admin_audit_log").insert({
     admin_id: adminId,
     action: "update_license_status",
