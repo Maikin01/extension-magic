@@ -7,7 +7,7 @@
     'use strict';
 
     const FLAG_KEY = 'lvbl_use_standard_chat';
-    const FALLBACK_EVENT_ID = 'main:agent#00000000000123#bld:ZDP4ZE3D';
+    
     const EDITOR_SELECTOR = [
         'textarea',
         'input[type="text"]',
@@ -44,7 +44,7 @@
             if (area === 'local' && FLAG_KEY in changes) {
                 enabled = !!changes[FLAG_KEY].newValue;
                 window.__lvblStandardChatEnabled = enabled;
-                showToast(enabled ? '🛡 Chat Padrão ATIVO — envio sem créditos' : '⚪ Chat Padrão desativado');
+                showToast(enabled ? '🛡 Chat Padrão ATIVO' : '⚪ Chat Padrão desativado');
             }
         });
     } catch (_) {}
@@ -235,7 +235,7 @@
             return false;
         }
 
-        showToast('✅ Enviado pelo método da extensão (sem créditos)');
+        showToast('✅ Enviado pelo chat padrão');
         return true;
     }
 
@@ -446,16 +446,7 @@
 
         try { editor.focus?.(); } catch (_) {}
         setEditorText(editor, '.');
-        showToast('🚀 Criando novo projeto (sem gastar créditos)…');
-
-        // Liga a flag no mundo da página para o page-fetch-patch reescrever
-        // a próxima requisição como fix_error (envio gratuito).
-        try {
-            const flag = document.createElement('script');
-            flag.textContent = 'window.__lvblForceFree = true; setTimeout(()=>{ window.__lvblForceFree = false; }, 8000);';
-            (document.head || document.documentElement).appendChild(flag);
-            flag.remove();
-        } catch (_) {}
+        showToast('🚀 Criando novo projeto…');
 
         // Enquanto criando projeto, o interceptor do chat padrão fica desligado
         creatingProject = true;
@@ -491,7 +482,7 @@
             if (msg && msg.action === 'lvbl_standard_chat_set') {
                 enabled = !!msg.enabled;
                 window.__lvblStandardChatEnabled = enabled;
-                showToast(enabled ? '🛡 Chat Padrão ATIVO — envio sem créditos' : '⚪ Chat Padrão desativado');
+                showToast(enabled ? '🛡 Chat Padrão ATIVO' : '⚪ Chat Padrão desativado');
                 sendResponse({ ok: true, enabled });
                 return false;
             }
