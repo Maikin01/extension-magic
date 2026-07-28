@@ -1,13 +1,12 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Copy, Check, Search } from "lucide-react";
 import { toast } from "sonner";
-import { adminListPayments } from "@/lib/license.functions";
+import { adminListPayments } from "@/lib/api/license-api";
 import { QueryErrorState } from "@/components/QueryErrorState";
 
 type PaymentRow = {
@@ -28,8 +27,7 @@ type PaymentRow = {
 const money = (c: number) =>
   (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const fmtDate = (s: string | null) =>
-  s ? new Date(s).toLocaleString("pt-BR") : "—";
+const fmtDate = (s: string | null) => (s ? new Date(s).toLocaleString("pt-BR") : "—");
 
 const fmtPhone = (raw: string | null) => {
   if (!raw) return "—";
@@ -39,7 +37,9 @@ const fmtPhone = (raw: string | null) => {
   return raw;
 };
 
-const statusInfo = (s: string): { label: string; variant: "default" | "secondary" | "destructive" | "outline" } => {
+const statusInfo = (
+  s: string,
+): { label: string; variant: "default" | "secondary" | "destructive" | "outline" } => {
   switch (s) {
     case "approved":
       return { label: "Pago", variant: "default" };
@@ -58,7 +58,7 @@ const statusInfo = (s: string): { label: string; variant: "default" | "secondary
 };
 
 export function PaymentsTab() {
-  const listFn = useServerFn(adminListPayments);
+  const listFn = adminListPayments;
   const { data, isLoading, error, isFetching, refetch } = useQuery({
     queryKey: ["admin", "payments"],
     queryFn: () => listFn(),
@@ -130,24 +130,18 @@ export function PaymentsTab() {
         </Card>
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Pagos</div>
-          <div className="mt-2 text-2xl font-bold text-emerald-500">
-            {totals.approved.length}
-          </div>
+          <div className="mt-2 text-2xl font-bold text-emerald-500">{totals.approved.length}</div>
           <div className="text-xs text-muted-foreground">
             {money(totals.revenueCents)} arrecadados
           </div>
         </Card>
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Pendentes</div>
-          <div className="mt-2 text-2xl font-bold text-yellow-500">
-            {totals.pending.length}
-          </div>
+          <div className="mt-2 text-2xl font-bold text-yellow-500">{totals.pending.length}</div>
         </Card>
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Recusados / Erro</div>
-          <div className="mt-2 text-2xl font-bold text-destructive">
-            {totals.failed.length}
-          </div>
+          <div className="mt-2 text-2xl font-bold text-destructive">{totals.failed.length}</div>
         </Card>
       </div>
 
@@ -216,9 +210,7 @@ export function PaymentsTab() {
                     <tr key={p.id} className="hover:bg-muted/30">
                       <td className="px-4 py-3">
                         <div className="font-medium">{p.buyer_name ?? "—"}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {p.buyer_email ?? "—"}
-                        </div>
+                        <div className="text-xs text-muted-foreground">{p.buyer_email ?? "—"}</div>
                       </td>
                       <td className="px-4 py-3">
                         {rawPhone ? (
@@ -241,9 +233,7 @@ export function PaymentsTab() {
                         )}
                       </td>
                       <td className="px-4 py-3">{p.plans?.name ?? "—"}</td>
-                      <td className="px-4 py-3 font-medium">
-                        {money(p.amount_cents ?? 0)}
-                      </td>
+                      <td className="px-4 py-3 font-medium">{money(p.amount_cents ?? 0)}</td>
                       <td className="px-4 py-3">
                         <Badge variant={s.variant}>{s.label}</Badge>
                       </td>

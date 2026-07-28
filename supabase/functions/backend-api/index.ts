@@ -1,10 +1,35 @@
 import { z } from "npm:zod@3.25.76";
-import { errorResponse, json, options, readJson } from "../_shared/http.ts";
-import { assertRole, hasRole, requireUser, type AuthContext } from "../_shared/supabase.ts";
-import { insertUniqueLicense } from "../_shared/license.ts";
-import { createPixPayment, getPayment } from "../_shared/mercadopago.ts";
-import { finalizePaymentIfApproved } from "../_shared/payments.ts";
-import { hashAdminPassword, verifyAdminPassword } from "../_shared/admin-password.ts";
+import {
+  ApiHttpError,
+  assertAllowedOrigin,
+  createHttpContext,
+  errorResponse,
+  json,
+  options,
+  readJson,
+} from "../_shared/http.ts";
+import {
+  assertRole,
+  type AuthContext,
+  getUserRoles,
+  hasRole,
+  requireUser,
+} from "../_shared/supabase.ts";
+import {
+  generateLicenseKey,
+  hashLicenseKey,
+  insertUniqueLicense,
+} from "../_shared/license.ts";
+import {
+  assertMercadoPagoPaymentContract,
+  createPixPayment,
+  getPayment,
+} from "../_shared/mercadopago.ts";
+import {
+  applyProviderPaymentStatus,
+  finalizePaymentIfApproved,
+} from "../_shared/payments.ts";
+import { enforceRateLimit, sha256Hex } from "../_shared/rate-limit.ts";
 
 const ADMIN_ROLES = ["admin", "owner"];
 const rangeSchema = z.object({
@@ -27,24 +52,90 @@ const planSchema = z.object({
   features: z.array(z.string()).optional(),
 });
 
+function currentAal(claims: Record<string, unknown>): "aal1" | "aal2" {
+  return claims.aal === "aal2" ? "aal2" : "aal1";
+}
+
+function assertAal2(claims: Record<string, unknown>) {
+  if (currentAal(claims) !== "aal2") {
+    throw new ApiHttpError(
+      403,
+      "MFA_REQUIRED",
+      "Verificação em duas etapas exigida para acessar o painel administrativo.",
+    );
+  }
+}
+
 async function assertAdmin(context: AuthContext) {
   await assertRole(context.admin, context.userId, ADMIN_ROLES);
+  assertAal2(context.claims);
   return context.userId;
 }
 
-function assertRecentMfa(claims: Record<string, unknown>) {
-  if (claims.aal !== "aal2") throw new Error("Verificação em duas etapas exigida.");
-  const issuedAt = Number(claims.iat ?? 0);
-  if (!issuedAt || Math.floor(Date.now() / 1000) - issuedAt > 5 * 60) {
-    throw new Error("Código do autenticador expirou. Verifique novamente.");
-  }
+const ADMIN_MUTATION_ACTIONS = new Set([
+  "adminUpdateLicenseStatus",
+  "adminGenerateLicenses",
+  "adminDeleteLicense",
+  "adminCreatePlan",
+  "adminUpdatePlan",
+  "adminSetUserRole",
+  "adminDeleteUser",
+]);
+
+const BACKEND_ACTIONS = new Set([
+  "getMyAccessContext",
+  "getMyDashboard",
+  "claimTrialLicense",
+  "getAdminOverview",
+  "adminUpdateLicenseStatus",
+  "adminGenerateLicenses",
+  "adminDeleteLicense",
+  "adminCreatePlan",
+  "adminUpdatePlan",
+  "adminListUsers",
+  "adminSetUserRole",
+  "adminDeleteUser",
+  "adminGetAuditLog",
+  "adminListPayments",
+  "getMyResellerInfo",
+  "getResellerStats",
+  "adminListResellers",
+  "adminGetResellerDetail",
+  "adminGetGlobalRevenue",
+  "createPixCheckout",
+  "getCheckoutStatus",
+  "getAdminAccessStatus",
+]);
+
+async function enforceBackendRateLimit(
+  context: AuthContext,
+  action: string,
+  requestId: string,
+): Promise<void> {
+  const bucket = action === "createPixCheckout"
+    ? { scope: "backend-payment", limit: 10, windowSeconds: 600 }
+    : ADMIN_MUTATION_ACTIONS.has(action)
+    ? { scope: "backend-admin-mutation", limit: 60, windowSeconds: 60 }
+    : { scope: "backend-general", limit: 180, windowSeconds: 60 };
+
+  await enforceRateLimit(
+    context.admin,
+    bucket.scope,
+    [context.userId, action],
+    bucket.limit,
+    bucket.windowSeconds,
+    { requestId },
+  );
 }
 
 function summarize(rows: any[]) {
   const paid = rows.filter((row) => row.status === "approved");
   return {
     total_sales: paid.length,
-    total_amount_cents: paid.reduce((total, row) => total + (row.amount_cents ?? 0), 0),
+    total_amount_cents: paid.reduce(
+      (total, row) => total + (row.amount_cents ?? 0),
+      0,
+    ),
     pending_count: rows.filter((row) => row.status === "pending").length,
     all_count: rows.length,
   };
@@ -63,6 +154,13 @@ function mapSales(rows: any[]) {
   }));
 }
 
+async function getMyAccessContext(context: AuthContext) {
+  return {
+    user: { id: context.userId, email: context.email },
+    roles: await getUserRoles(context.admin, context.userId),
+  };
+}
+
 async function getMyDashboard(context: AuthContext) {
   const { admin, userId } = context;
   const [licensesResult, profileResult] = await Promise.all([
@@ -78,9 +176,9 @@ async function getMyDashboard(context: AuthContext) {
   const licenses = licensesResult.data ?? [];
   const currentLicense =
     licenses.find((license) => license.status === "active") ??
-    licenses.find((license) => license.status === "pending") ??
-    licenses[0] ??
-    null;
+      licenses.find((license) => license.status === "pending") ??
+      licenses[0] ??
+      null;
   let devices: any[] = [];
   let logs: any[] = [];
   if (currentLicense) {
@@ -98,71 +196,67 @@ async function getMyDashboard(context: AuthContext) {
     devices = devicesResult.data ?? [];
     logs = logsResult.data ?? [];
   }
-  return { profile: profileResult.data, licenses, currentLicense, devices, logs };
+  return {
+    profile: profileResult.data,
+    licenses,
+    currentLicense,
+    devices,
+    logs,
+  };
 }
 
 async function claimTrialLicense(context: AuthContext) {
   const { admin, userId } = context;
-  const { data: existing } = await admin
-    .from("licenses")
-    .select("*, plans!inner(slug)")
-    .eq("user_id", userId)
-    .eq("plans.slug", "trial")
-    .in("status", ["active", "pending"])
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (existing && (!existing.expires_at || new Date(existing.expires_at).getTime() > Date.now())) {
-    return { license: existing, existed: true };
-  }
-  const { data: plan, error } = await admin.from("plans").select("*").eq("slug", "trial").single();
+  const { data: plan, error } = await admin.from("plans").select("*").eq(
+    "slug",
+    "trial",
+  ).single();
   if (error || !plan) throw new Error("Plano de teste não encontrado.");
-  const now = new Date();
-  const license = await insertUniqueLicense(admin, {
-    user_id: userId,
-    plan_id: plan.id,
-    status: "active",
-    activated_at: now.toISOString(),
-    expires_at: new Date(now.getTime() + 10 * 60_000).toISOString(),
-  });
-  return { license, existed: false };
-}
-
-async function createManualLicense(context: AuthContext, input: unknown) {
-  const data = z.object({ plan_slug: z.string().min(1) }).parse(input);
-  const { data: plan, error } = await context.admin
-    .from("plans")
-    .select("*")
-    .eq("slug", data.plan_slug)
-    .eq("is_active", true)
-    .single();
-  if (error || !plan) throw new Error("Plano não encontrado.");
-  return {
-    license: await insertUniqueLicense(context.admin, {
-      user_id: context.userId,
-      plan_id: plan.id,
-      status: "pending",
-    }),
-  };
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const licenseKey = generateLicenseKey();
+    const licenseKeyHash = await hashLicenseKey(licenseKey);
+    const { data, error: claimError } = await admin.rpc(
+      "claim_trial_license",
+      {
+        p_user_id: userId,
+        p_plan_id: plan.id,
+        p_license_key: licenseKey,
+        p_license_key_hash: licenseKeyHash,
+        p_expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+      },
+    );
+    if (!claimError && data && typeof data === "object") {
+      return data as { license: Record<string, unknown>; existed: boolean };
+    }
+    if (claimError?.code !== "23505") {
+      throw claimError ?? new Error("Falha ao gerar licença de teste.");
+    }
+  }
+  throw new Error("Não foi possível gerar uma chave única. Tente novamente.");
 }
 
 async function getAdminOverview(context: AuthContext) {
   await assertAdmin(context);
   const { admin } = context;
-  const [licensesResult, profilesResult, usersResult, plansResult, logsResult] = await Promise.all([
-    admin
-      .from("licenses")
-      .select("*, plans(name, slug)")
-      .order("created_at", { ascending: false })
-      .limit(500),
-    admin.from("profiles").select("id, full_name, avatar_url"),
-    admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
-    admin.from("plans").select("*").order("sort_order"),
-    admin.from("activation_logs").select("*").order("created_at", { ascending: false }).limit(50),
-  ]);
+  const [licensesResult, profilesResult, usersResult, plansResult, logsResult] =
+    await Promise.all([
+      admin
+        .from("licenses")
+        .select("*, plans(name, slug)")
+        .order("created_at", { ascending: false })
+        .limit(500),
+      admin.from("profiles").select("id, full_name, avatar_url"),
+      admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
+      admin.from("plans").select("*").order("sort_order"),
+      admin.from("activation_logs").select("*").order("created_at", {
+        ascending: false,
+      }).limit(50),
+    ]);
   if (licensesResult.error) throw licensesResult.error;
   if (usersResult.error) throw usersResult.error;
-  const profiles = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile]));
+  const profiles = new Map(
+    (profilesResult.data ?? []).map((profile) => [profile.id, profile]),
+  );
   const emails = new Map(
     (usersResult.data.users ?? []).map((user) => [user.id, user.email ?? null]),
   );
@@ -170,18 +264,22 @@ async function getAdminOverview(context: AuthContext) {
     ...license,
     profiles: license.user_id
       ? {
-          full_name: profiles.get(license.user_id)?.full_name ?? null,
-          email: emails.get(license.user_id) ?? null,
-        }
+        full_name: profiles.get(license.user_id)?.full_name ?? null,
+        email: emails.get(license.user_id) ?? null,
+      }
       : null,
   }));
   return {
     counts: {
       active: licenses.filter((license) => license.status === "active").length,
-      pending: licenses.filter((license) => license.status === "pending").length,
-      expired: licenses.filter((license) => license.status === "expired").length,
-      revoked: licenses.filter((license) => license.status === "revoked").length,
-      suspended: licenses.filter((license) => license.status === "suspended").length,
+      pending:
+        licenses.filter((license) => license.status === "pending").length,
+      expired:
+        licenses.filter((license) => license.status === "expired").length,
+      revoked:
+        licenses.filter((license) => license.status === "revoked").length,
+      suspended:
+        licenses.filter((license) => license.status === "suspended").length,
       total_users: usersResult.data.users.length,
     },
     licenses,
@@ -235,11 +333,13 @@ async function adminGenerateLicenses(context: AuthContext, input: unknown) {
         .max(60 * 60 * 24 * 3650)
         .optional()
         .nullable(),
-      max_devices_override: z.number().int().min(1).max(50).optional().nullable(),
+      max_devices_override: z.number().int().min(1).max(50).optional()
+        .nullable(),
     })
     .refine(
       (value) =>
-        !!value.plan_slug || !!value.custom_duration_minutes || !!value.custom_duration_seconds,
+        !!value.plan_slug || !!value.custom_duration_minutes ||
+        !!value.custom_duration_seconds,
     )
     .parse(input);
   let planId: string | null = null;
@@ -259,10 +359,13 @@ async function adminGenerateLicenses(context: AuthContext, input: unknown) {
       perPage: 500,
     });
     if (error) throw error;
-    targetUserId =
-      users.users.find((user) => user.email?.toLowerCase() === data.email?.toLowerCase())?.id ??
+    targetUserId = users.users.find((user) =>
+      user.email?.toLowerCase() === data.email?.toLowerCase()
+    )?.id ??
       null;
-    if (!targetUserId) throw new Error(`Usuário com email ${data.email} não encontrado.`);
+    if (!targetUserId) {
+      throw new Error(`Usuário com email ${data.email} não encontrado.`);
+    }
   }
   const licenses = [];
   for (let index = 0; index < data.count; index++) {
@@ -290,7 +393,10 @@ async function adminGenerateLicenses(context: AuthContext, input: unknown) {
 async function adminDeleteLicense(context: AuthContext, input: unknown) {
   const adminId = await assertAdmin(context);
   const data = z.object({ license_id: z.string().uuid() }).parse(input);
-  const { error } = await context.admin.from("licenses").delete().eq("id", data.license_id);
+  const { error } = await context.admin.from("licenses").delete().eq(
+    "id",
+    data.license_id,
+  );
   if (error) throw error;
   await context.admin.from("admin_audit_log").insert({
     admin_id: adminId,
@@ -343,21 +449,29 @@ async function adminUpdatePlan(context: AuthContext, input: unknown) {
 
 async function adminListUsers(context: AuthContext) {
   await assertAdmin(context);
-  const [usersResult, profilesResult, rolesResult, licensesResult] = await Promise.all([
-    context.admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
-    context.admin.from("profiles").select("*"),
-    context.admin.from("user_roles").select("*"),
-    context.admin.from("licenses").select("user_id, status"),
-  ]);
+  const [usersResult, profilesResult, rolesResult, licensesResult] =
+    await Promise.all([
+      context.admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
+      context.admin.from("profiles").select("*"),
+      context.admin.from("user_roles").select("*"),
+      context.admin.from("licenses").select("user_id, status"),
+    ]);
   if (usersResult.error) throw usersResult.error;
-  const profiles = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile]));
+  const profiles = new Map(
+    (profilesResult.data ?? []).map((profile) => [profile.id, profile]),
+  );
   const roles = new Map<string, string[]>();
-  for (const role of rolesResult.data ?? [])
+  for (const role of rolesResult.data ?? []) {
     roles.set(role.user_id, [...(roles.get(role.user_id) ?? []), role.role]);
+  }
   const licenseCounts = new Map<string, number>();
   for (const license of licensesResult.data ?? []) {
-    if (license.user_id)
-      licenseCounts.set(license.user_id, (licenseCounts.get(license.user_id) ?? 0) + 1);
+    if (license.user_id) {
+      licenseCounts.set(
+        license.user_id,
+        (licenseCounts.get(license.user_id) ?? 0) + 1,
+      );
+    }
   }
   return usersResult.data.users.map((user) => ({
     id: user.id,
@@ -380,12 +494,26 @@ async function adminSetUserRole(context: AuthContext, input: unknown) {
       action: z.enum(["grant", "revoke"]),
     })
     .parse(input);
+  if (["admin", "owner"].includes(data.role)) {
+    const callerIsOwner = await hasRole(context.admin, adminId, "owner");
+    if (!callerIsOwner) {
+      throw new ApiHttpError(
+        403,
+        "OWNER_REQUIRED",
+        "Somente um owner pode conceder ou remover acesso administrativo.",
+      );
+    }
+  }
   if (
     data.user_id === adminId &&
     ["admin", "owner"].includes(data.role) &&
     data.action === "revoke"
   ) {
-    throw new Error("Você não pode remover seu próprio acesso de admin/owner.");
+    throw new ApiHttpError(
+      403,
+      "SELF_ROLE_CHANGE_FORBIDDEN",
+      "Você não pode remover seu próprio acesso de admin/owner.",
+    );
   }
   if (data.action === "grant") {
     const { error } = await context.admin
@@ -413,7 +541,24 @@ async function adminSetUserRole(context: AuthContext, input: unknown) {
 async function adminDeleteUser(context: AuthContext, input: unknown) {
   const adminId = await assertAdmin(context);
   const data = z.object({ user_id: z.string().uuid() }).parse(input);
-  if (data.user_id === adminId) throw new Error("Você não pode excluir sua própria conta.");
+  if (data.user_id === adminId) {
+    throw new ApiHttpError(
+      403,
+      "SELF_DELETE_FORBIDDEN",
+      "Você não pode excluir sua própria conta.",
+    );
+  }
+  const targetRoles = await getUserRoles(context.admin, data.user_id);
+  if (targetRoles.some((role) => ADMIN_ROLES.includes(role))) {
+    const callerIsOwner = await hasRole(context.admin, adminId, "owner");
+    if (!callerIsOwner) {
+      throw new ApiHttpError(
+        403,
+        "OWNER_REQUIRED",
+        "Somente um owner pode excluir outro administrador.",
+      );
+    }
+  }
   const { error } = await context.admin.auth.admin.deleteUser(data.user_id);
   if (error) throw error;
   await context.admin.from("admin_audit_log").insert({
@@ -472,7 +617,10 @@ async function getMyResellerInfo(context: AuthContext) {
     if (refreshed.error) throw refreshed.error;
     profile = refreshed.data;
   }
-  return { referral_code: profile?.referral_code ?? null, full_name: profile?.full_name ?? null };
+  return {
+    referral_code: profile?.referral_code ?? null,
+    full_name: profile?.full_name ?? null,
+  };
 }
 
 async function getResellerStats(context: AuthContext, input: unknown) {
@@ -480,7 +628,9 @@ async function getResellerStats(context: AuthContext, input: unknown) {
   const range = rangeSchema.parse(input);
   let query = context.admin
     .from("payments")
-    .select("id, status, amount_cents, created_at, paid_at, buyer_name, buyer_email, plans(name)")
+    .select(
+      "id, status, amount_cents, created_at, paid_at, buyer_name, buyer_email, plans(name)",
+    )
     .eq("reseller_id", context.userId)
     .order("created_at", { ascending: false })
     .limit(500);
@@ -501,8 +651,12 @@ async function adminListResellers(context: AuthContext, input: unknown) {
     .eq("role", "revendedor");
   if (error) throw error;
   const resellerIds = (roles ?? []).map((role) => role.user_id);
-  if (!resellerIds.length)
-    return { resellers: [], global: { total_amount_cents: 0, total_sales: 0, pending_count: 0 } };
+  if (!resellerIds.length) {
+    return {
+      resellers: [],
+      global: { total_amount_cents: 0, total_sales: 0, pending_count: 0 },
+    };
+  }
 
   let paymentsQuery = context.admin
     .from("payments")
@@ -511,15 +665,24 @@ async function adminListResellers(context: AuthContext, input: unknown) {
   if (range.from) paymentsQuery = paymentsQuery.gte("created_at", range.from);
   if (range.to) paymentsQuery = paymentsQuery.lte("created_at", range.to);
   const [profilesResult, usersResult, paymentsResult] = await Promise.all([
-    context.admin.from("profiles").select("id, full_name, referral_code").in("id", resellerIds),
+    context.admin.from("profiles").select("id, full_name, referral_code").in(
+      "id",
+      resellerIds,
+    ),
     context.admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
     paymentsQuery,
   ]);
   if (usersResult.error) throw usersResult.error;
   if (paymentsResult.error) throw paymentsResult.error;
-  const emails = new Map(usersResult.data.users.map((user) => [user.id, user.email ?? null]));
-  const profiles = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile]));
-  const totals = new Map(resellerIds.map((id) => [id, { paid: 0, paidCents: 0, pending: 0 }]));
+  const emails = new Map(
+    usersResult.data.users.map((user) => [user.id, user.email ?? null]),
+  );
+  const profiles = new Map(
+    (profilesResult.data ?? []).map((profile) => [profile.id, profile]),
+  );
+  const totals = new Map(
+    resellerIds.map((id) => [id, { paid: 0, paidCents: 0, pending: 0 }]),
+  );
   let globalPaidCents = 0;
   let globalPaid = 0;
   let globalPending = 0;
@@ -562,7 +725,9 @@ async function adminGetResellerDetail(context: AuthContext, input: unknown) {
   const range = rangeSchema.extend({ user_id: z.string().uuid() }).parse(input);
   let query = context.admin
     .from("payments")
-    .select("id, status, amount_cents, created_at, paid_at, buyer_name, buyer_email, plans(name)")
+    .select(
+      "id, status, amount_cents, created_at, paid_at, buyer_name, buyer_email, plans(name)",
+    )
     .eq("reseller_id", range.user_id)
     .order("created_at", { ascending: false })
     .limit(500);
@@ -617,6 +782,7 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
       buyer_whatsapp: z.string().min(8).max(30),
       buyer_cpf: z.string().max(20).optional(),
       referral_code: z.string().min(4).max(16).optional().nullable(),
+      idempotency_key: z.string().uuid(),
     })
     .parse(input);
   const { data: plan, error } = await context.admin
@@ -626,8 +792,24 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
     .eq("is_active", true)
     .single();
   if (error || !plan) throw new Error("Plano não encontrado.");
-  if (plan.price_cents <= 0) throw new Error("Este plano é gratuito, não requer pagamento.");
-  if (!context.email) throw new Error("E-mail do usuário não encontrado. Faça login novamente.");
+  if (plan.price_cents <= 0) {
+    throw new ApiHttpError(
+      400,
+      "PAYMENT_NOT_REQUIRED",
+      "Este plano é gratuito e não requer pagamento.",
+    );
+  }
+  if (!context.email) {
+    throw new ApiHttpError(
+      400,
+      "USER_EMAIL_REQUIRED",
+      "E-mail do usuário não encontrado. Faça login novamente.",
+    );
+  }
+  const digits = (value: string) => value.replace(/\D+/g, "");
+  const normalizedBuyerName = data.buyer_name.trim().replace(/\s+/g, " ");
+  const normalizedBuyerWhatsapp = digits(data.buyer_whatsapp);
+  const normalizedBuyerCpf = digits(data.buyer_cpf ?? "");
   let resellerId: string | null = null;
   if (data.referral_code) {
     const code = data.referral_code.toUpperCase().trim();
@@ -640,58 +822,148 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
       profile &&
       profile.id !== context.userId &&
       (await hasRole(context.admin, profile.id, "revendedor"))
-    )
+    ) {
       resellerId = profile.id;
+    }
   }
-  const digits = (value: string) => value.replace(/\D+/g, "");
-  const { data: payment, error: insertError } = await context.admin
+  const requestFingerprint = await sha256Hex(JSON.stringify({
+    planId: plan.id,
+    buyerName: normalizedBuyerName,
+    buyerWhatsapp: normalizedBuyerWhatsapp,
+    buyerCpf: normalizedBuyerCpf,
+    buyerEmail: context.email.trim().toLowerCase(),
+    resellerId,
+  }));
+  const existingResult = await context.admin
     .from("payments")
-    .insert({
-      plan_id: plan.id,
-      user_id: context.userId,
-      reseller_id: resellerId,
-      amount_cents: plan.price_cents,
-      buyer_name: data.buyer_name.trim(),
-      buyer_whatsapp: digits(data.buyer_whatsapp),
-      buyer_email: context.email,
-      status: "pending",
-    })
-    .select()
-    .single();
-  if (insertError || !payment) throw insertError ?? new Error("Falha ao criar pagamento.");
+    .select("*")
+    .eq("user_id", context.userId)
+    .eq("client_request_id", data.idempotency_key)
+    .maybeSingle();
+  if (existingResult.error) throw existingResult.error;
+
+  let payment = existingResult.data;
+  if (!payment) {
+    const inserted = await context.admin
+      .from("payments")
+      .insert({
+        plan_id: plan.id,
+        user_id: context.userId,
+        reseller_id: resellerId,
+        client_request_id: data.idempotency_key,
+        request_fingerprint: requestFingerprint,
+        amount_cents: plan.price_cents,
+        buyer_name: normalizedBuyerName,
+        buyer_whatsapp: normalizedBuyerWhatsapp,
+        buyer_email: context.email,
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (inserted.error?.code === "23505") {
+      const raced = await context.admin
+        .from("payments")
+        .select("*")
+        .eq("user_id", context.userId)
+        .eq("client_request_id", data.idempotency_key)
+        .single();
+      if (raced.error) throw raced.error;
+      payment = raced.data;
+    } else {
+      if (inserted.error || !inserted.data) {
+        throw inserted.error ?? new Error("Falha ao criar pagamento.");
+      }
+      payment = inserted.data;
+    }
+  }
+
+  const legacyRequestMatches = payment.plan_id === plan.id &&
+    payment.buyer_name === normalizedBuyerName &&
+    payment.buyer_whatsapp === normalizedBuyerWhatsapp &&
+    payment.buyer_email?.trim().toLowerCase() ===
+      context.email.trim().toLowerCase() &&
+    payment.reseller_id === resellerId;
+  if (
+    (payment.request_fingerprint &&
+      payment.request_fingerprint !== requestFingerprint) ||
+    (!payment.request_fingerprint && !legacyRequestMatches)
+  ) {
+    throw new ApiHttpError(
+      409,
+      "IDEMPOTENCY_CONFLICT",
+      "Esta tentativa de pagamento já foi usada com outros dados. Inicie um novo checkout.",
+    );
+  }
+  if (!payment.request_fingerprint && !payment.provider_payment_id) {
+    throw new ApiHttpError(
+      409,
+      "IDEMPOTENCY_RETRY_REQUIRED",
+      "Não foi possível confirmar a tentativa anterior. Inicie um novo checkout.",
+    );
+  }
+
+  if (payment.provider_payment_id && payment.qr_code) {
+    return {
+      payment_id: payment.id,
+      status: payment.status,
+      qr_code: payment.qr_code,
+      qr_code_base64: payment.qr_code_base64,
+      ticket_url: payment.ticket_url,
+      expires_at: payment.expires_at,
+      amount_cents: payment.amount_cents,
+      plan_name: plan.name,
+    };
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "");
     if (!supabaseUrl) throw new Error("SUPABASE_URL não configurada.");
     const pix = await createPixPayment({
-      amountCents: plan.price_cents,
+      amountCents: payment.amount_cents,
       description: `Rise Lovable — ${plan.name}`,
-      buyerName: data.buyer_name,
+      buyerName: payment.buyer_name,
       buyerEmail: context.email,
       buyerWhatsapp: payment.buyer_whatsapp ?? undefined,
-      buyerCpf: data.buyer_cpf,
+      buyerCpf: normalizedBuyerCpf || undefined,
       externalReference: payment.id,
       notificationUrl: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
+      idempotencyKey: payment.id,
       expiresInMinutes: 30,
+    });
+    const verified = assertMercadoPagoPaymentContract(pix.raw, {
+      paymentId: payment.id,
+      providerPaymentId: payment.provider_payment_id,
+      amountCents: payment.amount_cents,
+      buyerEmail: payment.buyer_email,
+    });
+    const effectiveStatus = await applyProviderPaymentStatus(context.admin, {
+      paymentId: payment.id,
+      providerPaymentId: verified.providerId,
+      status: verified.status,
+      raw: pix.raw,
     });
     const { error: updateError } = await context.admin
       .from("payments")
       .update({
-        provider_payment_id: String(pix.id),
         qr_code: pix.qr_code,
         qr_code_base64: pix.qr_code_base64,
         ticket_url: pix.ticket_url,
         expires_at: pix.date_of_expiration,
-        raw: pix.raw,
       })
       .eq("id", payment.id);
     if (updateError) throw updateError;
+    if (effectiveStatus === "approved") {
+      await finalizePaymentIfApproved(context.admin, payment.id);
+    }
     return {
       payment_id: payment.id,
+      status: effectiveStatus,
       qr_code: pix.qr_code,
       qr_code_base64: pix.qr_code_base64,
       ticket_url: pix.ticket_url,
       expires_at: pix.date_of_expiration,
-      amount_cents: plan.price_cents,
+      amount_cents: payment.amount_cents,
       plan_name: plan.name,
     };
   } catch (error) {
@@ -701,7 +973,9 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
         status: "error",
         raw: { error: error instanceof Error ? error.message : String(error) },
       })
-      .eq("id", payment.id);
+      .eq("id", payment.id)
+      .eq("status", "pending")
+      .is("provider_payment_id", null);
     throw error;
   }
 }
@@ -714,24 +988,43 @@ async function getCheckoutStatus(context: AuthContext, input: unknown) {
     .eq("id", data.payment_id)
     .maybeSingle();
   if (error || !payment) throw new Error("Pagamento não encontrado.");
-  if (payment.user_id && payment.user_id !== context.userId) throw new Error("Acesso negado.");
-  if (payment.status !== "approved" && payment.provider_payment_id) {
+  if (payment.user_id !== context.userId) {
+    throw new ApiHttpError(403, "FORBIDDEN", "Acesso negado.");
+  }
+  if (payment.provider_payment_id) {
+    let remote: unknown = null;
     try {
-      const remote = await getPayment(payment.provider_payment_id);
-      if (remote?.status && remote.status !== payment.status) {
-        await context.admin
-          .from("payments")
-          .update({ status: remote.status, raw: remote })
-          .eq("id", payment.id);
-        payment.status = remote.status;
-      }
-    } catch (error) {
-      console.warn("[payment-poll]", error);
+      remote = await getPayment(payment.provider_payment_id);
+    } catch {
+      console.warn(
+        "[payment-poll]",
+        JSON.stringify({
+          code: "PROVIDER_FETCH_FAILED",
+          paymentId: payment.id,
+        }),
+      );
+    }
+    if (remote) {
+      const verified = assertMercadoPagoPaymentContract(remote, {
+        paymentId: payment.id,
+        providerPaymentId: payment.provider_payment_id,
+        amountCents: payment.amount_cents,
+        buyerEmail: payment.buyer_email,
+      });
+      payment.status = await applyProviderPaymentStatus(context.admin, {
+        paymentId: payment.id,
+        providerPaymentId: verified.providerId,
+        status: verified.status,
+        raw: remote,
+      });
     }
   }
-  let licenseKey = payment.licenses?.license_key ?? null;
-  if (payment.status === "approved" && !licenseKey)
+  let licenseKey = payment.status === "approved"
+    ? payment.licenses?.license_key ?? null
+    : null;
+  if (payment.status === "approved" && !licenseKey) {
     licenseKey = await finalizePaymentIfApproved(context.admin, payment.id);
+  }
   return {
     status: payment.status,
     license_key: licenseKey,
@@ -740,77 +1033,55 @@ async function getCheckoutStatus(context: AuthContext, input: unknown) {
   };
 }
 
-async function getAdminGateStatus(context: AuthContext) {
-  const isAdmin = await hasRole(context.admin, context.userId, ADMIN_ROLES);
-  if (!isAdmin) return { isAdmin: false, hasPassword: false, hasTotp: false };
-  const [credentialResult, factorsResult] = await Promise.all([
-    context.admin
-      .from("admin_credentials")
-      .select("user_id")
-      .eq("user_id", context.userId)
-      .maybeSingle(),
-    context.admin.auth.admin.mfa.listFactors({ userId: context.userId }),
-  ]);
-  if (credentialResult.error) throw credentialResult.error;
+async function getAdminAccessStatus(context: AuthContext) {
+  const roles = await getUserRoles(context.admin, context.userId);
+  const isAdmin = roles.some((role) => ADMIN_ROLES.includes(role));
+  const role = roles.includes("owner")
+    ? "owner"
+    : roles.includes("admin")
+    ? "admin"
+    : (roles[0] ?? null);
+
+  if (!isAdmin) {
+    return {
+      isAdmin: false,
+      role,
+      roles,
+      hasTotp: false,
+      currentAal: currentAal(context.claims),
+    };
+  }
+
+  const factorsResult = await context.admin.auth.admin.mfa.listFactors({
+    userId: context.userId,
+  });
   if (factorsResult.error) throw factorsResult.error;
   const hasTotp = (factorsResult.data.factors ?? []).some(
-    (factor: any) => factor.factor_type === "totp" && factor.status === "verified",
+    (factor: any) =>
+      factor.factor_type === "totp" && factor.status === "verified",
   );
-  return { isAdmin: true, hasPassword: !!credentialResult.data, hasTotp };
+
+  return {
+    isAdmin: true,
+    role,
+    roles,
+    hasTotp,
+    currentAal: currentAal(context.claims),
+  };
 }
 
-async function setAdminPassword(context: AuthContext, input: unknown) {
-  await assertAdmin(context);
-  assertRecentMfa(context.claims);
-  const data = z
-    .object({
-      newPassword: z.string().min(8).max(128),
-      currentPassword: z.string().max(128).optional(),
-    })
-    .parse(input);
-  const { data: existing, error } = await context.admin
-    .from("admin_credentials")
-    .select("password_hash")
-    .eq("user_id", context.userId)
-    .maybeSingle();
-  if (error) throw error;
-  if (existing) {
-    if (!data.currentPassword) throw new Error("Senha atual obrigatória.");
-    if (!(await verifyAdminPassword(data.currentPassword, existing.password_hash)))
-      throw new Error("Senha atual incorreta.");
-  }
-  const passwordHash = await hashAdminPassword(data.newPassword);
-  const { error: saveError } = await context.admin
-    .from("admin_credentials")
-    .upsert({ user_id: context.userId, password_hash: passwordHash });
-  if (saveError) throw saveError;
-  return { ok: true };
-}
-
-async function verifyAdminUnlock(context: AuthContext, input: unknown) {
-  await assertAdmin(context);
-  assertRecentMfa(context.claims);
-  const data = z.object({ password: z.string().min(1).max(128) }).parse(input);
-  const { data: credential, error } = await context.admin
-    .from("admin_credentials")
-    .select("password_hash")
-    .eq("user_id", context.userId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!credential) throw new Error("Senha do painel não configurada.");
-  if (!(await verifyAdminPassword(data.password, credential.password_hash)))
-    throw new Error("Senha do painel incorreta.");
-  return { ok: true };
-}
-
-async function dispatch(action: string, input: unknown, context: AuthContext): Promise<unknown> {
+async function dispatch(
+  action: string,
+  input: unknown,
+  context: AuthContext,
+): Promise<unknown> {
   switch (action) {
+    case "getMyAccessContext":
+      return getMyAccessContext(context);
     case "getMyDashboard":
       return getMyDashboard(context);
     case "claimTrialLicense":
       return claimTrialLicense(context);
-    case "createManualLicense":
-      return createManualLicense(context, input);
     case "getAdminOverview":
       return getAdminOverview(context);
     case "adminUpdateLicenseStatus":
@@ -847,32 +1118,40 @@ async function dispatch(action: string, input: unknown, context: AuthContext): P
       return createPixCheckout(context, input);
     case "getCheckoutStatus":
       return getCheckoutStatus(context, input);
-    case "getAdminGateStatus":
-      return getAdminGateStatus(context);
-    case "setAdminPassword":
-      return setAdminPassword(context, input);
-    case "verifyAdminUnlock":
-      return verifyAdminUnlock(context, input);
+    case "getAdminAccessStatus":
+      return getAdminAccessStatus(context);
     default:
-      throw new Error("Ação desconhecida.");
+      throw new ApiHttpError(404, "UNKNOWN_ACTION", "Ação desconhecida.");
   }
 }
 
 Deno.serve(async (request) => {
-  if (request.method === "OPTIONS") return options();
-  if (request.method !== "POST") return json({ error: "Método não permitido." }, 405);
+  const http = createHttpContext(request, "protected");
   try {
+    assertAllowedOrigin(http);
+    if (request.method === "OPTIONS") return options(http);
+    if (request.method !== "POST") {
+      throw new ApiHttpError(
+        405,
+        "METHOD_NOT_ALLOWED",
+        "Método não permitido.",
+      );
+    }
     const body = await readJson(request);
-    if (typeof body?.action !== "string") return json({ error: "Ação obrigatória." }, 400);
+    const record = body && typeof body === "object"
+      ? (body as Record<string, unknown>)
+      : null;
+    const action = record?.action;
+    if (typeof action !== "string" || action.length > 80) {
+      throw new ApiHttpError(400, "ACTION_REQUIRED", "Ação obrigatória.");
+    }
+    if (!BACKEND_ACTIONS.has(action)) {
+      throw new ApiHttpError(404, "UNKNOWN_ACTION", "Ação desconhecida.");
+    }
     const context = await requireUser(request);
-    return json(await dispatch(body.action, body.data, context));
+    await enforceBackendRateLimit(context, action, http.requestId);
+    return json(await dispatch(action, record?.data, context), 200, http);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const status = /autenticado|sessão/i.test(message)
-      ? 401
-      : /acesso negado/i.test(message)
-        ? 403
-        : 400;
-    return errorResponse(error, status);
+    return errorResponse(error, http);
   }
 });

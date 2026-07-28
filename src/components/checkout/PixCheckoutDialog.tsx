@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { translateError } from "@/lib/translate-error";
-import { useServerFn } from "@tanstack/react-start";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, Loader2, ShieldCheck, QrCode } from "lucide-react";
 import { toast } from "sonner";
-import { createPixCheckout, getCheckoutStatus } from "@/lib/payments.functions";
+import { createPixCheckout, getCheckoutStatus } from "@/lib/api/payments-api";
 import { formatPrice } from "@/lib/license-utils";
 
 type Plan = { slug: string; name: string; price_cents: number };
@@ -22,8 +27,8 @@ export function PixCheckoutDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const createPix = useServerFn(createPixCheckout);
-  const getStatus = useServerFn(getCheckoutStatus);
+  const createPix = createPixCheckout;
+  const getStatus = getCheckoutStatus;
 
   const [step, setStep] = useState<Step>("form");
   const [name, setName] = useState("");
@@ -34,6 +39,7 @@ export function PixCheckoutDialog({
   const [licenseKey, setLicenseKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const pollRef = useRef<number | null>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -45,6 +51,7 @@ export function PixCheckoutDialog({
       setLicenseKey(null);
       setCopied(false);
       setLoading(false);
+      idempotencyKeyRef.current = null;
       if (pollRef.current) window.clearInterval(pollRef.current);
       pollRef.current = null;
     }
@@ -59,11 +66,15 @@ export function PixCheckoutDialog({
           setLicenseKey(res.license_key);
           setStep("success");
           if (pollRef.current) window.clearInterval(pollRef.current);
-        } else if (["cancelled", "rejected", "expired", "error"].includes(res.status)) {
+        } else if (
+          ["cancelled", "rejected", "expired", "error", "refunded", "charged_back"].includes(
+            res.status,
+          )
+        ) {
           toast.error(`Pagamento ${res.status}. Tente novamente.`);
           if (pollRef.current) window.clearInterval(pollRef.current);
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.warn("poll error", e);
       }
     };
@@ -84,9 +95,11 @@ export function PixCheckoutDialog({
     if (cleanCpf && cleanCpf.length !== 11) return toast.error("CPF inválido.");
     setLoading(true);
     try {
-      const referral = typeof window !== "undefined"
-        ? window.localStorage.getItem("rise_lovable_referral_code")
-        : null;
+      const referral =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("rise_lovable_referral_code")
+          : null;
+      idempotencyKeyRef.current ??= crypto.randomUUID();
       const res = await createPix({
         data: {
           plan_slug: plan.slug,
@@ -94,11 +107,12 @@ export function PixCheckoutDialog({
           buyer_whatsapp: cleanWpp,
           buyer_cpf: cleanCpf || undefined,
           referral_code: referral || undefined,
+          idempotency_key: idempotencyKeyRef.current,
         },
       });
       setPix(res);
       setStep("pix");
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(translateError(err) || "Falha ao gerar Pix.");
     } finally {
       setLoading(false);
@@ -124,11 +138,10 @@ export function PixCheckoutDialog({
         {step === "form" && (
           <>
             <DialogHeader>
-              <DialogTitle className="font-display text-2xl">
-                Assinar {plan.name}
-              </DialogTitle>
+              <DialogTitle className="font-display text-2xl">Assinar {plan.name}</DialogTitle>
               <DialogDescription className="text-white/60">
-                Pagamento via Pix — <span className="font-bold text-white">{formatPrice(plan.price_cents)}</span>.
+                Pagamento via Pix —{" "}
+                <span className="font-bold text-white">{formatPrice(plan.price_cents)}</span>.
                 Preencha os dados abaixo para gerar o QR Code.
               </DialogDescription>
             </DialogHeader>
@@ -197,8 +210,8 @@ export function PixCheckoutDialog({
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Pague com Pix</DialogTitle>
               <DialogDescription className="text-white/60">
-                Escaneie o QR Code ou copie o código abaixo. Assim que
-                confirmarmos o pagamento, sua chave de licença aparece aqui.
+                Escaneie o QR Code ou copie o código abaixo. Assim que confirmarmos o pagamento, sua
+                chave de licença aparece aqui.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-2">
@@ -225,9 +238,13 @@ export function PixCheckoutDialog({
                   variant="outline"
                   size="sm"
                   className="w-full border-white/10 bg-white/5 text-xs"
-                  onClick={() => copyToClipboard(pix.qr_code)}
+                  onClick={() => copyToClipboard(pix.qr_code ?? "")}
                 >
-                  {copied ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
+                  {copied ? (
+                    <Check className="mr-1.5 h-3.5 w-3.5" />
+                  ) : (
+                    <Copy className="mr-1.5 h-3.5 w-3.5" />
+                  )}
                   {copied ? "Copiado" : "Copiar código Pix"}
                 </Button>
               </div>

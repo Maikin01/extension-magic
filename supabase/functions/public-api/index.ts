@@ -1,21 +1,23 @@
 import { createAdminClient, hasRole } from "../_shared/supabase.ts";
-import { errorResponse, json, options, readJson } from "../_shared/http.ts";
+import {
+  ApiHttpError,
+  createHttpContext,
+  errorResponse,
+  type HttpContext,
+  json,
+  options,
+  readJson,
+} from "../_shared/http.ts";
 import {
   hashLicenseKey,
   normalizeLicenseKey,
   resolveLicenseBrandingCode,
 } from "../_shared/license.ts";
-
-function clientIp(request: Request): string | null {
-  return (
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    null
-  );
-}
+import { clientIp, consumeRateLimit } from "../_shared/rate-limit.ts";
 
 function isString(value: unknown, min: number, max: number): value is string {
-  return typeof value === "string" && value.length >= min && value.length <= max;
+  return typeof value === "string" && value.length >= min &&
+    value.length <= max;
 }
 
 function publicPath(request: Request): string {
@@ -42,7 +44,13 @@ async function getPublicPlans() {
 }
 
 async function validateReferralCode(payload: any) {
-  if (!isString(payload?.code, 4, 16)) throw new Error("Código de indicação inválido.");
+  if (!isString(payload?.code, 4, 16)) {
+    throw new ApiHttpError(
+      400,
+      "INVALID_REFERRAL_CODE",
+      "Código de indicação inválido.",
+    );
+  }
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from("profiles")
@@ -55,7 +63,11 @@ async function validateReferralCode(payload: any) {
   return { valid: true, reseller_name: profile.full_name ?? null };
 }
 
-async function activateLicense(request: Request, payload: any): Promise<Response> {
+async function activateLicense(
+  request: Request,
+  payload: any,
+  http: HttpContext,
+): Promise<Response> {
   if (
     !isString(payload?.key, 10, 64) ||
     !isString(payload?.device_hash, 8, 128) ||
@@ -63,10 +75,27 @@ async function activateLicense(request: Request, payload: any): Promise<Response
     (payload.os != null && !isString(payload.os, 0, 64)) ||
     (payload.ext_version != null && !isString(payload.ext_version, 0, 32))
   ) {
-    return json({ valid: false, reason: "invalid_payload" }, 400);
+    return json({ valid: false, reason: "invalid_payload" }, 400, http);
   }
 
   const admin = createAdminClient();
+  const rate = await consumeRateLimit(
+    admin,
+    "public-license-activate",
+    [clientIp(request)],
+    20,
+    60,
+    { failOpen: true, requestId: http.requestId },
+  );
+  if (!rate.allowed) {
+    const retryAfter = Math.max(1, rate.retryAfterSeconds);
+    return json(
+      { valid: false, reason: "rate_limited", retry_after_seconds: retryAfter },
+      429,
+      http,
+      { "Retry-After": String(retryAfter) },
+    );
+  }
   const keyHash = await hashLicenseKey(normalizeLicenseKey(payload.key));
   const baseLog = {
     license_key_hash: keyHash,
@@ -84,8 +113,12 @@ async function activateLicense(request: Request, payload: any): Promise<Response
     .eq("license_key_hash", keyHash)
     .maybeSingle();
   if (error || !license) {
-    await logActivation(admin, { ...baseLog, result: "not_found", reason: "Chave não encontrada" });
-    return json({ valid: false, reason: "not_found" }, 404);
+    await logActivation(admin, {
+      ...baseLog,
+      result: "not_found",
+      reason: "Chave não encontrada",
+    });
+    return json({ valid: false, reason: "not_found" }, 404, http);
   }
 
   const reject = async (reason: string, status = 403, message?: string) => {
@@ -95,110 +128,108 @@ async function activateLicense(request: Request, payload: any): Promise<Response
       result: reason,
       reason: message ?? null,
     });
-    return json({ valid: false, reason, ...(message ? { message } : {}) }, status);
+    return json(
+      { valid: false, reason, ...(message ? { message } : {}) },
+      status,
+      http,
+    );
   };
 
-  if (["revoked", "suspended", "expired"].includes(license.status)) {
-    return reject(license.status);
-  }
-
-  let effective = license;
-  if (license.status === "pending") {
-    const now = new Date();
-    const durationMs = license.custom_duration_seconds
-      ? license.custom_duration_seconds * 1_000
-      : license.custom_duration_minutes
-        ? license.custom_duration_minutes * 60_000
-        : license.plans?.duration_minutes
-          ? license.plans.duration_minutes * 60_000
-          : license.plans?.duration_days
-            ? license.plans.duration_days * 86_400_000
-            : 0;
-    if (!durationMs) return reject("error", 500, "Licença sem duração definida");
-    const { data: updated, error: updateError } = await admin
-      .from("licenses")
-      .update({
-        status: "active",
-        activated_at: now.toISOString(),
-        expires_at: new Date(now.getTime() + durationMs).toISOString(),
-      })
-      .eq("id", license.id)
-      .eq("status", "pending")
-      .select("*, plans(*)")
-      .maybeSingle();
-    if (updateError) return reject("error", 500, updateError.message);
-    if (updated) {
-      effective = updated;
-    } else {
-      const { data: refreshed } = await admin
-        .from("licenses")
-        .select("*, plans(*)")
-        .eq("id", license.id)
-        .single();
-      effective = refreshed;
-    }
+  const { data: activationData, error: activationError } = await admin.rpc(
+    "activate_license_device",
+    {
+      p_license_id: license.id,
+      p_device_hash: payload.device_hash,
+      p_browser: payload.browser ?? null,
+      p_os: payload.os ?? null,
+      p_ext_version: payload.ext_version ?? null,
+    },
+  );
+  if (activationError) throw activationError;
+  const activation = activationData && typeof activationData === "object"
+    ? activationData as Record<string, unknown>
+    : null;
+  if (!activation || activation.valid !== true) {
+    const reason = typeof activation?.reason === "string"
+      ? activation.reason
+      : "error";
+    const status = typeof activation?.http_status === "number"
+      ? activation.http_status
+      : 500;
+    const message = typeof activation?.message === "string"
+      ? activation.message
+      : undefined;
+    return reject(reason, status, message);
   }
 
   const nowMs = Date.now();
-  const expiresAtMs = effective.expires_at ? new Date(effective.expires_at).getTime() : null;
-  if (expiresAtMs != null && expiresAtMs <= nowMs) {
-    await admin.from("licenses").update({ status: "expired" }).eq("id", effective.id);
-    return reject("expired");
-  }
+  const expiresAt = typeof activation.expires_at === "string"
+    ? activation.expires_at
+    : null;
+  const expiresAtMs = expiresAt ? new Date(expiresAt).getTime() : null;
 
-  const maxDevices = effective.max_devices_override ?? effective.plans?.max_devices ?? 1;
-  const { data: devices, error: devicesError } = await admin
-    .from("devices")
-    .select("*")
-    .eq("license_id", effective.id);
-  if (devicesError) throw devicesError;
-  const existing = devices?.find((device: any) => device.device_hash === payload.device_hash);
-  if (!existing) {
-    const activeCount = devices?.filter((device: any) => !device.is_revoked).length ?? 0;
-    if (activeCount >= maxDevices)
-      return reject("device_limit", 403, `Limite de ${maxDevices} dispositivos atingido`);
-    const { error: insertError } = await admin.from("devices").insert({
-      license_id: effective.id,
-      device_hash: payload.device_hash,
-      browser: payload.browser ?? null,
-      os: payload.os ?? null,
-      ext_version: payload.ext_version ?? null,
-    });
-    if (insertError && !/duplicate|unique/i.test(insertError.message)) throw insertError;
-  } else if (existing.is_revoked) {
-    return reject("device_mismatch", 403, "Dispositivo revogado");
-  } else {
-    await admin
-      .from("devices")
-      .update({
-        last_seen_at: new Date().toISOString(),
-        browser: payload.browser ?? existing.browser,
-        os: payload.os ?? existing.os,
-        ext_version: payload.ext_version ?? existing.ext_version,
-      })
-      .eq("id", existing.id);
-  }
-
-  await logActivation(admin, { ...baseLog, license_id: effective.id, result: "success" });
-  return json({
-    valid: true,
-    plan: effective.plans?.slug ?? "custom",
-    plan_name: effective.plans?.name ?? "Personalizado",
-    features: effective.plans?.features ?? [],
-    expires_at: effective.expires_at,
-    expires_in_ms: expiresAtMs == null ? null : Math.max(0, expiresAtMs - nowMs),
-    server_now: new Date(nowMs).toISOString(),
-    activated_at: effective.activated_at,
-    max_devices: maxDevices,
-    branding_code: await resolveLicenseBrandingCode(admin, effective.user_id),
+  await logActivation(admin, {
+    ...baseLog,
+    license_id: license.id,
+    result: "success",
   });
+  return json(
+    {
+      valid: true,
+      plan: typeof activation.plan === "string" ? activation.plan : "custom",
+      plan_name: typeof activation.plan_name === "string"
+        ? activation.plan_name
+        : "Personalizado",
+      features: Array.isArray(activation.features) ? activation.features : [],
+      expires_at: expiresAt,
+      expires_in_ms: expiresAtMs == null
+        ? null
+        : Math.max(0, expiresAtMs - nowMs),
+      server_now: new Date(nowMs).toISOString(),
+      activated_at: typeof activation.activated_at === "string"
+        ? activation.activated_at
+        : null,
+      max_devices: typeof activation.max_devices === "number"
+        ? activation.max_devices
+        : 1,
+      branding_code: await resolveLicenseBrandingCode(
+        admin,
+        typeof activation.user_id === "string" ? activation.user_id : null,
+      ),
+    },
+    200,
+    http,
+  );
 }
 
-async function validateLicense(request: Request, payload: any): Promise<Response> {
-  if (!isString(payload?.key, 10, 64) || !isString(payload?.device_hash, 8, 128)) {
-    return json({ valid: false, reason: "invalid_payload" }, 400);
+async function validateLicense(
+  request: Request,
+  payload: any,
+  http: HttpContext,
+): Promise<Response> {
+  if (
+    !isString(payload?.key, 10, 64) || !isString(payload?.device_hash, 8, 128)
+  ) {
+    return json({ valid: false, reason: "invalid_payload" }, 400, http);
   }
   const admin = createAdminClient();
+  const rate = await consumeRateLimit(
+    admin,
+    "public-license-validate",
+    [clientIp(request)],
+    120,
+    60,
+    { failOpen: true, requestId: http.requestId },
+  );
+  if (!rate.allowed) {
+    const retryAfter = Math.max(1, rate.retryAfterSeconds);
+    return json(
+      { valid: false, reason: "rate_limited", retry_after_seconds: retryAfter },
+      429,
+      http,
+      { "Retry-After": String(retryAfter) },
+    );
+  }
   const keyHash = await hashLicenseKey(normalizeLicenseKey(payload.key));
   const silent = payload.silent === true;
   const baseLog = {
@@ -214,23 +245,37 @@ async function validateLicense(request: Request, payload: any): Promise<Response
     .maybeSingle();
 
   const reject = async (reason: string, status = 403, message?: string) => {
-    if (!silent)
+    if (!silent) {
       await logActivation(admin, {
         ...baseLog,
         license_id: license?.id ?? null,
         result: reason,
         reason: message ?? null,
       });
-    return json({ valid: false, reason, message: message ?? null }, status);
+    }
+    return json(
+      { valid: false, reason, message: message ?? null },
+      status,
+      http,
+    );
   };
   if (!license) return reject("not_found", 404);
-  if (["revoked", "suspended", "expired"].includes(license.status)) return reject(license.status);
-  if (license.status === "pending") return reject("invalid_key", 403, "Licença ainda não ativada");
+  if (["revoked", "suspended", "expired"].includes(license.status)) {
+    return reject(license.status);
+  }
+  if (license.status === "pending") {
+    return reject("invalid_key", 403, "Licença ainda não ativada");
+  }
 
   const nowMs = Date.now();
-  const expiresAtMs = license.expires_at ? new Date(license.expires_at).getTime() : null;
+  const expiresAtMs = license.expires_at
+    ? new Date(license.expires_at).getTime()
+    : null;
   if (expiresAtMs != null && expiresAtMs <= nowMs) {
-    await admin.from("licenses").update({ status: "expired" }).eq("id", license.id);
+    await admin.from("licenses").update({ status: "expired" }).eq(
+      "id",
+      license.id,
+    );
     return reject("expired");
   }
   const { data: device } = await admin
@@ -245,41 +290,100 @@ async function validateLicense(request: Request, payload: any): Promise<Response
     .from("devices")
     .update({ last_seen_at: new Date().toISOString() })
     .eq("id", device.id);
-  if (!silent)
-    await logActivation(admin, { ...baseLog, license_id: license.id, result: "success" });
-  const maxDevices = license.max_devices_override ?? license.plans?.max_devices ?? 1;
-  return json({
-    valid: true,
-    plan: license.plans?.slug ?? "custom",
-    plan_name: license.plans?.name ?? "Personalizado",
-    features: license.plans?.features ?? [],
-    expires_at: license.expires_at,
-    expires_in_ms: expiresAtMs == null ? null : Math.max(0, expiresAtMs - nowMs),
-    server_now: new Date(nowMs).toISOString(),
-    activated_at: license.activated_at,
-    max_devices: maxDevices,
-    branding_code: await resolveLicenseBrandingCode(admin, license.user_id),
-  });
+  if (!silent) {
+    await logActivation(admin, {
+      ...baseLog,
+      license_id: license.id,
+      result: "success",
+    });
+  }
+  const maxDevices = license.max_devices_override ??
+    license.plans?.max_devices ?? 1;
+  return json(
+    {
+      valid: true,
+      plan: license.plans?.slug ?? "custom",
+      plan_name: license.plans?.name ?? "Personalizado",
+      features: license.plans?.features ?? [],
+      expires_at: license.expires_at,
+      expires_in_ms: expiresAtMs == null
+        ? null
+        : Math.max(0, expiresAtMs - nowMs),
+      server_now: new Date(nowMs).toISOString(),
+      activated_at: license.activated_at,
+      max_devices: maxDevices,
+      branding_code: await resolveLicenseBrandingCode(admin, license.user_id),
+    },
+    200,
+    http,
+  );
 }
 
 Deno.serve(async (request) => {
-  if (request.method === "OPTIONS") return options();
+  const http = createHttpContext(request, "public");
+  if (request.method === "OPTIONS") return options(http);
   try {
     const path = publicPath(request);
     if (path === "/license/activate" && request.method === "POST") {
-      return await activateLicense(request, await readJson(request));
+      return await activateLicense(request, await readJson(request), http);
     }
     if (path === "/license/validate" && request.method === "POST") {
-      return await validateLicense(request, await readJson(request));
+      return await validateLicense(request, await readJson(request), http);
     }
-    if (request.method === "GET" && path === "/health") return json({ ok: true });
-    if (request.method !== "POST") return json({ error: "Método não permitido." }, 405);
+    if (request.method === "GET" && path === "/health") {
+      return json({ ok: true }, 200, http);
+    }
+    if (request.method !== "POST") {
+      throw new ApiHttpError(
+        405,
+        "METHOD_NOT_ALLOWED",
+        "Método não permitido.",
+      );
+    }
 
     const body = await readJson(request);
-    if (body?.action === "getPublicPlans") return json(await getPublicPlans());
-    if (body?.action === "validateReferralCode") return json(await validateReferralCode(body.data));
-    return json({ error: "Ação pública desconhecida." }, 404);
+    const record = body && typeof body === "object"
+      ? (body as Record<string, unknown>)
+      : null;
+    const action = record?.action;
+    if (typeof action !== "string" || action.length > 80) {
+      throw new ApiHttpError(400, "ACTION_REQUIRED", "Ação obrigatória.");
+    }
+    const allowedActions = new Set(["getPublicPlans", "validateReferralCode"]);
+    if (!allowedActions.has(action)) {
+      throw new ApiHttpError(
+        404,
+        "UNKNOWN_ACTION",
+        "Ação pública desconhecida.",
+      );
+    }
+    const admin = createAdminClient();
+    const rate = await consumeRateLimit(
+      admin,
+      "public-action",
+      [clientIp(request), action],
+      120,
+      60,
+      { failOpen: true, requestId: http.requestId },
+    );
+    if (!rate.allowed) {
+      throw new ApiHttpError(
+        429,
+        "RATE_LIMITED",
+        "Muitas requisições. Tente novamente em instantes.",
+        {
+          retryAfterSeconds: Math.max(1, rate.retryAfterSeconds),
+        },
+      );
+    }
+    if (action === "getPublicPlans") {
+      return json(await getPublicPlans(), 200, http);
+    }
+    if (action === "validateReferralCode") {
+      return json(await validateReferralCode(record?.data), 200, http);
+    }
+    throw new ApiHttpError(404, "UNKNOWN_ACTION", "Ação pública desconhecida.");
   } catch (error) {
-    return errorResponse(error, 400);
+    return errorResponse(error, http);
   }
 });

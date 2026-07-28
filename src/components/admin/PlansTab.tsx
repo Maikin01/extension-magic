@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { translateError } from "@/lib/translate-error";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,11 +17,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  getAdminOverview,
-  adminCreatePlan,
-  adminUpdatePlan,
-} from "@/lib/license.functions";
+import { getAdminOverview, adminCreatePlan, adminUpdatePlan } from "@/lib/api/license-api";
 import { formatPrice } from "@/lib/license-utils";
 import { Plus, Pencil } from "lucide-react";
 import { QueryErrorState } from "@/components/QueryErrorState";
@@ -53,9 +48,9 @@ const emptyForm: PlanForm = {
 };
 
 export function PlansTab() {
-  const getOverview = useServerFn(getAdminOverview);
-  const createPlan = useServerFn(adminCreatePlan);
-  const updatePlan = useServerFn(adminUpdatePlan);
+  const getOverview = getAdminOverview;
+  const createPlan = adminCreatePlan;
+  const updatePlan = adminUpdatePlan;
   const qc = useQueryClient();
 
   const [open, setOpen] = useState(false);
@@ -150,9 +145,7 @@ export function PlansTab() {
                 {p.is_active ? "Ativo" : "Inativo"}
               </Badge>
             </div>
-            {p.description && (
-              <p className="mb-2 text-sm text-muted-foreground">{p.description}</p>
-            )}
+            {p.description && <p className="mb-2 text-sm text-muted-foreground">{p.description}</p>}
             <ul className="space-y-1 text-sm">
               <li>
                 <strong>Preço:</strong> {formatPrice(p.price_cents)}
@@ -167,12 +160,7 @@ export function PlansTab() {
                 <strong>Ordem:</strong> {p.sort_order}
               </li>
             </ul>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3 w-full"
-              onClick={() => openEdit(p)}
-            >
+            <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => openEdit(p)}>
               <Pencil className="mr-2 h-3 w-3" /> Editar
             </Button>
           </Card>
@@ -217,9 +205,7 @@ export function PlansTab() {
                 <Input
                   type="number"
                   value={form.price_cents}
-                  onChange={(e) =>
-                    setForm({ ...form, price_cents: Number(e.target.value) })
-                  }
+                  onChange={(e) => setForm({ ...form, price_cents: Number(e.target.value) })}
                 />
               </div>
               <div className="space-y-2">
@@ -227,9 +213,7 @@ export function PlansTab() {
                 <Input
                   type="number"
                   value={form.duration_days}
-                  onChange={(e) =>
-                    setForm({ ...form, duration_days: Number(e.target.value) })
-                  }
+                  onChange={(e) => setForm({ ...form, duration_days: Number(e.target.value) })}
                 />
               </div>
               <div className="space-y-2">
@@ -237,9 +221,7 @@ export function PlansTab() {
                 <Input
                   type="number"
                   value={form.max_devices}
-                  onChange={(e) =>
-                    setForm({ ...form, max_devices: Number(e.target.value) })
-                  }
+                  onChange={(e) => setForm({ ...form, max_devices: Number(e.target.value) })}
                 />
               </div>
             </div>
@@ -249,9 +231,7 @@ export function PlansTab() {
                 <Input
                   type="number"
                   value={form.sort_order}
-                  onChange={(e) =>
-                    setForm({ ...form, sort_order: Number(e.target.value) })
-                  }
+                  onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })}
                 />
               </div>
               <div className="flex items-end gap-3">

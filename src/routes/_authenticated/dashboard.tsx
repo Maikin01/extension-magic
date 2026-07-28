@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { translateError } from "@/lib/translate-error";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site/Header";
@@ -9,12 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Copy, Download, Key, MessageCircle, PlayCircle, Sparkles } from "lucide-react";
-import { getMyDashboard, claimTrialLicense } from "@/lib/license.functions";
+import { getMyDashboard, claimTrialLicense } from "@/lib/api/license-api";
 import { QueryErrorState } from "@/components/QueryErrorState";
-import {
-  LICENSE_STATUS_LABEL,
-  formatDateBR,
-} from "@/lib/license-utils";
+import { LICENSE_STATUS_LABEL, formatDateBR } from "@/lib/license-utils";
 
 function useCountdown(target: string | null | undefined) {
   const [now, setNow] = useState(() => Date.now());
@@ -46,8 +42,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function DashboardPage() {
-  const getDash = useServerFn(getMyDashboard);
-  const claimTrial = useServerFn(claimTrialLicense);
+  const getDash = getMyDashboard;
+  const claimTrial = claimTrialLicense;
   const qc = useQueryClient();
   const autoClaimedRef = useRef(false);
 
@@ -61,7 +57,7 @@ function DashboardPage() {
   const trialMut = useMutation({
     mutationFn: () => claimTrial(),
     onSuccess: (res: any) => {
-      if (res?.existed) toast.info("Você já tem uma licença de teste ativa.");
+      if (res?.existed) toast.info("Você já utilizou o teste gratuito.");
       else toast.success("Licença de teste criada! 10 minutos de acesso.");
       qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
@@ -80,11 +76,7 @@ function DashboardPage() {
     // limpa a query
     params.delete("claim");
     const q = params.toString();
-    window.history.replaceState(
-      {},
-      "",
-      window.location.pathname + (q ? `?${q}` : ""),
-    );
+    window.history.replaceState({}, "", window.location.pathname + (q ? `?${q}` : ""));
   }, [data]);
 
   return (
@@ -147,7 +139,6 @@ function DashboardPage() {
   );
 }
 
-
 function ExtensionCard() {
   return (
     <Card className="ring-glow border-primary/30 bg-black/40 p-8 backdrop-blur">
@@ -183,7 +174,8 @@ function SupportCard() {
           <div>
             <h2 className="text-xl font-bold text-gradient-red">Precisa de ajuda?</h2>
             <p className="mt-1 max-w-md text-sm text-muted-foreground">
-              Fale direto com nosso suporte no WhatsApp — resposta rápida para dúvidas sobre a extensão.
+              Fale direto com nosso suporte no WhatsApp — resposta rápida para dúvidas sobre a
+              extensão.
             </p>
           </div>
         </div>
@@ -207,7 +199,6 @@ function TutorialsCard() {
 }
 
 function VideoCard({ title, youtubeId }: { title: string; youtubeId?: string }) {
-
   return (
     <Card className="border-primary/20 bg-black/40 p-6 backdrop-blur">
       <h3 className="mb-4 text-lg font-semibold text-gradient-red">{title}</h3>
@@ -237,7 +228,6 @@ function VideoCard({ title, youtubeId }: { title: string; youtubeId?: string }) 
           </>
         )}
       </div>
-
     </Card>
   );
 }
@@ -265,11 +255,7 @@ function LicenseRow({ license, isCurrent }: { license: any; isCurrent: boolean }
   };
   const status = license.status as string;
   const badgeVariant =
-    status === "active"
-      ? "default"
-      : status === "pending"
-        ? "secondary"
-        : "destructive";
+    status === "active" ? "default" : status === "pending" ? "secondary" : "destructive";
 
   const countdown = useCountdown(isCurrent ? license.expires_at : null);
 

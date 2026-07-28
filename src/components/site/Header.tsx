@@ -1,64 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { useBranding } from "@/lib/branding";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
+import { useAuth } from "@/auth/AuthProvider";
 
 export function SiteHeader() {
-  const [session, setSession] = useState<{ email?: string | null } | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isReseller, setIsReseller] = useState(false);
-  const queryClient = useQueryClient();
-  const router = useRouter();
+  const { session, isAdmin, isReseller, signOut } = useAuth();
   const brand = useBranding();
 
-  useEffect(() => {
-    let cancelled = false;
-    const verifyUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (cancelled) return;
-      if (error || !data.user) {
-        setSession(null);
-        setIsAdmin(false);
-        setIsReseller(false);
-        return;
-      }
-      setSession({ email: data.user.email });
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", data.user.id);
-      if (cancelled) return;
-      const roleSet = new Set((roles ?? []).map((r) => r.role));
-      setIsAdmin(roleSet.has("admin") || roleSet.has("owner"));
-      setIsReseller(roleSet.has("revendedor"));
-    };
-    verifyUser();
-    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
-      if (event === "SIGNED_OUT" || !s) {
-        setSession(null);
-        setIsAdmin(false);
-        setIsReseller(false);
-        return;
-      }
-      if (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED") {
-        verifyUser();
-      }
-    });
-    return () => {
-      cancelled = true;
-      sub.subscription.unsubscribe();
-    };
-  }, []);
-
   const handleSignOut = async () => {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await supabase.auth.signOut();
-    router.navigate({ to: "/", replace: true });
+    await signOut();
   };
 
   return (

@@ -1,34 +1,5 @@
 import { getSupabasePublicConfig } from "@/integrations/supabase/public-config";
 
-type SupabaseFunctionContext = {
-  supabase: any;
-};
-
-async function edgeError(error: any): Promise<Error> {
-  const response = error?.context;
-  if (response && typeof response.clone === "function") {
-    try {
-      const payload = await response.clone().json();
-      if (payload?.error) return new Error(String(payload.error));
-    } catch {
-      // Mantém a mensagem original abaixo.
-    }
-  }
-  return new Error(error?.message ?? "Falha ao chamar o backend Supabase.");
-}
-
-export async function invokeProtectedEdge<T>(
-  context: SupabaseFunctionContext,
-  action: string,
-  data?: unknown,
-): Promise<T> {
-  const result = await context.supabase.functions.invoke("backend-api", {
-    body: { action, data },
-  });
-  if (result.error) throw await edgeError(result.error);
-  return result.data as T;
-}
-
 function edgeBaseUrl(): string {
   const { url } = getSupabasePublicConfig();
   return `${url}/functions/v1`;
@@ -36,21 +7,6 @@ function edgeBaseUrl(): string {
 
 function publishableKey(): string {
   return getSupabasePublicConfig().publishableKey;
-}
-
-export async function invokePublicEdge<T>(action: string, data?: unknown): Promise<T> {
-  const response = await fetch(`${edgeBaseUrl()}/public-api`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: publishableKey(),
-    },
-    body: JSON.stringify({ action, data }),
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok)
-    throw new Error(payload?.error ?? `Backend Supabase respondeu ${response.status}.`);
-  return payload as T;
 }
 
 export async function forwardEdgeRequest(
@@ -66,9 +22,13 @@ export async function forwardEdgeRequest(
   const contentType = request.headers.get("content-type");
   const userAgent = request.headers.get("user-agent");
   const forwardedFor = request.headers.get("x-forwarded-for");
+  const requestId = request.headers.get("x-request-id");
+  const signature = request.headers.get("x-signature");
   if (contentType) headers.set("content-type", contentType);
   if (userAgent) headers.set("user-agent", userAgent);
   if (forwardedFor) headers.set("x-forwarded-for", forwardedFor);
+  if (requestId) headers.set("x-request-id", requestId);
+  if (signature) headers.set("x-signature", signature);
   const response = await fetch(target, {
     method: request.method,
     headers,

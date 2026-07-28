@@ -1,5 +1,8 @@
 project_id = "paokcsxuxipnbnbgnlzs"
 
+[functions.backend-api]
+verify_jwt = false
+
 [functions.public-api]
 verify_jwt = false
 

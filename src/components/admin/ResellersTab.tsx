@@ -1,22 +1,16 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DollarSign, TrendingUp, Clock, Users, Eye } from "lucide-react";
 import {
   adminListResellers,
   adminGetResellerDetail,
   adminGetGlobalRevenue,
-} from "@/lib/reseller.functions";
+} from "@/lib/api/reseller-api";
 import { formatPrice, formatDateBR } from "@/lib/license-utils";
 import { QueryErrorState } from "@/components/QueryErrorState";
 
@@ -74,9 +68,9 @@ const RANGES: { key: RangeKey; label: string }[] = [
 ];
 
 export function ResellersTab() {
-  const listResellers = useServerFn(adminListResellers);
-  const getGlobal = useServerFn(adminGetGlobalRevenue);
-  const getDetail = useServerFn(adminGetResellerDetail);
+  const listResellers = adminListResellers;
+  const getGlobal = adminGetGlobalRevenue;
+  const getDetail = adminGetResellerDetail;
 
   const [range, setRange] = useState<RangeKey>("30d");
   const [customFrom, setCustomFrom] = useState("");
@@ -181,8 +175,8 @@ export function ResellersTab() {
         {resellers.isLoading && <div className="text-muted-foreground">Carregando…</div>}
         {!resellers.isLoading && (resellers.data?.resellers.length ?? 0) === 0 && (
           <div className="text-sm text-muted-foreground">
-            Nenhum revendedor cadastrado. Vá na aba <b>Usuários</b> e defina o cargo
-            de alguém como <b>Revendedor</b>.
+            Nenhum revendedor cadastrado. Vá na aba <b>Usuários</b> e defina o cargo de alguém como{" "}
+            <b>Revendedor</b>.
           </div>
         )}
         {(resellers.data?.resellers.length ?? 0) > 0 && (
@@ -210,17 +204,13 @@ export function ResellersTab() {
                       </Badge>
                     </td>
                     <td className="py-2 pr-3">{r.total_sales}</td>
-                    <td className="py-2 pr-3 font-mono">
-                      {formatPrice(r.total_amount_cents)}
-                    </td>
+                    <td className="py-2 pr-3 font-mono">{formatPrice(r.total_amount_cents)}</td>
                     <td className="py-2 pr-3">{r.pending_count}</td>
                     <td className="py-2 pr-3 text-right">
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() =>
-                          setDetailUser({ id: r.user_id, email: r.email })
-                        }
+                        onClick={() => setDetailUser({ id: r.user_id, email: r.email })}
                       >
                         <Eye className="mr-1 h-4 w-4" />
                         Ver
@@ -283,9 +273,7 @@ export function ResellersTab() {
                         <td className="py-2 pr-3 text-xs">{formatDateBR(s.created_at)}</td>
                         <td className="py-2 pr-3">{s.buyer_name ?? "—"}</td>
                         <td className="py-2 pr-3">{s.plan_name ?? "—"}</td>
-                        <td className="py-2 pr-3 font-mono">
-                          {formatPrice(s.amount_cents)}
-                        </td>
+                        <td className="py-2 pr-3 font-mono">{formatPrice(s.amount_cents)}</td>
                         <td className="py-2 pr-3">
                           <Badge
                             variant={

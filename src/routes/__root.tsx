@@ -12,10 +12,8 @@ import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { supabase } from "@/integrations/supabase/client";
 import { BottomBlur } from "@/components/site/BottomBlur";
-
-
+import { AuthProvider } from "@/auth/AuthProvider";
 
 function NotFoundComponent() {
   return (
@@ -49,9 +47,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Algo deu errado
-        </h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Algo deu errado</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Ocorreu um erro inesperado. Tente novamente ou volte para o início.
         </p>
@@ -89,7 +85,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Assine, receba sua chave e libere a extensão Rise Lovable em segundos. Validação em tempo real, dispositivos controlados, planos flexíveis.",
       },
       { name: "author", content: "Rise Lovable" },
-      { property: "og:title", content: "Rise Lovable — Sistema de licenciamento profissional para extensões" },
+      {
+        property: "og:title",
+        content: "Rise Lovable — Sistema de licenciamento profissional para extensões",
+      },
       {
         property: "og:description",
         content:
@@ -97,10 +96,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Rise Lovable — Sistema de licenciamento profissional para extensões" },
-      { name: "twitter:description", content: "Assine, receba sua chave e libere a extensão Rise Lovable em segundos. Validação em tempo real, dispositivos controlados, planos flexíveis." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b5546c95-b19c-42a0-af90-61093837a36d/id-preview-0f432973--2566d124-3802-48ac-bdb7-78e7db243db8.lovable.app-1784009166350.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b5546c95-b19c-42a0-af90-61093837a36d/id-preview-0f432973--2566d124-3802-48ac-bdb7-78e7db243db8.lovable.app-1784009166350.png" },
+      {
+        name: "twitter:title",
+        content: "Rise Lovable — Sistema de licenciamento profissional para extensões",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Assine, receba sua chave e libere a extensão Rise Lovable em segundos. Validação em tempo real, dispositivos controlados, planos flexíveis.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b5546c95-b19c-42a0-af90-61093837a36d/id-preview-0f432973--2566d124-3802-48ac-bdb7-78e7db243db8.lovable.app-1784009166350.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b5546c95-b19c-42a0-af90-61093837a36d/id-preview-0f432973--2566d124-3802-48ac-bdb7-78e7db243db8.lovable.app-1784009166350.png",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -135,24 +149,14 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const router = useRouter();
-
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-      router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
-    });
-    return () => sub.subscription.unsubscribe();
-  }, [queryClient, router]);
 
   return (
     <QueryClientProvider client={queryClient}>
-
-      <Outlet />
-      <BottomBlur />
-      <Toaster richColors position="top-right" />
+      <AuthProvider>
+        <Outlet />
+        <BottomBlur />
+        <Toaster richColors position="top-right" />
+      </AuthProvider>
     </QueryClientProvider>
-
   );
 }

@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -32,7 +31,7 @@ import {
   CheckCircle2,
   LifeBuoy,
 } from "lucide-react";
-import { getPublicPlans } from "@/lib/license.functions";
+import { getPublicPlans } from "@/lib/api/license-api";
 import { useReveal } from "@/hooks/useReveal";
 import { formatPrice } from "@/lib/license-utils";
 import { PixCheckoutDialog } from "@/components/checkout/PixCheckoutDialog";
@@ -76,7 +75,8 @@ export function readReferralCode(): string | null {
 function getAuthHashParams() {
   const rawHash = window.location.hash.replace(/^#/, "");
   const authParamStart = rawHash.search(/(?:^|[#&?])(access_token|refresh_token|token_hash|type)=/);
-  const paramsSource = authParamStart >= 0 ? rawHash.slice(authParamStart).replace(/^[#&?]/, "") : rawHash;
+  const paramsSource =
+    authParamStart >= 0 ? rawHash.slice(authParamStart).replace(/^[#&?]/, "") : rawHash;
   return new URLSearchParams(paramsSource);
 }
 
@@ -212,8 +212,8 @@ function Hero() {
 
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-white/60">
           A extensão definitiva para{" "}
-          <span className="font-medium text-white">produtividade com IA</span>
-          , automação e uso avançado do Lovable.
+          <span className="font-medium text-white">produtividade com IA</span>, automação e uso
+          avançado do Lovable.
         </p>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
@@ -358,7 +358,6 @@ function HowItWorks() {
             </span>
           </div>
         </div>
-
       </div>
     </section>
   );
@@ -498,7 +497,7 @@ function FeatureCard({
 /* ------------------------------------------------------------------ */
 
 function Plans() {
-  const getPlans = useServerFn(getPublicPlans);
+  const getPlans = getPublicPlans;
   const plansQuery = useQuery({
     queryKey: ["plans", "public"],
     queryFn: () => getPlans(),
@@ -506,9 +505,11 @@ function Plans() {
   });
   const plans = plansQuery.data ?? EMPTY_PLANS;
 
-  const [checkoutPlan, setCheckoutPlan] = useState<
-    { slug: string; name: string; price_cents: number } | null
-  >(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<{
+    slug: string;
+    name: string;
+    price_cents: number;
+  } | null>(null);
 
   function sendToSignup(planSlug: string) {
     if (typeof window !== "undefined") {
@@ -538,7 +539,6 @@ function Plans() {
     }
   }
 
-
   // Auto-abre o checkout ao voltar da verificação de email (?checkout=<slug>)
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -550,11 +550,7 @@ function Plans() {
     const hasAuthCallback = hasEmailConfirmationParams();
     // Só considera storage se houve intenção explícita, para o link puro abrir no topo.
     const hasIntent = !!urlSlug || window.location.hash === "#plans" || hasAuthCallback;
-    const slug =
-      urlSlug ??
-      (hasIntent
-        ? readPendingCheckout()
-        : null);
+    const slug = urlSlug ?? (hasIntent ? readPendingCheckout() : null);
     if (!slug) {
       // limpa storage stale para não afetar futuras aberturas puras do site
       clearPendingCheckout();
@@ -633,57 +629,56 @@ function Plans() {
             <Card className="p-8 text-center text-muted-foreground md:col-span-2 lg:col-span-3">
               Nenhum plano está disponível no momento.
             </Card>
-          ) : plans.slice(0, 6).map((plan, idx) => {
-            const highlight = plan.slug === highlightSlug;
-            const features = (plan.features as string[]) ?? [];
-            const isLifetime = plan.slug === "lifetime";
-            const durationLabel = plan.duration_minutes
-              ? `${plan.duration_minutes} min`
-              : isLifetime
-                ? "Vitalício"
-                : `${plan.duration_days} ${plan.duration_days === 1 ? "dia" : "dias"}`;
-            return (
-              <PlanCard
-                key={plan.id}
-                index={idx}
-                highlight={highlight}
-                durationLabel={durationLabel}
-                maxDevices={plan.max_devices}
-                name={plan.name}
-                priceCents={plan.price_cents}
-                description={plan.description}
-                features={features}
-                actionSlot={
-                  plan.slug === "trial" ? (
-                    <Link
-                      to="/auth"
-                      search={{ claim: "trial" } as any}
-                      className={`${highlight ? "btn-glossy-red" : "btn-glossy-dark"} inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest text-white transition`}
-
-
-                    >
-                      Testar grátis
-                    </Link>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleSubscribe({
-                          slug: plan.slug,
-                          name: plan.name,
-                          price_cents: plan.price_cents,
-                        })
-                      }
-                      className={`${highlight ? "btn-glossy-red" : "btn-glossy-dark"} inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest text-white transition`}
-
-                    >
-                      Assinar com Pix
-                    </button>
-                  )
-                }
-              />
-            );
-          })}
+          ) : (
+            plans.slice(0, 6).map((plan, idx) => {
+              const highlight = plan.slug === highlightSlug;
+              const features = (plan.features as string[]) ?? [];
+              const isLifetime = plan.slug === "lifetime";
+              const durationLabel = plan.duration_minutes
+                ? `${plan.duration_minutes} min`
+                : isLifetime
+                  ? "Vitalício"
+                  : `${plan.duration_days} ${plan.duration_days === 1 ? "dia" : "dias"}`;
+              return (
+                <PlanCard
+                  key={plan.id}
+                  index={idx}
+                  highlight={highlight}
+                  durationLabel={durationLabel}
+                  maxDevices={plan.max_devices}
+                  name={plan.name}
+                  priceCents={plan.price_cents}
+                  description={plan.description}
+                  features={features}
+                  actionSlot={
+                    plan.slug === "trial" ? (
+                      <Link
+                        to="/auth"
+                        search={{ claim: "trial" } as any}
+                        className={`${highlight ? "btn-glossy-red" : "btn-glossy-dark"} inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest text-white transition`}
+                      >
+                        Testar grátis
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleSubscribe({
+                            slug: plan.slug,
+                            name: plan.name,
+                            price_cents: plan.price_cents,
+                          })
+                        }
+                        className={`${highlight ? "btn-glossy-red" : "btn-glossy-dark"} inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest text-white transition`}
+                      >
+                        Assinar com Pix
+                      </button>
+                    )
+                  }
+                />
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -756,18 +751,20 @@ function PlanCard({
         )}
       </div>
 
-      {description && (
-        <p className="mb-6 text-sm text-white/55">{description}</p>
-      )}
+      {description && <p className="mb-6 text-sm text-white/55">{description}</p>}
 
       <ul className="mb-8 flex-1 space-y-2.5 text-sm">
         <li className="flex items-center gap-2.5">
-          <span className="plan-check"><Check className="h-3 w-3" /></span>
+          <span className="plan-check">
+            <Check className="h-3 w-3" />
+          </span>
           Acesso ilimitado
         </li>
         {features.map((f) => (
           <li key={f} className="flex items-center gap-2.5">
-            <span className="plan-check"><Check className="h-3 w-3" /></span>
+            <span className="plan-check">
+              <Check className="h-3 w-3" />
+            </span>
             {FEATURE_LABEL[f] ?? f}
           </li>
         ))}
@@ -812,8 +809,8 @@ function FinalCTA() {
           </h2>
 
           <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-white/60 md:text-base">
-            Chega de ver seus créditos acabarem no meio de um projeto.
-            Instale a extensão, escolha seu plano e continue criando sem se preocupar com limites.
+            Chega de ver seus créditos acabarem no meio de um projeto. Instale a extensão, escolha
+            seu plano e continue criando sem se preocupar com limites.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
@@ -869,8 +866,8 @@ function SupportCTA() {
           Ficou com <span className="text-gradient-red">dúvidas?</span>
         </h2>
         <p className="max-w-xl text-sm text-white/60 md:text-base">
-          Fale direto com o nosso suporte no WhatsApp. Respondemos rápido e
-          ajudamos você a instalar, ativar e tirar o máximo da extensão.
+          Fale direto com o nosso suporte no WhatsApp. Respondemos rápido e ajudamos você a
+          instalar, ativar e tirar o máximo da extensão.
         </p>
         <a
           href={href}
@@ -901,8 +898,12 @@ function Footer() {
           <span className="ml-2">© {new Date().getFullYear()}</span>
         </Link>
         <div className="flex items-center gap-6">
-          <a href="/#plans" className="hover:text-white">Planos</a>
-          <Link to="/auth" className="hover:text-white">Entrar</Link>
+          <a href="/#plans" className="hover:text-white">
+            Planos
+          </a>
+          <Link to="/auth" className="hover:text-white">
+            Entrar
+          </Link>
         </div>
       </div>
     </footer>

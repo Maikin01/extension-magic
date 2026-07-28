@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { translateError } from "@/lib/translate-error";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,15 +40,15 @@ import {
   adminUpdateLicenseStatus,
   adminGenerateLicenses,
   adminDeleteLicense,
-} from "@/lib/license.functions";
+} from "@/lib/api/license-api";
 import { formatDateBR, LICENSE_STATUS_LABEL } from "@/lib/license-utils";
 import { Copy, Plus, Trash2, KeyRound } from "lucide-react";
 
 export function LicensesTab() {
-  const getOverview = useServerFn(getAdminOverview);
-  const updateStatus = useServerFn(adminUpdateLicenseStatus);
-  const generate = useServerFn(adminGenerateLicenses);
-  const del = useServerFn(adminDeleteLicense);
+  const getOverview = getAdminOverview;
+  const updateStatus = adminUpdateLicenseStatus;
+  const generate = adminGenerateLicenses;
+  const del = adminDeleteLicense;
   const qc = useQueryClient();
 
   const [search, setSearch] = useState("");
@@ -60,7 +59,9 @@ export function LicensesTab() {
   const [genNotes, setGenNotes] = useState("");
   const [useCustomDuration, setUseCustomDuration] = useState(false);
   const [customDurationValue, setCustomDurationValue] = useState(10);
-  const [customDurationUnit, setCustomDurationUnit] = useState<"seconds" | "minutes" | "hours" | "days">("minutes");
+  const [customDurationUnit, setCustomDurationUnit] = useState<
+    "seconds" | "minutes" | "hours" | "days"
+  >("minutes");
   const [maxDevicesOverride, setMaxDevicesOverride] = useState<string>("");
   const [lastGenerated, setLastGenerated] = useState<any[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -117,7 +118,10 @@ export function LicensesTab() {
           custom_duration_minutes = Math.max(1, Math.floor(customDurationValue * mult));
         }
       }
-      const mdo = maxDevicesOverride.trim() === "" ? null : Math.max(1, Math.min(50, Math.floor(Number(maxDevicesOverride))));
+      const mdo =
+        maxDevicesOverride.trim() === ""
+          ? null
+          : Math.max(1, Math.min(50, Math.floor(Number(maxDevicesOverride))));
       return generate({
         data: {
           plan_slug: genPlan || null,
@@ -200,14 +204,11 @@ export function LicensesTab() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Deletar {selected.size} licença(s)?
-                    </AlertDialogTitle>
+                    <AlertDialogTitle>Deletar {selected.size} licença(s)?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Esta ação é permanente e não pode ser desfeita. Todas as
-                      chaves selecionadas serão removidas do sistema, junto com
-                      seus logs de ativação e dispositivos vinculados. Tem certeza
-                      que deseja continuar?
+                      Esta ação é permanente e não pode ser desfeita. Todas as chaves selecionadas
+                      serão removidas do sistema, junto com seus logs de ativação e dispositivos
+                      vinculados. Tem certeza que deseja continuar?
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -236,10 +237,21 @@ export function LicensesTab() {
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <div className="space-y-2">
-                    <Label>Plano {useCustomDuration && <span className="text-xs text-muted-foreground">(opcional)</span>}</Label>
+                    <Label>
+                      Plano{" "}
+                      {useCustomDuration && (
+                        <span className="text-xs text-muted-foreground">(opcional)</span>
+                      )}
+                    </Label>
                     <Select value={genPlan} onValueChange={setGenPlan}>
                       <SelectTrigger>
-                        <SelectValue placeholder={useCustomDuration ? "Sem plano (duração personalizada)" : "Selecione o plano"} />
+                        <SelectValue
+                          placeholder={
+                            useCustomDuration
+                              ? "Sem plano (duração personalizada)"
+                              : "Selecione o plano"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {data.plans.map((p: any) => (
@@ -283,7 +295,8 @@ export function LicensesTab() {
                       onChange={(e) => setMaxDevicesOverride(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Quantos dispositivos diferentes esta chave pode ativar. Se vazio, usa o valor do plano.
+                      Quantos dispositivos diferentes esta chave pode ativar. Se vazio, usa o valor
+                      do plano.
                     </p>
                   </div>
                   <div className="space-y-2 rounded-md border p-3">
@@ -412,10 +425,7 @@ export function LicensesTab() {
               <tr className="border-b text-left text-xs uppercase text-muted-foreground">
                 <th className="w-8 py-2 pr-3">
                   <Checkbox
-                    checked={
-                      filtered.length > 0 &&
-                      filtered.every((l: any) => selected.has(l.id))
-                    }
+                    checked={filtered.length > 0 && filtered.every((l: any) => selected.has(l.id))}
                     onCheckedChange={(v) => {
                       if (v) {
                         setSelected(new Set(filtered.map((l: any) => l.id)));
@@ -471,13 +481,9 @@ export function LicensesTab() {
                   <td className="py-2 pr-3">
                     {l.profiles ? (
                       <div className="flex flex-col leading-tight">
-                        <span className="text-sm">
-                          {l.profiles.full_name || "(sem nome)"}
-                        </span>
+                        <span className="text-sm">{l.profiles.full_name || "(sem nome)"}</span>
                         {l.profiles.email && (
-                          <span className="text-xs text-muted-foreground">
-                            {l.profiles.email}
-                          </span>
+                          <span className="text-xs text-muted-foreground">{l.profiles.email}</span>
                         )}
                       </div>
                     ) : (
@@ -496,9 +502,7 @@ export function LicensesTab() {
                     <div className="flex items-center gap-1">
                       <Select
                         value={l.status}
-                        onValueChange={(v) =>
-                          statusMut.mutate({ license_id: l.id, status: v })
-                        }
+                        onValueChange={(v) => statusMut.mutate({ license_id: l.id, status: v })}
                       >
                         <SelectTrigger className="h-8 w-32">
                           <SelectValue />
@@ -557,17 +561,13 @@ export function LicensesTab() {
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <Card className="p-4">
-      <div className="text-xs uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
+      <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-1 text-2xl font-bold">{value}</div>
     </Card>
   );
 }
 
-function statusVariant(
-  status: string,
-): "default" | "secondary" | "destructive" | "outline" {
+function statusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
     case "active":
       return "default";

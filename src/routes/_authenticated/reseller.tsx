@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site/Header";
 import { Card } from "@/components/ui/card";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Copy, Check, Users, DollarSign, TrendingUp, Clock } from "lucide-react";
-import { getMyResellerInfo, getResellerStats } from "@/lib/reseller.functions";
+import { getMyResellerInfo, getResellerStats } from "@/lib/api/reseller-api";
 import { QueryErrorState } from "@/components/QueryErrorState";
 import { formatPrice, formatDateBR } from "@/lib/license-utils";
 import { translateError } from "@/lib/translate-error";
@@ -73,8 +72,8 @@ const RANGE_OPTIONS: { key: RangeKey; label: string }[] = [
 ];
 
 function ResellerPage() {
-  const getInfo = useServerFn(getMyResellerInfo);
-  const getStats = useServerFn(getResellerStats);
+  const getInfo = getMyResellerInfo;
+  const getStats = getResellerStats;
   const [range, setRange] = useState<RangeKey>("30d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -132,9 +131,7 @@ function ResellerPage() {
         <SiteHeader />
         <main className="mx-auto max-w-6xl px-4 py-16 text-center">
           <h1 className="text-2xl font-bold">Acesso restrito</h1>
-          <p className="mt-2 text-muted-foreground">
-            {translateError(info.error as Error)}
-          </p>
+          <p className="mt-2 text-muted-foreground">{translateError(info.error as Error)}</p>
         </main>
       </div>
     );
@@ -151,9 +148,7 @@ function ResellerPage() {
           <TrendingUp className="h-8 w-8 text-primary" />
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Painel do revendedor</h1>
-            <p className="text-muted-foreground">
-              Acompanhe suas vendas pelo link exclusivo.
-            </p>
+            <p className="text-muted-foreground">Acompanhe suas vendas pelo link exclusivo.</p>
           </div>
         </header>
 
@@ -168,9 +163,7 @@ function ResellerPage() {
                   {info.data?.referral_code ?? "—"}
                 </Badge>
                 {info.data?.full_name && (
-                  <span className="text-sm text-muted-foreground">
-                    {info.data.full_name}
-                  </span>
+                  <span className="text-sm text-muted-foreground">{info.data.full_name}</span>
                 )}
               </div>
             </div>
@@ -298,15 +291,7 @@ function ResellerPage() {
   );
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <Card className="p-4">
       <div className="mb-2 flex items-center gap-2">

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { translateError } from "@/lib/translate-error";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,17 +24,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  adminListUsers,
-  adminSetUserRole,
-  adminDeleteUser,
-} from "@/lib/license.functions";
+import { adminListUsers, adminSetUserRole, adminDeleteUser } from "@/lib/api/license-api";
 import { formatDateBR } from "@/lib/license-utils";
 import { Trash2 } from "lucide-react";
 import { QueryErrorState } from "@/components/QueryErrorState";
+import { useAuth } from "@/auth/AuthProvider";
 
-type AssignableRole = "cliente" | "revendedor" | "owner";
-const ASSIGNABLE_ROLES: AssignableRole[] = ["cliente", "revendedor", "owner"];
+type AssignableRole = "cliente" | "revendedor" | "admin" | "owner";
+const BASIC_ASSIGNABLE_ROLES: AssignableRole[] = ["cliente", "revendedor"];
+const OWNER_ASSIGNABLE_ROLES: AssignableRole[] = ["cliente", "revendedor", "admin", "owner"];
 const ROLE_LABEL: Record<string, string> = {
   cliente: "Cliente",
   revendedor: "Revendedor",
@@ -52,9 +49,11 @@ const ROLE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
 };
 
 export function UsersTab() {
-  const listUsers = useServerFn(adminListUsers);
-  const setRole = useServerFn(adminSetUserRole);
-  const deleteUser = useServerFn(adminDeleteUser);
+  const { isOwner } = useAuth();
+  const assignableRoles = isOwner ? OWNER_ASSIGNABLE_ROLES : BASIC_ASSIGNABLE_ROLES;
+  const listUsers = adminListUsers;
+  const setRole = adminSetUserRole;
+  const deleteUser = adminDeleteUser;
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
 
@@ -65,11 +64,8 @@ export function UsersTab() {
   });
 
   const roleMut = useMutation({
-    mutationFn: (vars: {
-      user_id: string;
-      role: AssignableRole;
-      action: "grant" | "revoke";
-    }) => setRole({ data: vars }),
+    mutationFn: (vars: { user_id: string; role: AssignableRole; action: "grant" | "revoke" }) =>
+      setRole({ data: vars }),
     onSuccess: () => {
       toast.success("Cargo atualizado");
       qc.invalidateQueries({ queryKey: ["admin", "users"] });
@@ -101,23 +97,18 @@ export function UsersTab() {
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (
-      (u.email ?? "").toLowerCase().includes(q) ||
-      (u.full_name ?? "").toLowerCase().includes(q)
+      (u.email ?? "").toLowerCase().includes(q) || (u.full_name ?? "").toLowerCase().includes(q)
     );
   });
 
   const getPrimaryAssignable = (roles: string[]): AssignableRole | "" => {
-    for (const r of ASSIGNABLE_ROLES) if (roles.includes(r)) return r;
+    for (const r of assignableRoles) if (roles.includes(r)) return r;
     return "";
   };
 
-  const handleRoleChange = async (
-    userId: string,
-    currentRoles: string[],
-    next: AssignableRole,
-  ) => {
+  const handleRoleChange = async (userId: string, currentRoles: string[], next: AssignableRole) => {
     // remove all other assignable roles, then grant next
-    for (const r of ASSIGNABLE_ROLES) {
+    for (const r of assignableRoles) {
       if (r !== next && currentRoles.includes(r)) {
         await roleMut.mutateAsync({ user_id: userId, role: r, action: "revoke" });
       }
@@ -161,9 +152,7 @@ export function UsersTab() {
                   <td className="py-2 pr-3">{u.full_name ?? "—"}</td>
                   <td className="py-2 pr-3">
                     <div className="flex flex-wrap gap-1">
-                      {u.roles.length === 0 && (
-                        <Badge variant="outline">user</Badge>
-                      )}
+                      {u.roles.length === 0 && <Badge variant="outline">user</Badge>}
                       {u.roles.map((r: string) => (
                         <Badge key={r} variant={ROLE_VARIANT[r] ?? "outline"}>
                           {ROLE_LABEL[r] ?? r}
@@ -174,15 +163,17 @@ export function UsersTab() {
                   <td className="py-2 pr-3">
                     <Select
                       value={primary}
-                      onValueChange={(v) =>
-                        handleRoleChange(u.id, u.roles, v as AssignableRole)
+                      disabled={
+                        !isOwner &&
+                        u.roles.some((role: string) => ["admin", "owner"].includes(role))
                       }
+                      onValueChange={(v) => handleRoleChange(u.id, u.roles, v as AssignableRole)}
                     >
                       <SelectTrigger className="h-8 w-36">
                         <SelectValue placeholder="Definir cargo" />
                       </SelectTrigger>
                       <SelectContent>
-                        {ASSIGNABLE_ROLES.map((r) => (
+                        {assignableRoles.map((r) => (
                           <SelectItem key={r} value={r}>
                             {ROLE_LABEL[r]}
                           </SelectItem>
@@ -191,18 +182,18 @@ export function UsersTab() {
                     </Select>
                   </td>
                   <td className="py-2 pr-3">{u.license_count}</td>
-                  <td className="py-2 pr-3 text-xs">
-                    {formatDateBR(u.created_at)}
-                  </td>
-                  <td className="py-2 pr-3 text-xs">
-                    {formatDateBR(u.last_sign_in_at)}
-                  </td>
+                  <td className="py-2 pr-3 text-xs">{formatDateBR(u.created_at)}</td>
+                  <td className="py-2 pr-3 text-xs">{formatDateBR(u.last_sign_in_at)}</td>
                   <td className="py-2 pr-3 text-right">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
                           size="sm"
                           variant="ghost"
+                          disabled={
+                            !isOwner &&
+                            u.roles.some((role: string) => ["admin", "owner"].includes(role))
+                          }
                           className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -213,8 +204,8 @@ export function UsersTab() {
                           <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
                           <AlertDialogDescription>
                             Isso apagará permanentemente o cadastro de{" "}
-                            <strong>{u.email ?? u.id}</strong> e revogará
-                            todos os acessos. Esta ação não pode ser desfeita.
+                            <strong>{u.email ?? u.id}</strong> e revogará todos os acessos. Esta
+                            ação não pode ser desfeita.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
