@@ -17,21 +17,21 @@ type KeyProduct = {
 
 const KEY_PRODUCTS: KeyProduct[] = [
   {
-    slug: "trimestral",
-    name: "Chave Trimestral",
-    duration: "90 dias",
-    costCents: 5990,
-    suggestedCents: 11990,
-    highlight: true,
-    perks: ["2 dispositivos", "Margem maior", "Cliente fideliza"],
+    slug: "semanal",
+    name: "Chave Semanal",
+    duration: "7 dias",
+    costCents: 1490,
+    suggestedCents: 3499,
+    perks: ["1 dispositivo", "Giro rápido", "Ideal para testes"],
   },
   {
-    slug: "anual",
-    name: "Chave Anual",
-    duration: "365 dias",
-    costCents: 8990,
-    suggestedCents: 19790,
-    perks: ["3 dispositivos", "Ticket alto", "Menos suporte"],
+    slug: "mensal",
+    name: "Chave Mensal",
+    duration: "30 dias",
+    costCents: 2990,
+    suggestedCents: 6990,
+    highlight: true,
+    perks: ["2 dispositivos", "Melhor custo-benefício", "Cliente fideliza"],
   },
   {
     slug: "vitalicia",
@@ -42,6 +42,7 @@ const KEY_PRODUCTS: KeyProduct[] = [
     perks: ["3 dispositivos", "Sem renovação", "Maior lucro por venda"],
   },
 ];
+
 
 export function KeyStore() {
   const [qty, setQty] = useState<Record<string, number>>({});
