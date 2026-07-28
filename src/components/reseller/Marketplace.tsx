@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bot, Boxes, Cpu, ExternalLink, Filter, ShoppingBag, Sparkles, Star } from "lucide-react";
+import { Bot, ExternalLink, Filter, ShoppingBag, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/license-utils";
@@ -16,47 +16,7 @@ type Item = {
   featured?: boolean;
 };
 
-const ITEMS: Item[] = [
-  {
-    id: "gpt-rise",
-    name: "GPT Rise Pro",
-    tagline: "Assistente treinado para criar projetos e prompts que convertem.",
-    category: "IA",
-    priceCents: 4990,
-    oldPriceCents: 9990,
-    rating: 4.9,
-    icon: Bot,
-    featured: true,
-  },
-  {
-    id: "pack-prompts",
-    name: "Pack de Prompts",
-    tagline: "+300 prompts prontos para landing pages, apps e automações.",
-    category: "Ferramentas",
-    priceCents: 2990,
-    rating: 4.8,
-    icon: Sparkles,
-  },
-  {
-    id: "auto-deploy",
-    name: "Auto Deploy Kit",
-    tagline: "Scripts e templates para publicar projetos em minutos.",
-    category: "Ferramentas",
-    priceCents: 3990,
-    rating: 4.7,
-    icon: Cpu,
-  },
-  {
-    id: "assinatura-ia",
-    name: "Assinatura IA Ilimitada",
-    tagline: "Acesso mensal a modelos premium com custo reduzido.",
-    category: "Assinaturas",
-    priceCents: 7990,
-    oldPriceCents: 12990,
-    rating: 4.9,
-    icon: Boxes,
-  },
-];
+const ITEMS: Item[] = [];
 
 const CATEGORIES = ["Todos", "IA", "Ferramentas", "Assinaturas"] as const;
 
