@@ -22,6 +22,9 @@
             if (!obj || typeof obj !== 'object') return bodyText;
             // Só reescreve se parece um envio de chat (tem "message" e não é fix_error ainda)
             if (typeof obj.message !== 'string') return bodyText;
+            // Modo plano (chat_only) é enviado como está — não aplicar o truque.
+            if (obj.chat_only === true) return bodyText;
+            if (obj.intent === 'fix_error' && obj.contains_error === true) return bodyText;
             obj.intent = 'fix_error';
             obj.contains_error = true;
             obj.error_ids = [FALLBACK_EVENT_ID];
@@ -43,9 +46,9 @@
     const _fetch = window.fetch;
     window.fetch = function (input, init) {
         try {
-            if (window.__lvblForceFree && shouldPatch(input) && init && init.body && typeof init.body === 'string') {
+            if (shouldPatch(input) && init && init.body && typeof init.body === 'string') {
                 init = Object.assign({}, init, { body: rewriteBody(init.body) });
-            } else if (window.__lvblForceFree && input instanceof Request) {
+            } else if (input instanceof Request) {
                 const req = input;
                 if (shouldPatch(req.url) && (req.method || 'GET').toUpperCase() === 'POST') {
                     return req.clone().text().then((txt) => {
@@ -78,7 +81,7 @@
     };
     XMLHttpRequest.prototype.send = function (body) {
         try {
-            if (window.__lvblForceFree && (this.__lvblMethod || '').toUpperCase() === 'POST'
+            if ((this.__lvblMethod || '').toUpperCase() === 'POST'
                 && shouldPatch(this.__lvblUrl) && typeof body === 'string') {
                 body = rewriteBody(body);
             }
