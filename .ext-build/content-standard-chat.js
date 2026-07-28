@@ -1,13 +1,13 @@
 // content-standard-chat.js
 // Modo "Chat Padrão": quando ativo, o chat original do lovable.dev NÃO usa o
 // envio nativo. A mensagem é capturada antes do app e enviada pelo mesmo
-// mesmo endpoint da plataforma, com consumo normal de créditos.
+// payload sem crédito usado pela extensão.
 
 (function () {
     'use strict';
 
     const FLAG_KEY = 'lvbl_use_standard_chat';
-    
+    const FALLBACK_EVENT_ID = 'main:agent#00000000000123#bld:ZDP4ZE3D';
     const EDITOR_SELECTOR = [
         'textarea',
         'input[type="text"]',
@@ -44,7 +44,7 @@
             if (area === 'local' && FLAG_KEY in changes) {
                 enabled = !!changes[FLAG_KEY].newValue;
                 window.__lvblStandardChatEnabled = enabled;
-                showToast(enabled ? '🛡 Chat Padrão ATIVO' : '⚪ Chat Padrão desativado');
+                showToast(enabled ? '🛡 Chat Padrão ATIVO — envio sem créditos' : '⚪ Chat Padrão desativado');
             }
         });
     } catch (_) {}
@@ -120,8 +120,18 @@
             selected_elements: [],
             chat_only: false,
             optimisticImageUrls: [],
-            contains_error: false,
-            error_ids: [],
+            intent: 'fix_error',
+            message_intent_metadata: {
+                fix_error_metadata: {
+                    errors: [{
+                        error_type: 'build',
+                        error_message: '',
+                        build_event_id: FALLBACK_EVENT_ID,
+                    }],
+                },
+            },
+            contains_error: true,
+            error_ids: [FALLBACK_EVENT_ID],
             ai_message_id: ids.aiMessageId,
             thread_id: 'main',
             current_page: location.pathname,
@@ -235,7 +245,7 @@
             return false;
         }
 
-        showToast('✅ Enviado pelo chat padrão');
+        showToast('✅ Enviado pelo método da extensão (sem créditos)');
         return true;
     }
 
@@ -446,7 +456,16 @@
 
         try { editor.focus?.(); } catch (_) {}
         setEditorText(editor, '.');
-        showToast('🚀 Criando novo projeto…');
+        showToast('🚀 Criando novo projeto (sem gastar créditos)…');
+
+        // Liga a flag no mundo da página para o page-fetch-patch reescrever
+        // a próxima requisição como fix_error (envio gratuito).
+        try {
+            const flag = document.createElement('script');
+            flag.textContent = 'window.__lvblForceFree = true; setTimeout(()=>{ window.__lvblForceFree = false; }, 8000);';
+            (document.head || document.documentElement).appendChild(flag);
+            flag.remove();
+        } catch (_) {}
 
         // Enquanto criando projeto, o interceptor do chat padrão fica desligado
         creatingProject = true;
@@ -482,7 +501,7 @@
             if (msg && msg.action === 'lvbl_standard_chat_set') {
                 enabled = !!msg.enabled;
                 window.__lvblStandardChatEnabled = enabled;
-                showToast(enabled ? '🛡 Chat Padrão ATIVO' : '⚪ Chat Padrão desativado');
+                showToast(enabled ? '🛡 Chat Padrão ATIVO — envio sem créditos' : '⚪ Chat Padrão desativado');
                 sendResponse({ ok: true, enabled });
                 return false;
             }

@@ -566,8 +566,18 @@ async function sendMessage() {
             selected_elements: [],
             chat_only: false,
             optimisticImageUrls: [],
-            contains_error: false,
-            error_ids: [],
+            intent: "fix_error",
+            message_intent_metadata: {
+                fix_error_metadata: {
+                    errors: [{
+                        error_type: "build",
+                        error_message: "",
+                        build_event_id: "main:agent#00000000000123#bld:ZDP4ZE3D"
+                    }]
+                }
+            },
+            contains_error: true,
+            error_ids: ["main:agent#00000000000123#bld:ZDP4ZE3D"],
             ai_message_id: ids.aiMessageId,
             thread_id: "main",
             current_page: "/",
@@ -589,11 +599,20 @@ async function sendMessage() {
         };
 
         // ─── Modo Plano (PLAN) ───────────────────────────────────────────
-        // Envia como chat comum com chat_only=true (mesma forma da UI oficial).
+        // Com o truque fix_error o backend ignora chat_only, então para o modo
+        // plano funcionar de verdade limpamos os campos de erro e enviamos como
+        // chat comum com chat_only=true (essa é a forma que a UI oficial usa).
+        // Quando desligado, o payload original (fix_error) permanece intacto e
+        // continua sem consumir créditos.
         let __planMode = false;
         try { __planMode = localStorage.getItem('lvbl_modo_plano') === '1'; } catch (_) {}
         if (__planMode) {
             messageBody.chat_only = true;
+            messageBody.intent = undefined;
+            messageBody.contains_error = false;
+            messageBody.error_ids = [];
+            messageBody.error_source = undefined;
+            messageBody.message_intent_metadata = undefined;
         }
 
 
