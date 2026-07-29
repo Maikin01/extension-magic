@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Copy, Download, Key, MessageCircle, PlayCircle, Sparkles } from "lucide-react";
-import { getMyDashboard, claimTrialLicense } from "@/lib/api/license-api";
+import {
+  claimTrialLicense,
+  getMyDashboard,
+  type LicenseWithRelations,
+} from "@/lib/api/license-api";
 import { QueryErrorState } from "@/components/QueryErrorState";
 import { LICENSE_STATUS_LABEL, formatDateBR } from "@/lib/license-utils";
 
@@ -56,8 +60,8 @@ function DashboardPage() {
 
   const trialMut = useMutation({
     mutationFn: () => claimTrial(),
-    onSuccess: (res: any) => {
-      if (res?.existed) toast.info("Você já utilizou o teste gratuito.");
+    onSuccess: (res) => {
+      if (res.existed) toast.info("Você já utilizou o teste gratuito.");
       else toast.success("Licença de teste criada! 10 minutos de acesso.");
       qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
@@ -72,12 +76,12 @@ function DashboardPage() {
     if (params.get("claim") !== "trial") return;
     if (!data) return;
     autoClaimedRef.current = true;
-    if (!data.currentLicense) trialMut.mutate();
+    if (!data.currentLicense && !data.trialClaim) trialMut.mutate();
     // limpa a query
     params.delete("claim");
     const q = params.toString();
     window.history.replaceState({}, "", window.location.pathname + (q ? `?${q}` : ""));
-  }, [data]);
+  }, [data, trialMut]);
 
   return (
     <div className="rise-bg min-h-screen">
@@ -107,14 +111,13 @@ function DashboardPage() {
           />
         )}
 
-        {data && !data.currentLicense && (
+        {data && !data.currentLicense && !data.trialClaim && (
           <Card className="ring-glow border-primary/30 bg-black/40 p-8 text-center backdrop-blur">
             <Key className="mx-auto mb-3 h-10 w-10 text-primary" />
             <h2 className="text-lg font-semibold">Você ainda não tem uma licença</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
               Gere sua chave de teste gratuita — 10 minutos que só começam a contar quando você
               ativar a chave na extensão.
-
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Button
@@ -128,12 +131,17 @@ function DashboardPage() {
           </Card>
         )}
 
-        {data?.currentLicense && (
+        {data && (data.currentLicense || data.trialClaim) && (
           <div className="space-y-6">
             <ExtensionCard />
             <TutorialsCard />
             <SupportCard />
-            <LicensesCard licenses={data.licenses} current={data.currentLicense} />
+            <LicensesCard
+              licenses={
+                data.currentLicense ? data.licenses : data.trialClaim ? [data.trialClaim] : []
+              }
+              current={data.currentLicense}
+            />
           </div>
         )}
       </main>
@@ -234,7 +242,13 @@ function VideoCard({ title, youtubeId }: { title: string; youtubeId?: string }) 
   );
 }
 
-function LicensesCard({ licenses, current }: { licenses: any[]; current: any }) {
+function LicensesCard({
+  licenses,
+  current,
+}: {
+  licenses: LicenseWithRelations[];
+  current: LicenseWithRelations | null;
+}) {
   return (
     <Card className="ring-glow border-primary/30 bg-black/40 p-8 backdrop-blur">
       <h2 className="mb-5 text-xl font-bold text-gradient-red">Minhas licenças</h2>
@@ -247,7 +261,7 @@ function LicensesCard({ licenses, current }: { licenses: any[]; current: any }) 
   );
 }
 
-function LicenseRow({ license, isCurrent }: { license: any; isCurrent: boolean }) {
+function LicenseRow({ license, isCurrent }: { license: LicenseWithRelations; isCurrent: boolean }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     await navigator.clipboard.writeText(license.license_key);
@@ -258,6 +272,7 @@ function LicenseRow({ license, isCurrent }: { license: any; isCurrent: boolean }
   const status = license.status as string;
   const badgeVariant =
     status === "active" ? "default" : status === "pending" ? "secondary" : "destructive";
+  const isDeletedTrial = Boolean(license.is_deleted);
 
   const countdown = useCountdown(isCurrent ? license.expires_at : null);
 
@@ -267,10 +282,14 @@ function LicenseRow({ license, isCurrent }: { license: any; isCurrent: boolean }
         <code className="truncate font-mono text-sm">{license.license_key}</code>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Badge className="chip-neon border-0" variant={badgeVariant as any}>
+        <Badge className="chip-neon border-0" variant={badgeVariant}>
           {license.plans?.name ?? LICENSE_STATUS_LABEL[status] ?? status}
         </Badge>
-        {license.expires_at ? (
+        {isDeletedTrial ? (
+          <span className="text-xs text-destructive">
+            Teste grátis já gerado anteriormente — chave removida e sem novo teste disponível
+          </span>
+        ) : license.expires_at ? (
           <span className="text-xs text-muted-foreground">
             Expira em {formatDateBR(license.expires_at)}
           </span>

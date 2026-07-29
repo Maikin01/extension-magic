@@ -517,6 +517,66 @@ export type Database = {
         }
         Relationships: []
       }
+      trial_license_claims: {
+        Row: {
+          activated_at: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          license_id: string | null
+          license_key: string
+          license_key_hash: string
+          license_status: Database["public"]["Enums"]["license_status"]
+          plan_id: string
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          license_id?: string | null
+          license_key: string
+          license_key_hash: string
+          license_status?: Database["public"]["Enums"]["license_status"]
+          plan_id: string
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          license_id?: string | null
+          license_key?: string
+          license_key_hash?: string
+          license_status?: Database["public"]["Enums"]["license_status"]
+          plan_id?: string
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trial_license_claims_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trial_license_claims_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -543,6 +603,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_trial_license: {
+        Args: {
+          p_expires_at: string
+          p_license_key: string
+          p_license_key_hash: string
+          p_plan_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       consume_edge_rate_limit: {
         Args: {
           p_key_hash: string
@@ -555,6 +625,14 @@ export type Database = {
           remaining: number
           retry_after_seconds: number
         }[]
+      }
+      finalize_approved_payment: {
+        Args: {
+          p_license_key: string
+          p_license_key_hash: string
+          p_payment_id: string
+        }
+        Returns: string
       }
       generate_referral_code: { Args: { _user_id: string }; Returns: string }
       has_role: {

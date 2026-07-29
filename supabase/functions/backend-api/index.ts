@@ -177,17 +177,31 @@ async function getMyAccessContext(context: AuthContext) {
 
 async function getMyDashboard(context: AuthContext) {
   const { admin, userId } = context;
-  const [licensesResult, profileResult] = await Promise.all([
+  const [licensesResult, profileResult, trialClaimResult] = await Promise.all([
     admin
       .from("licenses")
       .select("*, plans(*)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false }),
     admin.from("profiles").select("*").eq("id", userId).maybeSingle(),
+    admin
+      .from("trial_license_claims")
+      .select("*, plans(*)")
+      .eq("user_id", userId)
+      .maybeSingle(),
   ]);
   if (licensesResult.error) throw licensesResult.error;
   if (profileResult.error) throw profileResult.error;
+  if (trialClaimResult.error) throw trialClaimResult.error;
   const licenses = licensesResult.data ?? [];
+  const trialClaim = trialClaimResult.data
+    ? {
+      ...trialClaimResult.data,
+      status: trialClaimResult.data.license_status,
+      is_deleted: !trialClaimResult.data.license_id ||
+        !licenses.some((license) => license.id === trialClaimResult.data.license_id),
+    }
+    : null;
   const currentLicense =
     licenses.find((license) => license.status === "active") ??
       licenses.find((license) => license.status === "pending") ??
@@ -214,6 +228,7 @@ async function getMyDashboard(context: AuthContext) {
     profile: profileResult.data,
     licenses,
     currentLicense,
+    trialClaim,
     devices,
     logs,
   };
