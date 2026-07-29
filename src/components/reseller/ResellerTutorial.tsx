@@ -2,11 +2,6 @@ import { useState } from "react";
 import {
   PlayCircle,
   GraduationCap,
-  Key,
-  CreditCard,
-  Download,
-  ShieldCheck,
-  Users,
   HelpCircle,
   ChevronDown,
 } from "lucide-react";
@@ -14,33 +9,6 @@ import {
 /** Troque pelo ID do vídeo do YouTube do tutorial oficial. */
 const TUTORIAL_VIDEO_ID = "dQw4w9WgXcQ";
 
-const STEPS = [
-  {
-    icon: CreditCard,
-    title: "1. Comprar sua licença",
-    text: "Vá em “Comprar Licenças”, escolha o plano (semanal, mensal ou vitalícia) ou monte uma chave sob medida com a quantidade de dias que quiser. Gere o Pix e pague — a chave aparece automaticamente após a confirmação.",
-  },
-  {
-    icon: Key,
-    title: "2. Onde ficam suas chaves",
-    text: "Todas as chaves compradas ficam salvas em “Minhas Licenças”, vinculadas à sua conta. Você pode copiar a chave a qualquer momento, mesmo que feche o navegador.",
-  },
-  {
-    icon: Download,
-    title: "3. Instalar a extensão",
-    text: "Baixe o pacote da extensão no painel, extraia a pasta, abra chrome://extensions, ative o Modo do desenvolvedor e clique em “Carregar sem compactação” selecionando a pasta extraída.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "4. Ativar a chave",
-    text: "Abra a extensão, cole a chave e clique em ativar. Importante: o tempo da licença só começa a contar no momento da primeira ativação — antes disso ela fica parada aguardando.",
-  },
-  {
-    icon: Users,
-    title: "5. Revender para seus clientes",
-    text: "Entregue a chave ao seu cliente e oriente-o a ativar na extensão. Cada plano tem um limite de dispositivos simultâneos; use uma chave por cliente para evitar bloqueios.",
-  },
-];
 
 const FAQ = [
   {
