@@ -80,6 +80,11 @@ const ADMIN_MUTATION_ACTIONS = new Set([
   "adminUpdatePlan",
   "adminSetUserRole",
   "adminDeleteUser",
+  "createMarketplaceOrder",
+  "adminCreateMarketplaceProduct",
+  "adminUpdateMarketplaceProduct",
+  "adminDeleteMarketplaceProduct",
+  "adminUpdateMarketplaceOrder",
 ]);
 
 const BACKEND_ACTIONS = new Set([
@@ -105,6 +110,15 @@ const BACKEND_ACTIONS = new Set([
   "createPixCheckout",
   "getCheckoutStatus",
   "getAdminAccessStatus",
+  "listMarketplaceProducts",
+  "createMarketplaceOrder",
+  "listMyMarketplaceOrders",
+  "adminListMarketplaceProducts",
+  "adminCreateMarketplaceProduct",
+  "adminUpdateMarketplaceProduct",
+  "adminDeleteMarketplaceProduct",
+  "adminListMarketplaceOrders",
+  "adminUpdateMarketplaceOrder",
 ]);
 
 async function enforceBackendRateLimit(
@@ -1442,6 +1456,24 @@ async function dispatch(
       return getCheckoutStatus(context, input);
     case "getAdminAccessStatus":
       return getAdminAccessStatus(context);
+    case "listMarketplaceProducts":
+      return listMarketplaceProducts(context);
+    case "createMarketplaceOrder":
+      return createMarketplaceOrder(context, input);
+    case "listMyMarketplaceOrders":
+      return listMyMarketplaceOrders(context);
+    case "adminListMarketplaceProducts":
+      return adminListMarketplaceProducts(context);
+    case "adminCreateMarketplaceProduct":
+      return adminCreateMarketplaceProduct(context, input);
+    case "adminUpdateMarketplaceProduct":
+      return adminUpdateMarketplaceProduct(context, input);
+    case "adminDeleteMarketplaceProduct":
+      return adminDeleteMarketplaceProduct(context, input);
+    case "adminListMarketplaceOrders":
+      return adminListMarketplaceOrders(context);
+    case "adminUpdateMarketplaceOrder":
+      return adminUpdateMarketplaceOrder(context, input);
     default:
       throw new ApiHttpError(404, "UNKNOWN_ACTION", "Ação desconhecida.");
   }
