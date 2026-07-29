@@ -370,7 +370,7 @@ function AccountOverviewBanner({ userEmail }: { userEmail?: string }) {
           icon={<BarChart3 className="h-4 w-4 text-emerald-500" />}
           label="Vendas Confirmadas"
           value={stats.isLoading ? "…" : formatPrice(summary?.total_amount_cents ?? 0)}
-          hint="Faturamento atribuído ao seu link"
+          hint="Total faturado nas suas vendas"
         />
         <StatCard
           icon={<PackageCheck className="h-4 w-4 text-amber-500" />}
