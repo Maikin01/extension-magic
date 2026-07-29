@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "sdk_version": "0.25.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://wjkohjslyzogffunfgim.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "rise-lovable-mcp",
+      "version": "0.1.0",
+      "title": "RISE LOVABLE"
+    },
+    "tools": [
+      {
+        "name": "list_plans",
+        "title": "Listar planos",
+        "description": "Lista os planos de licença ativos da Rise Lovable com preço, duração e limite de dispositivos.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_licenses",
+        "title": "Minhas licenças",
+        "description": "Lista as licenças da conta autenticada, com status, data de ativação e expiração.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_payments",
+        "title": "Meus pagamentos",
+        "description": "Lista os pagamentos da conta autenticada, com status, valor e data.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "description": "Quantidade máxima de pagamentos (padrão 20)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_license_devices",
+        "title": "Dispositivos da licença",
+        "description": "Lista os dispositivos registrados em uma licença da conta autenticada.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "license_id": {
+              "type": "string",
+              "description": "ID da licença (uuid) retornado por list_my_licenses."
+            }
+          },
+          "required": [
+            "license_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
