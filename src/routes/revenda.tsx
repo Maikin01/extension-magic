@@ -371,33 +371,6 @@ function AccountOverviewBanner({ userEmail }: { userEmail?: string }) {
             </p>
           </div>
 
-          {/* Referral Link Box */}
-          <div className="bg-[var(--rv-card-alt-bg)] border border-[var(--rv-border)] p-3.5 rounded-xl flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="min-w-0">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--rv-text-subtle)] block">
-                Seu Link de Indicação Direta
-              </span>
-              <span className="text-xs font-mono font-bold text-red-600 truncate block max-w-xs">
-                {info.isLoading ? "Carregando…" : referralCode || "Código indisponível"}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={copyReferral}
-              disabled={!referralLink}
-              className="rv-btn-secondary text-xs h-9 px-3.5 shrink-0 flex items-center justify-center gap-1.5"
-            >
-              {copiedRef ? (
-                <>
-                  <Check className="h-3.5 w-3.5 text-emerald-500" /> Copiado
-                </>
-              ) : (
-                <>
-                  <Copy className="h-3.5 w-3.5" /> Copiar Link
-                </>
-              )}
-            </button>
-          </div>
         </div>
       </div>
 
