@@ -81,9 +81,7 @@ export function Marketplace() {
     onError: (e) => toast.error(translateError(e)),
   });
 
-  const rawList = (products.data?.products && products.data.products.length > 0)
-    ? products.data.products
-    : MOCK_PRODUCTS;
+  const rawList = products.data?.products ?? [];
 
   const list = rawList.filter((i) => cat === "Todos" || i.category === cat);
 
