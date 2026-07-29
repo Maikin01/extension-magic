@@ -19,7 +19,31 @@ const TIERS: Tier[] = [
 
 type RankRow = { position: number; name: string; sales: number; tier: string };
 
-const RANKING: RankRow[] = [];
+const RANKING: RankRow[] = [
+  { position: 1, name: "Maicon D.", sales: 214, tier: "Diamante" },
+  { position: 2, name: "Rafael Souza", sales: 178, tier: "Ouro" },
+  { position: 3, name: "Bruna Martins", sales: 156, tier: "Ouro" },
+  { position: 4, name: "Lucas Almeida", sales: 141, tier: "Ouro" },
+  { position: 5, name: "Camila Rocha", sales: 128, tier: "Ouro" },
+  { position: 6, name: "Diego Fernandes", sales: 117, tier: "Ouro" },
+  { position: 7, name: "Thiago Lima", sales: 103, tier: "Ouro" },
+  { position: 8, name: "Juliana Prado", sales: 92, tier: "Ouro" },
+  { position: 9, name: "Vitor Hugo", sales: 81, tier: "Ouro" },
+  { position: 10, name: "Amanda Silva", sales: 76, tier: "Ouro" },
+  { position: 11, name: "Pedro Henrique", sales: 68, tier: "Prata" },
+  { position: 12, name: "Larissa Gomes", sales: 61, tier: "Prata" },
+  { position: 13, name: "Gustavo Nunes", sales: 54, tier: "Prata" },
+  { position: 14, name: "Rodrigo Pires", sales: 48, tier: "Prata" },
+  { position: 15, name: "Fernanda Dias", sales: 43, tier: "Prata" },
+  { position: 16, name: "Matheus Barros", sales: 37, tier: "Prata" },
+  { position: 17, name: "Isabela Castro", sales: 31, tier: "Prata" },
+  { position: 18, name: "André Ramos", sales: 27, tier: "Prata" },
+  { position: 19, name: "Carla Menezes", sales: 22, tier: "Bronze" },
+  { position: 20, name: "Felipe Torres", sales: 17, tier: "Bronze" },
+  { position: 21, name: "Beatriz Correia", sales: 12, tier: "Bronze" },
+  { position: 22, name: "Marcelo Vieira", sales: 8, tier: "Bronze" },
+  { position: 23, name: "Renata Bastos", sales: 4, tier: "Bronze" },
+];
 
 const rankIcon = (position: number) => {
   if (position === 1) return <Trophy className="h-4 w-4 text-primary" />;
