@@ -1,6 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Copy, KeyRound, LogOut, ShoppingBag, Trophy, TrendingUp, Wallet } from "lucide-react";
+import {
+  Copy,
+  KeyRound,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ShoppingBag,
+  Trophy,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 import { SiteHeader } from "@/components/site/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
