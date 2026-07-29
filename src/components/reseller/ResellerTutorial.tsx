@@ -42,32 +42,11 @@ export function ResellerTutorial() {
           Tutorial do Revendedor
         </h2>
         <p className="text-xs text-[var(--rv-text-muted)]">
-          Assista ao vídeo e tire suas dúvidas para comprar, ativar e revender licenças sem erro.
+          Tire suas dúvidas para comprar, ativar e revender licenças sem erro.
         </p>
       </div>
 
-      {/* Video */}
-      <div className="rv-card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <PlayCircle className="h-4 w-4 text-red-600" />
-          <h3 className="text-base font-bold text-[var(--rv-text-main)]">
-            Vídeo: como comprar e ativar sua licença
-          </h3>
-        </div>
-        <div className="relative w-full overflow-hidden rounded-xl border border-[var(--rv-border)] bg-black aspect-video">
-          <iframe
-            className="absolute inset-0 h-full w-full"
-            src={`https://www.youtube.com/embed/${TUTORIAL_VIDEO_ID}?rel=0&modestbranding=1`}
-            title="Tutorial do painel de revendas Rise Lovable"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            loading="lazy"
-          />
-        </div>
-        <p className="mt-3 text-[11px] text-[var(--rv-text-subtle)]">
-          Duração aproximada de 5 minutos. Recomendamos assistir antes da primeira venda.
-        </p>
-      </div>
+
 
 
 
