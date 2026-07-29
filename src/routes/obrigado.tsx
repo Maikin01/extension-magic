@@ -17,28 +17,29 @@ function ThankYouPage() {
         </div>
 
         <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-[#dc2626]">
-          Compra confirmada
+          Acesso à Revenda Lovable liberado
         </p>
         <h1
           id="thank-you-title"
           className="font-display text-3xl font-bold tracking-tight sm:text-4xl"
         >
-          Obrigado pela sua compra!
+          Sua conta de revendedor está quase pronta!
         </h1>
         <p className="mx-auto mt-4 max-w-md text-base leading-7 text-[#475569]">
-          Seu acesso está disponível. Crie sua conta usando o mesmo e-mail informado na compra.
+          Crie sua conta com o mesmo e-mail usado na compra para acessar o painel de revenda,
+          adquirir licenças e gerenciar seus pedidos.
         </p>
 
         <Link
           to="/revenda/criar-conta"
           className="mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#dc2626] px-6 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#b91c1c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc2626] focus-visible:ring-offset-2"
         >
-          Acessar meu produto
+          Criar conta e acessar meu painel
           <ArrowRight className="size-4" aria-hidden="true" />
         </Link>
 
         <p className="mt-5 text-sm text-[#64748b]">
-          Você será direcionado para criar sua senha de acesso.
+          Na próxima tela, confirme o e-mail da compra e defina sua senha de acesso.
         </p>
       </section>
     </main>
