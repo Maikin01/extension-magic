@@ -365,6 +365,7 @@ export type Database = {
           buyer_name: string
           buyer_whatsapp: string
           created_at: string
+          custom_duration_days: number | null
           expires_at: string | null
           id: string
           license_id: string | null
@@ -374,6 +375,7 @@ export type Database = {
           provider_payment_id: string | null
           qr_code: string | null
           qr_code_base64: string | null
+          quantity: number
           raw: Json | null
           reseller_id: string | null
           status: string
@@ -387,6 +389,7 @@ export type Database = {
           buyer_name: string
           buyer_whatsapp: string
           created_at?: string
+          custom_duration_days?: number | null
           expires_at?: string | null
           id?: string
           license_id?: string | null
@@ -396,6 +399,7 @@ export type Database = {
           provider_payment_id?: string | null
           qr_code?: string | null
           qr_code_base64?: string | null
+          quantity?: number
           raw?: Json | null
           reseller_id?: string | null
           status?: string
@@ -409,6 +413,7 @@ export type Database = {
           buyer_name?: string
           buyer_whatsapp?: string
           created_at?: string
+          custom_duration_days?: number | null
           expires_at?: string | null
           id?: string
           license_id?: string | null
@@ -418,6 +423,7 @@ export type Database = {
           provider_payment_id?: string | null
           qr_code?: string | null
           qr_code_base64?: string | null
+          quantity?: number
           raw?: Json | null
           reseller_id?: string | null
           status?: string
@@ -633,6 +639,10 @@ export type Database = {
           p_payment_id: string
         }
         Returns: string
+      }
+      finalize_approved_payment_bulk: {
+        Args: { p_keys: Json; p_payment_id: string }
+        Returns: Json
       }
       generate_referral_code: { Args: { _user_id: string }; Returns: string }
       has_role: {
