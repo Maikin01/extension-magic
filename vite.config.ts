@@ -13,5 +13,7 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  plugins: [mcpPlugin()],
+  // O plugin 0.25.0 compara separadores de caminho de forma incompatível com Windows.
+  // As rotas MCP já são versionadas; no Linux da Lovable o gerador continua ativo.
+  plugins: process.platform === "win32" ? [] : [mcpPlugin()],
 });

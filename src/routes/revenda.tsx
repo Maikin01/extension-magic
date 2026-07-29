@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Copy,
   Check,
@@ -22,7 +23,10 @@ import { AccessGate } from "@/components/reseller/AccessGate";
 import { KeyStore } from "@/components/reseller/KeyStore";
 import { ResellerSupport } from "@/components/reseller/ResellerSupport";
 import { useAuth } from "@/auth/AuthProvider";
-import { formatPrice } from "@/lib/license-utils";
+import { getMyDashboard } from "@/lib/api/license-api";
+import { getMyResellerInfo, getResellerStats } from "@/lib/api/reseller-api";
+import { formatDateBR, formatPrice } from "@/lib/license-utils";
+import { translateError } from "@/lib/translate-error";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/revenda")({
@@ -81,7 +85,7 @@ function ResellerPanelPage() {
       title: "GESTÃO DE LICENÇAS",
       items: [
         { key: "chaves", label: "Comprar Licenças", icon: Key },
-        { key: "minhas", label: "Minhas Licenças", icon: Coins, count: "4" },
+        { key: "minhas", label: "Minhas Licenças", icon: Coins },
       ],
     },
     {
@@ -164,11 +168,6 @@ function ResellerPanelPage() {
                           )}
                           <Icon className={`h-4 w-4 shrink-0 ${collapsed ? "" : "mr-3"} ${isActive ? "text-red-600" : ""}`} />
                           {!collapsed && <span className="flex-1 text-left">{t.label}</span>}
-                          {!collapsed && "count" in t && (
-                            <span className="ml-auto text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[var(--rv-card-alt-bg)] border border-[var(--rv-border)] text-[var(--rv-text-subtle)]">
-                              {t.count}
-                            </span>
-                          )}
                           {!collapsed && "badge" in t && (
                             <span className="ml-auto text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-500">
                               {t.badge}
@@ -280,7 +279,7 @@ function ResellerPanelPage() {
               {/* ABA 1: COMPRAR LICENÇAS */}
               {tab === "chaves" && (
                 <div className="space-y-8">
-                  <AccountOverviewBanner userEmail={user?.email} userId={user?.id} />
+                  <AccountOverviewBanner userEmail={user?.email} />
                   <KeyStore />
                 </div>
               )}
@@ -312,12 +311,38 @@ function ResellerPanelPage() {
   );
 }
 
-function AccountOverviewBanner({ userEmail, userId }: { userEmail?: string; userId?: string }) {
+function AccountOverviewBanner({ userEmail }: { userEmail?: string }) {
   const [copiedRef, setCopiedRef] = useState(false);
-  const referralCode = "REV-VIP-" + (userId?.slice(0, 6).toUpperCase() ?? "89A2F0");
-  const referralLink = typeof window !== "undefined" ? `${window.location.origin}/?ref=${referralCode}` : "";
+  const info = useQuery({
+    queryKey: ["reseller", "info"],
+    queryFn: getMyResellerInfo,
+    retry: false,
+  });
+  const stats = useQuery({
+    queryKey: ["reseller", "stats", "all"],
+    queryFn: () => getResellerStats({ data: { from: null, to: null } }),
+    enabled: info.isSuccess,
+    retry: 1,
+  });
+  const dashboard = useQuery({
+    queryKey: ["dashboard"],
+    queryFn: getMyDashboard,
+    retry: false,
+  });
+  const referralCode = info.data?.referral_code ?? "";
+  const referralLink =
+    referralCode && typeof window !== "undefined"
+      ? `${window.location.origin}/?ref=${referralCode}#plans`
+      : "";
+  const activeLicenses =
+    dashboard.data?.licenses.filter((license) => license.status === "active").length ?? 0;
+  const summary = stats.data?.summary;
 
   const copyReferral = async () => {
+    if (!referralLink) {
+      toast.error("Seu link de indicação ainda não está disponível.");
+      return;
+    }
     await navigator.clipboard.writeText(referralLink);
     setCopiedRef(true);
     toast.success("Link de indicação copiado!");
@@ -335,14 +360,14 @@ function AccountOverviewBanner({ userEmail, userId }: { userEmail?: string; user
                 Revendedor Autorizado
               </span>
               <span className="rv-badge rv-badge-emerald font-mono text-[10px]">
-                Nível Diamante
+                Perfil validado
               </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-[var(--rv-text-main)]">
               Painel de Controle de Revenda
             </h1>
             <p className="text-xs text-[var(--rv-text-muted)] mt-1">
-              Conta ativa: <span className="text-[var(--rv-text-main)] font-medium">{userEmail ?? "revendedor@riselovable.com"}</span>
+              Conta ativa: <span className="text-[var(--rv-text-main)] font-medium">{userEmail ?? "conta autenticada"}</span>
             </p>
           </div>
 
@@ -353,12 +378,13 @@ function AccountOverviewBanner({ userEmail, userId }: { userEmail?: string; user
                 Seu Link de Indicação Direta
               </span>
               <span className="text-xs font-mono font-bold text-red-600 truncate block max-w-xs">
-                {referralCode}
+                {info.isLoading ? "Carregando…" : referralCode || "Código indisponível"}
               </span>
             </div>
             <button
               type="button"
               onClick={copyReferral}
+              disabled={!referralLink}
               className="rv-btn-secondary text-xs h-9 px-3.5 shrink-0 flex items-center justify-center gap-1.5"
             >
               {copiedRef ? (
@@ -380,20 +406,20 @@ function AccountOverviewBanner({ userEmail, userId }: { userEmail?: string; user
         <StatCard
           icon={<Coins className="h-4 w-4 text-red-600" />}
           label="Licenças Ativas"
-          value="42 un."
-          hint="Diponíveis para distribuição"
+          value={dashboard.isLoading ? "…" : `${activeLicenses} un.`}
+          hint="Disponíveis na sua conta"
         />
         <StatCard
           icon={<BarChart3 className="h-4 w-4 text-emerald-500" />}
-          label="Margem de Lucro Bruta"
-          value={formatPrice(489000)}
-          hint="Acumulado nos últimos 30 dias"
+          label="Vendas Confirmadas"
+          value={stats.isLoading ? "…" : formatPrice(summary?.total_amount_cents ?? 0)}
+          hint="Faturamento atribuído ao seu link"
         />
         <StatCard
           icon={<PackageCheck className="h-4 w-4 text-amber-500" />}
           label="Entregas Confirmadas"
-          value="156 ped."
-          hint="100% de satisfação declarada"
+          value={stats.isLoading ? "…" : `${summary?.total_sales ?? 0} ped.`}
+          hint={`${summary?.pending_count ?? 0} pagamento(s) pendente(s)`}
         />
       </div>
     </div>
@@ -422,18 +448,17 @@ function ComingSoonCard({ title, subtitle }: { title: string; subtitle: string }
 function MyKeys() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-
-  const keys = [
-    { key: "RISE-7D-X92K-8812", plan: "Chave Semanal (7 dias)", status: "Ativa", created: "28/07/2026" },
-    { key: "RISE-30D-M71P-9943", plan: "Chave Mensal (30 dias)", status: "Ativa", created: "26/07/2026" },
-    { key: "RISE-VITAL-K992-1102", plan: "Chave Vitalícia", status: "Entregue", created: "20/07/2026" },
-    { key: "RISE-30D-Z882-7711", plan: "Chave Mensal (30 dias)", status: "Ativa", created: "18/07/2026" },
-  ];
+  const dashboard = useQuery({
+    queryKey: ["dashboard"],
+    queryFn: getMyDashboard,
+    retry: false,
+  });
+  const keys = dashboard.data?.licenses ?? [];
 
   const filteredKeys = keys.filter(
     (k) =>
-      k.key.toLowerCase().includes(search.toLowerCase()) ||
-      k.plan.toLowerCase().includes(search.toLowerCase()),
+      k.license_key.toLowerCase().includes(search.toLowerCase()) ||
+      (k.plans?.name ?? "").toLowerCase().includes(search.toLowerCase()),
   );
 
   const copy = async (value: string) => {
@@ -453,7 +478,9 @@ function MyKeys() {
               <Coins className="h-3 w-3" /> Gestão de Licenças
             </span>
             <span className="rv-badge rv-badge-emerald font-mono text-[10px]">
-              4 Licenças Ativas
+              {dashboard.isLoading
+                ? "Carregando…"
+                : `${keys.filter((license) => license.status === "active").length} Licenças Ativas`}
             </span>
           </div>
           <h2 className="text-xl font-bold text-[var(--rv-text-main)] tracking-tight">Minhas Licenças Geradas</h2>
@@ -475,8 +502,37 @@ function MyKeys() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="rv-table">
+      {dashboard.isError ? (
+        <div className="rounded-xl border border-red-600/30 bg-red-600/10 px-5 py-8 text-center">
+          <p className="font-semibold text-[var(--rv-text-main)]">
+            Não foi possível carregar suas licenças
+          </p>
+          <p className="mt-1 text-xs text-[var(--rv-text-muted)]">
+            {translateError(dashboard.error as Error)}
+          </p>
+          <button
+            type="button"
+            onClick={() => void dashboard.refetch()}
+            className="rv-btn-secondary mt-4 text-xs"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      ) : !dashboard.isLoading && filteredKeys.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-[var(--rv-border)] px-6 py-14 text-center">
+          <Key className="mx-auto mb-3 h-8 w-8 text-[var(--rv-text-subtle)]" />
+          <p className="font-medium text-[var(--rv-text-main)]">
+            {search ? "Nenhuma licença encontrada" : "Você ainda não tem licenças"}
+          </p>
+          <p className="mt-1 text-xs text-[var(--rv-text-muted)]">
+            {search
+              ? "Tente buscar por outro código ou plano."
+              : "As licenças vinculadas à sua conta aparecerão aqui."}
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="rv-table">
           <thead>
             <tr>
               <th>Código da Licença</th>
@@ -488,20 +544,22 @@ function MyKeys() {
           </thead>
           <tbody>
             {filteredKeys.map((k) => (
-              <tr key={k.key}>
-                <td className="font-mono font-bold text-red-600">{k.key}</td>
-                <td>{k.plan}</td>
+              <tr key={k.id}>
+                <td className="font-mono font-bold text-red-600">{k.license_key}</td>
+                <td>{k.plans?.name ?? "Plano não informado"}</td>
                 <td>
                   <span className="rv-badge rv-badge-emerald">{k.status}</span>
                 </td>
-                <td className="text-[var(--rv-text-subtle)] font-mono text-xs">{k.created}</td>
+                <td className="text-[var(--rv-text-subtle)] font-mono text-xs">
+                  {formatDateBR(k.created_at)}
+                </td>
                 <td className="text-right">
                   <button
                     type="button"
-                    onClick={() => copy(k.key)}
+                    onClick={() => copy(k.license_key)}
                     className="rv-btn-secondary text-xs py-1.5 px-3.5"
                   >
-                    {copiedKey === k.key ? (
+                    {copiedKey === k.license_key ? (
                       <span className="inline-flex items-center gap-1.5 text-emerald-500 font-medium">
                         <Check className="h-3.5 w-3.5" /> Copiado
                       </span>
@@ -514,9 +572,10 @@ function MyKeys() {
                 </td>
               </tr>
             ))}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
