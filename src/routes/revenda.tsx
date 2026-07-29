@@ -93,7 +93,7 @@ function ResellerPanelPage() {
     {
       title: "REDE & MERCADO",
       items: [
-        { key: "marketplace", label: "Marketplace VIP", icon: Store, badge: "Em breve" },
+        { key: "marketplace", label: "Marketplace VIP", icon: Store },
         { key: "ranking", label: "Ranking & Níveis", icon: Trophy, badge: "Em breve" },
       ],
     },
