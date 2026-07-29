@@ -49,7 +49,7 @@ export function ResellerTutorial() {
           Tutorial do Revendedor
         </h2>
         <p className="text-xs text-[var(--rv-text-muted)]">
-          Assista ao vídeo e siga o passo a passo para comprar, ativar e revender licenças sem erro.
+          Assista ao vídeo e tire suas dúvidas para comprar, ativar e revender licenças sem erro.
         </p>
       </div>
 
