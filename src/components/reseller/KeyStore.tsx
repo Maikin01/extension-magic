@@ -226,9 +226,12 @@ export function KeyStore() {
             </label>
             <div className="text-xl font-bold font-mono text-[var(--rv-text-main)] h-9 flex items-center">
               {formatPrice(
-                Math.max(1, Number(customDays) || 0) * 100 * Math.max(1, Number(customQty) || 0)
+                customKeyPriceCents(Number(customDays)) * Math.max(1, Number(customQty) || 0)
               )}
             </div>
+            <span className="text-[10px] text-[var(--rv-text-subtle)] font-mono">
+              {formatPrice(customKeyPriceCents(Number(customDays)))} por chave
+            </span>
           </div>
 
           <div>
