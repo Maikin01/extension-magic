@@ -1,13 +1,6 @@
 import { useState } from "react";
-import {
-  PlayCircle,
-  GraduationCap,
-  HelpCircle,
-  ChevronDown,
-} from "lucide-react";
+import { GraduationCap, HelpCircle, ChevronDown } from "lucide-react";
 
-/** Troque pelo ID do vídeo do YouTube do tutorial oficial. */
-const TUTORIAL_VIDEO_ID = "dQw4w9WgXcQ";
 
 
 const FAQ = [
