@@ -72,7 +72,7 @@ function DashboardPage() {
     if (params.get("claim") !== "trial") return;
     if (!data) return;
     autoClaimedRef.current = true;
-    if (!data.currentLicense) trialMut.mutate();
+    if (!data.currentLicense && !data.trialClaim) trialMut.mutate();
     // limpa a query
     params.delete("claim");
     const q = params.toString();
@@ -107,7 +107,7 @@ function DashboardPage() {
           />
         )}
 
-        {data && !data.currentLicense && (
+        {data && !data.currentLicense && !data.trialClaim && (
           <Card className="ring-glow border-primary/30 bg-black/40 p-8 text-center backdrop-blur">
             <Key className="mx-auto mb-3 h-10 w-10 text-primary" />
             <h2 className="text-lg font-semibold">Você ainda não tem uma licença</h2>
@@ -128,12 +128,15 @@ function DashboardPage() {
           </Card>
         )}
 
-        {data?.currentLicense && (
+        {data && (data.currentLicense || data.trialClaim) && (
           <div className="space-y-6">
             <ExtensionCard />
             <TutorialsCard />
             <SupportCard />
-            <LicensesCard licenses={data.licenses} current={data.currentLicense} />
+            <LicensesCard
+              licenses={data.currentLicense ? data.licenses : data.trialClaim ? [data.trialClaim] : []}
+              current={data.currentLicense}
+            />
           </div>
         )}
       </main>
@@ -258,6 +261,7 @@ function LicenseRow({ license, isCurrent }: { license: any; isCurrent: boolean }
   const status = license.status as string;
   const badgeVariant =
     status === "active" ? "default" : status === "pending" ? "secondary" : "destructive";
+  const isDeletedTrial = Boolean(license.is_deleted);
 
   const countdown = useCountdown(isCurrent ? license.expires_at : null);
 
@@ -270,7 +274,11 @@ function LicenseRow({ license, isCurrent }: { license: any; isCurrent: boolean }
         <Badge className="chip-neon border-0" variant={badgeVariant as any}>
           {license.plans?.name ?? LICENSE_STATUS_LABEL[status] ?? status}
         </Badge>
-        {license.expires_at ? (
+        {isDeletedTrial ? (
+          <span className="text-xs text-destructive">
+            Teste grátis já gerado anteriormente — chave removida e sem novo teste disponível
+          </span>
+        ) : license.expires_at ? (
           <span className="text-xs text-muted-foreground">
             Expira em {formatDateBR(license.expires_at)}
           </span>
