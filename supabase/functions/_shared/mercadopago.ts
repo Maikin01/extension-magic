@@ -142,6 +142,15 @@ export function assertMercadoPagoPaymentContract(
   return { providerId, status };
 }
 
+export function mercadoPagoIdentification(
+  value?: string,
+): { type: "CPF" | "CNPJ"; number: string } | null {
+  const digits = (value ?? "").replace(/\D+/g, "");
+  if (digits.length === 11) return { type: "CPF", number: digits };
+  if (digits.length === 14) return { type: "CNPJ", number: digits };
+  return null;
+}
+
 export async function createPixPayment(input: {
   amountCents: number;
   description: string;
@@ -162,8 +171,8 @@ export async function createPixPayment(input: {
     first_name: firstName,
     last_name: rest.join(" ") || "Rise",
   };
-  const cpf = (input.buyerCpf ?? "").replace(/\D+/g, "");
-  if (cpf.length === 11) payer.identification = { type: "CPF", number: cpf };
+  const identification = mercadoPagoIdentification(input.buyerCpf);
+  if (identification) payer.identification = identification;
   const phone = (input.buyerWhatsapp ?? "").replace(/\D+/g, "");
   if (phone.length >= 10) {
     payer.phone = { area_code: phone.slice(0, 2), number: phone.slice(2) };

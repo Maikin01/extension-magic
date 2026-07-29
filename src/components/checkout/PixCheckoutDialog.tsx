@@ -14,6 +14,7 @@ import { Copy, Check, Loader2, ShieldCheck, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { createPixCheckout, getCheckoutStatus } from "@/lib/api/payments-api";
 import { formatPrice } from "@/lib/license-utils";
+import { useAuth } from "@/auth/AuthProvider";
 
 type Plan = { slug: string; name: string; price_cents: number };
 type Step = "form" | "pix" | "success";
@@ -37,6 +38,8 @@ export function PixCheckoutDialog({
 }) {
   const createPix = createPixCheckout;
   const getStatus = getCheckoutStatus;
+  const { user } = useAuth();
+  const accountEmail = user?.email ?? "";
 
   const [step, setStep] = useState<Step>("form");
   const [name, setName] = useState("");
@@ -72,11 +75,7 @@ export function PixCheckoutDialog({
         const res = await getStatus({ data: { payment_id: pix.payment_id } });
         if (res.status === "approved") {
           setLicenseKeys(
-            res.license_keys?.length
-              ? res.license_keys
-              : res.license_key
-                ? [res.license_key]
-                : [],
+            res.license_keys?.length ? res.license_keys : res.license_key ? [res.license_key] : [],
           );
           setStep("success");
           if (pollRef.current) window.clearInterval(pollRef.current);
@@ -106,7 +105,12 @@ export function PixCheckoutDialog({
     const cleanCpf = cpf.replace(/\D+/g, "");
     if (name.trim().length < 2) return toast.error("Informe seu nome.");
     if (cleanWpp.length < 10) return toast.error("Informe um WhatsApp válido (com DDD).");
-    if (cleanCpf && cleanCpf.length !== 11) return toast.error("CPF inválido.");
+    if (order && ![11, 14].includes(cleanCpf.length)) {
+      return toast.error("Informe um CPF ou CNPJ válido.");
+    }
+    if (!order && cleanCpf && cleanCpf.length !== 11) {
+      return toast.error("CPF inválido.");
+    }
     setLoading(true);
     try {
       const referral =
@@ -156,31 +160,47 @@ export function PixCheckoutDialog({
           <>
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">
-                {order ? `Comprar ${order.quantity}x ${plan.name}` : `Assinar ${plan.name}`}
+                {order ? "Dados do pagador" : `Assinar ${plan.name}`}
               </DialogTitle>
               <DialogDescription className="text-white/60">
-                Pagamento via Pix —{" "}
-                <span className="font-bold text-white">
-                  {formatPrice(order ? order.totalCents : plan.price_cents)}
-                </span>
-                . Preencha os dados abaixo para gerar o QR Code.
+                {order ? (
+                  "Informe os dados para gerar o QR Code PIX."
+                ) : (
+                  <>
+                    Pagamento via Pix —{" "}
+                    <span className="font-bold text-white">{formatPrice(plan.price_cents)}</span>.
+                    Preencha os dados abaixo para gerar o QR Code.
+                  </>
+                )}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">
               <div className="space-y-1.5">
-                <Label htmlFor="pix-name">Nome completo</Label>
+                <Label htmlFor="pix-name">Nome completo{order ? " *" : ""}</Label>
                 <Input
                   id="pix-name"
                   autoFocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Seu nome"
+                  placeholder={order ? "João da Silva" : "Seu nome"}
                   className="bg-white/5"
                   required
                 />
               </div>
+              {order && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="pix-email">Email</Label>
+                  <Input
+                    id="pix-email"
+                    type="email"
+                    value={accountEmail}
+                    className="bg-white/5"
+                    readOnly
+                  />
+                </div>
+              )}
               <div className="space-y-1.5">
-                <Label htmlFor="pix-wpp">WhatsApp (com DDD)</Label>
+                <Label htmlFor="pix-wpp">{order ? "Telefone" : "WhatsApp (com DDD)"}</Label>
                 <Input
                   id="pix-wpp"
                   value={wpp}
@@ -189,12 +209,14 @@ export function PixCheckoutDialog({
                   className="bg-white/5"
                   required
                 />
-                <p className="text-[11px] text-white/40">
-                  Enviaremos sua chave de licença por aqui após a confirmação.
-                </p>
+                {!order && (
+                  <p className="text-[11px] text-white/40">
+                    Enviaremos sua chave de licença por aqui após a confirmação.
+                  </p>
+                )}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="pix-cpf">CPF (recomendado)</Label>
+                <Label htmlFor="pix-cpf">{order ? "CPF/CNPJ *" : "CPF (recomendado)"}</Label>
                 <Input
                   id="pix-cpf"
                   value={cpf}
@@ -202,26 +224,43 @@ export function PixCheckoutDialog({
                   placeholder="000.000.000-00"
                   className="bg-white/5"
                   inputMode="numeric"
+                  required={!!order}
                 />
-                <p className="text-[11px] text-white/40">
-                  Reduz o risco do antifraude do Mercado Pago recusar o Pix.
-                </p>
-              </div>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="btn-neon h-12 w-full text-sm font-bold uppercase tracking-widest"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando Pix…
-                  </>
-                ) : (
-                  <>
-                    <QrCode className="mr-2 h-4 w-4" /> Gerar QR Code Pix
-                  </>
+                {!order && (
+                  <p className="text-[11px] text-white/40">
+                    Reduz o risco do antifraude do Mercado Pago recusar o Pix.
+                  </p>
                 )}
-              </Button>
+              </div>
+              <div className={order ? "grid grid-cols-2 gap-3 pt-1" : ""}>
+                {order && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={loading}
+                    className="h-12 border-white/10 bg-white/5"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Cancelar
+                  </Button>
+                )}
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-neon h-12 w-full text-sm font-bold uppercase tracking-widest"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando Pix…
+                    </>
+                  ) : (
+                    <>
+                      <QrCode className="mr-2 h-4 w-4" />
+                      {order ? "Gerar PIX" : "Gerar QR Code Pix"}
+                    </>
+                  )}
+                </Button>
+              </div>
             </form>
           </>
         )}

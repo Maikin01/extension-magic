@@ -1,9 +1,22 @@
 import { assertEquals, assertThrows } from "jsr:@std/assert@1.0.19";
 import {
   assertMercadoPagoPaymentContract,
+  mercadoPagoIdentification,
   verifyMercadoPagoWebhookSignature,
 } from "./mercadopago.ts";
 import { ApiHttpError } from "./http.ts";
+
+Deno.test("normaliza CPF e CNPJ do pagador Mercado Pago", () => {
+  assertEquals(mercadoPagoIdentification("123.456.789-01"), {
+    type: "CPF",
+    number: "12345678901",
+  });
+  assertEquals(mercadoPagoIdentification("12.345.678/0001-90"), {
+    type: "CNPJ",
+    number: "12345678000190",
+  });
+  assertEquals(mercadoPagoIdentification("123"), null);
+});
 
 async function hmacHex(secret: string, value: string): Promise<string> {
   const key = await crypto.subtle.importKey(
