@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/auth/AuthProvider";
 import { ResellerAuthShell } from "@/components/reseller/ResellerAuthShell";
@@ -30,9 +30,10 @@ function ResellerSignupPage() {
   const { status, isAdmin, isReseller, refresh } = useAuth();
   const [step, setStep] = useState<"email" | "password">("email");
   const [email, setEmail] = useState("");
-  const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -87,7 +88,6 @@ function ResellerSignupPage() {
       await resellerAuthApi.register({
         email,
         password,
-        full_name: fullName.trim() || undefined,
       });
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
@@ -142,40 +142,54 @@ function ResellerSignupPage() {
             <span className="min-w-0 truncate">{email}</span>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="reseller-name">Seu nome (opcional)</Label>
-            <Input
-              id="reseller-name"
-              autoComplete="name"
-              maxLength={100}
-              value={fullName}
-              onChange={(event) => setFullName(event.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="reseller-password">Crie uma senha</Label>
-            <Input
-              id="reseller-password"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              maxLength={72}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
+            <div className="relative">
+              <Input
+                id="reseller-password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                minLength={8}
+                maxLength={72}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="pr-11"
+                required
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                aria-pressed={showPassword}
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                onClick={() => setShowPassword((visible) => !visible)}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="reseller-password-confirmation">Repita a senha</Label>
-            <Input
-              id="reseller-password-confirmation"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              maxLength={72}
-              value={confirmation}
-              onChange={(event) => setConfirmation(event.target.value)}
-              required
-            />
+            <div className="relative">
+              <Input
+                id="reseller-password-confirmation"
+                type={showConfirmation ? "text" : "password"}
+                autoComplete="new-password"
+                minLength={8}
+                maxLength={72}
+                value={confirmation}
+                onChange={(event) => setConfirmation(event.target.value)}
+                className="pr-11"
+                required
+              />
+              <button
+                type="button"
+                aria-label={showConfirmation ? "Ocultar senha" : "Mostrar senha"}
+                aria-pressed={showConfirmation}
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                onClick={() => setShowConfirmation((visible) => !visible)}
+              >
+                {showConfirmation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-[auto_1fr]">
             <Button

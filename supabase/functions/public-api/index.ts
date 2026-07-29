@@ -122,9 +122,6 @@ async function registerReseller(
   const password = typeof payload?.password === "string"
     ? payload.password
     : "";
-  const fullName = typeof payload?.full_name === "string"
-    ? payload.full_name.trim()
-    : "";
   if (!email) {
     throw new ApiHttpError(400, "INVALID_EMAIL", "Informe um email válido.");
   }
@@ -135,10 +132,6 @@ async function registerReseller(
       "A senha deve ter entre 8 e 72 caracteres.",
     );
   }
-  if (fullName.length > 100) {
-    throw new ApiHttpError(400, "INVALID_NAME", "Nome muito longo.");
-  }
-
   await enforceResellerAuthRateLimit(request, email, "register", http);
   const admin = createAdminClient();
   const { data: signupStatus, error: statusError } = await admin.rpc(
@@ -165,6 +158,20 @@ async function registerReseller(
       "Não encontramos uma compra aprovada para este email.",
     );
   }
+
+  const { data: purchase, error: purchaseError } = await admin
+    .from("risecheckout_reseller_entitlements")
+    .select("customer_name")
+    .eq("email_normalized", email)
+    .eq("status", "approved")
+    .is("claimed_by", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (purchaseError) throw purchaseError;
+  const fullName = typeof purchase?.customer_name === "string"
+    ? purchase.customer_name.trim().slice(0, 100)
+    : "";
 
   const { data: created, error: createError } = await admin.auth.admin
     .createUser({
