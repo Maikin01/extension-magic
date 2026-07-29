@@ -190,7 +190,8 @@ export function KeyStore() {
           <h3 className="text-base font-bold text-[var(--rv-text-main)]">Gerador de Licenças Sob Medida</h3>
         </div>
         <p className="text-xs text-[var(--rv-text-muted)] mb-5 max-w-2xl">
-          Configure prazos customizados conforme a demanda específica do seu cliente. O custo é calculado proporcionalmente ao período em dias.
+          Configure prazos customizados conforme a demanda do seu cliente. O valor segue a mesma tabela das chaves
+          padrão (7 dias = R$ 14,90 · 30 dias = R$ 29,90 · vitalícia = R$ 149,90), calculado proporcionalmente.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-4 items-end">
