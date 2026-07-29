@@ -849,6 +849,35 @@ async function adminGetGlobalRevenue(context: AuthContext, input: unknown) {
   return totals;
 }
 
+const RESELLER_WHOLESALE_CENTS: Record<string, number> = {
+  weekly: 1490,
+  monthly: 2990,
+  lifetime: 14990,
+};
+const RESELLER_WEEK_CENTS = 1490;
+const RESELLER_MONTH_CENTS = 2990;
+const RESELLER_LIFETIME_CENTS = 14990;
+const RESELLER_MIN_ORDER_CENTS = 990;
+
+/** Mesma tabela usada no painel de revenda (KeyStore.tsx). */
+function resellerCustomPriceCents(days: number): number {
+  const d = Math.max(1, Math.floor(days) || 1);
+  let cents: number;
+  if (d <= 7) {
+    cents = (RESELLER_WEEK_CENTS / 7) * d;
+  } else if (d <= 30) {
+    cents = RESELLER_WEEK_CENTS +
+      ((RESELLER_MONTH_CENTS - RESELLER_WEEK_CENTS) / 23) * (d - 7);
+  } else {
+    cents = RESELLER_MONTH_CENTS + 100 * (d - 30);
+  }
+  cents = Math.min(
+    RESELLER_LIFETIME_CENTS,
+    Math.max(RESELLER_MIN_ORDER_CENTS, cents),
+  );
+  return Math.ceil(cents / 10) * 10;
+}
+
 async function createPixCheckout(context: AuthContext, input: unknown) {
   const data = z
     .object({
@@ -858,22 +887,62 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
       buyer_cpf: z.string().max(20).optional(),
       referral_code: z.string().min(4).max(16).optional().nullable(),
       idempotency_key: z.string().uuid(),
+      reseller: z.boolean().optional(),
+      quantity: z.number().int().min(1).max(200).optional(),
+      custom_duration_days: z.number().int().min(1).max(3650).optional()
+        .nullable(),
     })
     .parse(input);
+
+  const isResellerOrder = data.reseller === true;
+  const quantity = isResellerOrder ? (data.quantity ?? 1) : 1;
+  const customDays = isResellerOrder ? (data.custom_duration_days ?? null) : null;
+
+  if (isResellerOrder) {
+    const roles = await getUserRoles(context.admin, context.userId);
+    const allowed = roles.some((role) =>
+      role === "revendedor" || ADMIN_ROLES.includes(role)
+    );
+    if (!allowed) {
+      throw new ApiHttpError(
+        403,
+        "RESELLER_ONLY",
+        "Apenas revendedores podem comprar licenças no atacado.",
+      );
+    }
+    if (!customDays && !(data.plan_slug in RESELLER_WHOLESALE_CENTS)) {
+      throw new ApiHttpError(
+        400,
+        "INVALID_RESELLER_PLAN",
+        "Plano indisponível para revenda.",
+      );
+    }
+  }
+
+  const planSlug = isResellerOrder && customDays ? "monthly" : data.plan_slug;
   const { data: plan, error } = await context.admin
     .from("plans")
     .select("*")
-    .eq("slug", data.plan_slug)
+    .eq("slug", planSlug)
     .eq("is_active", true)
     .single();
   if (error || !plan) throw new Error("Plano não encontrado.");
-  if (plan.price_cents <= 0) {
+
+  const unitPriceCents = isResellerOrder
+    ? (customDays
+      ? resellerCustomPriceCents(customDays)
+      : RESELLER_WHOLESALE_CENTS[data.plan_slug])
+    : plan.price_cents;
+  const amountCents = unitPriceCents * quantity;
+
+  if (amountCents <= 0) {
     throw new ApiHttpError(
       400,
       "PAYMENT_NOT_REQUIRED",
       "Este plano é gratuito e não requer pagamento.",
     );
   }
+
   if (!context.email) {
     throw new ApiHttpError(
       400,
