@@ -23,20 +23,36 @@ export async function applyProviderPaymentStatus(
   return data;
 }
 
-export async function finalizePaymentIfApproved(
+export async function finalizePaymentLicenses(
   admin: SupabaseClient,
   paymentId: string,
-): Promise<string | null> {
+  quantity = 1,
+): Promise<string[]> {
+  const total = Math.max(1, Math.min(200, Math.floor(quantity) || 1));
   for (let attempt = 0; attempt < 5; attempt++) {
-    const licenseKey = generateLicenseKey();
-    const licenseKeyHash = await hashLicenseKey(licenseKey);
-    const { data, error } = await admin.rpc("finalize_approved_payment", {
+    const keys: { key: string; hash: string }[] = [];
+    for (let i = 0; i < total; i++) {
+      const key = generateLicenseKey();
+      keys.push({ key, hash: await hashLicenseKey(key) });
+    }
+    const { data, error } = await admin.rpc("finalize_approved_payment_bulk", {
       p_payment_id: paymentId,
-      p_license_key: licenseKey,
-      p_license_key_hash: licenseKeyHash,
+      p_keys: keys,
     });
-    if (!error) return typeof data === "string" ? data : null;
+    if (!error) {
+      return Array.isArray(data) ? (data as string[]) : [];
+    }
     if (error.code !== "23505") throw error;
   }
   throw new Error("Não foi possível gerar uma chave única. Tente novamente.");
 }
+
+export async function finalizePaymentIfApproved(
+  admin: SupabaseClient,
+  paymentId: string,
+  quantity = 1,
+): Promise<string | null> {
+  const keys = await finalizePaymentLicenses(admin, paymentId, quantity);
+  return keys[0] ?? null;
+}
+
