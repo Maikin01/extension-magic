@@ -626,6 +626,14 @@ export type Database = {
           retry_after_seconds: number
         }[]
       }
+      finalize_approved_payment: {
+        Args: {
+          p_license_key: string
+          p_license_key_hash: string
+          p_payment_id: string
+        }
+        Returns: string
+      }
       generate_referral_code: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
