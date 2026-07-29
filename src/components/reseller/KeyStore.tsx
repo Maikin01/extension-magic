@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { Check, KeyRound, Minus, Plus, Sparkles, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Check, Key, Minus, Plus, Zap, Sliders, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { formatPrice } from "@/lib/license-utils";
 
 type KeyProduct = {
@@ -19,30 +17,29 @@ const KEY_PRODUCTS: KeyProduct[] = [
   {
     slug: "semanal",
     name: "Chave Semanal",
-    duration: "7 dias",
+    duration: "Validade de 7 Dias",
     costCents: 1490,
     suggestedCents: 3499,
-    perks: ["1 dispositivo", "Giro rápido", "Ideal para testes"],
+    perks: ["1 Dispositivo simultâneo", "Giro rápido de estoque", "Ideal para testes de clientes"],
   },
   {
     slug: "mensal",
     name: "Chave Mensal",
-    duration: "30 dias",
+    duration: "Validade de 30 Dias",
     costCents: 2990,
     suggestedCents: 6990,
     highlight: true,
-    perks: ["2 dispositivos", "Melhor custo-benefício", "Cliente fideliza"],
+    perks: ["2 Dispositivos simultâneos", "Maior volume de vendas", "Alta taxa de renovação"],
   },
   {
     slug: "vitalicia",
     name: "Chave Vitalícia",
-    duration: "Acesso permanente",
+    duration: "Acesso Permanente",
     costCents: 14990,
     suggestedCents: 29990,
-    perks: ["3 dispositivos", "Sem renovação", "Maior lucro por venda"],
+    perks: ["3 Dispositivos simultâneos", "Sem limite de expiração", "Maior margem bruta por venda"],
   },
 ];
-
 
 export function KeyStore() {
   const [qty, setQty] = useState<Record<string, number>>({});
@@ -53,164 +50,170 @@ export function KeyStore() {
     setQty((prev) => ({ ...prev, [slug]: Math.max(1, Math.min(500, value)) }));
 
   return (
-    <div className="space-y-10">
-      <section>
-        <header className="mb-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-primary">
-            <KeyRound className="h-3.5 w-3.5" /> Loja de chaves
+    <div className="space-y-8">
+      {/* Header section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--rv-border)] pb-5">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="rv-badge rv-badge-red font-mono uppercase text-[10px]">
+              <Key className="h-3 w-3" /> Catálogo de Licenças
+            </span>
           </div>
-          <h2 className="mt-3 text-2xl font-bold tracking-tight">Compre chaves com preço de revenda</h2>
-          <p className="text-sm text-muted-foreground">
-            Você paga o valor de custo e revende pelo preço que quiser. As chaves ficam disponíveis
-            na aba “Minhas chaves” logo após o pagamento.
+          <h2 className="text-xl font-bold text-[var(--rv-text-main)] tracking-tight">Adquirir Licenças de Revenda</h2>
+          <p className="text-xs text-[var(--rv-text-muted)]">
+            Adquira chaves no atacado com desconto direto de distribuidor. Suas chaves geradas ficam disponíveis instantaneamente.
           </p>
-        </header>
-
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {KEY_PRODUCTS.map((p) => {
-            const count = qty[p.slug] ?? 1;
-            const margin = p.suggestedCents - p.costCents;
-            return (
-              <div
-                key={p.slug}
-                className={`plan-card relative flex flex-col rounded-2xl p-6 ${
-                  p.highlight ? "plan-card--highlight" : ""
-                }`}
-              >
-                <span className="plan-top-glow" />
-                {p.highlight && <span className="plan-ribbon">mais vendida</span>}
-
-                <div className="mb-4">
-                  <h3 className="text-lg font-bold">{p.name}</h3>
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                    {p.duration}
-                  </p>
-                </div>
-
-                <div className="mb-1 flex items-end gap-1">
-                  <span className="text-3xl font-extrabold tracking-tight">
-                    {formatPrice(p.costCents)}
-                  </span>
-                  <span className="pb-1 text-xs text-muted-foreground">/ chave</span>
-                </div>
-                <p className="mb-4 text-xs text-muted-foreground">
-                  Venda sugerida{" "}
-                  <span className="font-semibold text-foreground">
-                    {formatPrice(p.suggestedCents)}
-                  </span>{" "}
-                  • lucro {formatPrice(margin)}
-                </p>
-
-                <ul className="mb-5 space-y-2 text-sm">
-                  {p.perks.map((perk) => (
-                    <li key={perk} className="flex items-center gap-2">
-                      <span className="plan-check">
-                        <Check className="h-3 w-3" />
-                      </span>
-                      <span className="text-muted-foreground">{perk}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-auto space-y-3">
-                  <div className="flex items-center justify-between rounded-full border border-border/60 bg-background/40 p-1">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 rounded-full"
-                      onClick={() => setQuantity(p.slug, count - 1)}
-                    >
-                      <Minus className="h-3.5 w-3.5" />
-                    </Button>
-                    <span className="text-sm font-semibold tabular-nums">{count} un.</span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 rounded-full"
-                      onClick={() => setQuantity(p.slug, count + 1)}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  <Button className={p.highlight ? "btn-glossy-red w-full" : "btn-glossy-dark w-full"}>
-                    <span className="inline-flex items-center gap-2">
-                      <Zap className="h-4 w-4" />
-                      Comprar {formatPrice(p.costCents * count)}
-                    </span>
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
         </div>
-      </section>
+      </div>
 
-      <section>
-        <Card className="relative overflow-hidden border-border/60 bg-card p-6">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(70% 60% at 100% 0%, oklch(0.63 0.245 25 / 0.12), transparent 60%)",
-            }}
-          />
-          <div className="relative">
-            <div className="mb-4 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h3 className="text-lg font-bold">Chave personalizada</h3>
+      {/* Main Catalog Grid */}
+      <div className="grid gap-6 md:grid-cols-3">
+        {KEY_PRODUCTS.map((p) => {
+          const count = qty[p.slug] ?? 1;
+          const profitMargin = p.suggestedCents - p.costCents;
+          const totalCost = p.costCents * count;
+
+          return (
+            <div
+              key={p.slug}
+              className={`rv-card relative p-6 flex flex-col justify-between ${
+                p.highlight ? "border-red-600/80 shadow-md" : ""
+              }`}
+            >
+              {p.highlight && (
+                <div className="absolute -top-3 right-4">
+                  <span className="rv-badge rv-badge-red text-[10px] uppercase font-mono shadow-md">
+                    Mais Vendida
+                  </span>
+                </div>
+              )}
+
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-base font-bold text-[var(--rv-text-main)]">{p.name}</h3>
+                  <span className="text-[11px] font-mono text-[var(--rv-text-subtle)]">{p.duration}</span>
+                </div>
+
+                <div className="mb-3">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-extrabold tracking-tight text-[var(--rv-text-main)]">
+                      {formatPrice(p.costCents)}
+                    </span>
+                    <span className="text-xs text-[var(--rv-text-subtle)]">/ custo un.</span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-xs">
+                    <span className="text-[var(--rv-text-muted)]">Venda: {formatPrice(p.suggestedCents)}</span>
+                    <span className="text-emerald-500 font-semibold">
+                      + {formatPrice(profitMargin)} lucro
+                    </span>
+                  </div>
+                </div>
+
+                <div className="border-t border-[var(--rv-border)] pt-4 mb-6">
+                  <ul className="space-y-2 text-xs">
+                    {p.perks.map((perk) => (
+                      <li key={perk} className="flex items-center gap-2 text-[var(--rv-text-muted)]">
+                        <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                        <span>{perk}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                {/* Quantity selector */}
+                <div className="flex items-center justify-between bg-[var(--rv-card-alt-bg)] border border-[var(--rv-border)] rounded-lg p-1">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(p.slug, count - 1)}
+                    className="h-7 w-7 flex items-center justify-center rounded text-[var(--rv-text-muted)] hover:text-[var(--rv-text-main)] hover:bg-[var(--rv-border)] transition-colors"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="text-xs font-semibold font-mono text-[var(--rv-text-main)]">{count} un.</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(p.slug, count + 1)}
+                    className="h-7 w-7 flex items-center justify-center rounded text-[var(--rv-text-muted)] hover:text-[var(--rv-text-main)] hover:bg-[var(--rv-border)] transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {/* Purchase Button */}
+                <button
+                  type="button"
+                  className="rv-btn-primary w-full flex items-center justify-center gap-2"
+                >
+                  <Zap className="h-4 w-4" />
+                  <span>Comprar • {formatPrice(totalCost)}</span>
+                </button>
+              </div>
             </div>
-            <p className="mb-5 max-w-2xl text-sm text-muted-foreground">
-              Precisa de uma duração fora do padrão? Monte a chave do jeito que o seu cliente pede —
-              o valor é calculado proporcionalmente.
-            </p>
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="w-32 space-y-1">
-                <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Duração (dias)
-                </label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={customDays}
-                  onChange={(e) => setCustomDays(e.target.value)}
-                />
-              </div>
-              <div className="w-32 space-y-1">
-                <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Quantidade
-                </label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={customQty}
-                  onChange={(e) => setCustomQty(e.target.value)}
-                />
-              </div>
-              <div className="min-w-40 space-y-1">
-                <span className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Estimativa
-                </span>
-                <span className="text-2xl font-extrabold tracking-tight">
-                  {formatPrice(
-                    Math.max(1, Number(customDays) || 0) *
-                      100 *
-                      Math.max(1, Number(customQty) || 0),
-                  )}
-                </span>
-              </div>
-              <Button className="btn-neon">
-                <span className="inline-flex items-center gap-2">
-                  <KeyRound className="h-4 w-4" />
-                  Gerar cobrança
-                </span>
-              </Button>
+          );
+        })}
+      </div>
+
+      {/* Custom Key Generator Section */}
+      <div className="rv-card p-6 border-dashed border-[var(--rv-border)] bg-[var(--rv-card-alt-bg)]">
+        <div className="flex items-center gap-2 mb-2">
+          <Sliders className="h-4 w-4 text-red-600" />
+          <h3 className="text-base font-bold text-[var(--rv-text-main)]">Gerador de Licenças Sob Medida</h3>
+        </div>
+        <p className="text-xs text-[var(--rv-text-muted)] mb-5 max-w-2xl">
+          Configure prazos customizados conforme a demanda específica do seu cliente. O custo é calculado proporcionalmente ao período em dias.
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-4 items-end">
+          <div>
+            <label className="block text-[11px] font-semibold text-[var(--rv-text-subtle)] uppercase tracking-wider mb-1.5">
+              Validade (Dias)
+            </label>
+            <Input
+              type="number"
+              min={1}
+              value={customDays}
+              onChange={(e) => setCustomDays(e.target.value)}
+              className="rv-input w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-[var(--rv-text-subtle)] uppercase tracking-wider mb-1.5">
+              Quantidade
+            </label>
+            <Input
+              type="number"
+              min={1}
+              value={customQty}
+              onChange={(e) => setCustomQty(e.target.value)}
+              className="rv-input w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-[var(--rv-text-subtle)] uppercase tracking-wider mb-1.5">
+              Estimativa Total
+            </label>
+            <div className="text-xl font-bold font-mono text-[var(--rv-text-main)] h-9 flex items-center">
+              {formatPrice(
+                Math.max(1, Number(customDays) || 0) * 100 * Math.max(1, Number(customQty) || 0)
+              )}
             </div>
           </div>
-        </Card>
-      </section>
+
+          <div>
+            <button
+              type="button"
+              className="rv-btn-secondary w-full flex items-center justify-center gap-2 h-9"
+            >
+              <Tag className="h-3.5 w-3.5" />
+              <span>Emitir Pedido</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

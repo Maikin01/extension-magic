@@ -1,26 +1,23 @@
-import { Crown, Medal, Trophy, TrendingUp, Star } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Trophy, Crown, BarChart3 } from "lucide-react";
 
 type Tier = {
   name: string;
-  min: number;
-  desc: string;
-  color: string;
+  minSales: number;
+  perk: string;
+  badgeClass: string;
 };
 
-// Hierarquia de revendedores (quantidade de chaves vendidas)
 const TIERS: Tier[] = [
-  { name: "Bronze", min: 0, desc: "Início da jornada", color: "oklch(0.62 0.11 60)" },
-  { name: "Prata", min: 25, desc: "Vendas constantes", color: "oklch(0.78 0.02 250)" },
-  { name: "Ouro", min: 75, desc: "Alto volume", color: "oklch(0.82 0.16 85)" },
-  { name: "Diamante", min: 200, desc: "Elite Rise Lovable", color: "oklch(0.78 0.13 200)" },
+  { name: "Bronze", minSales: 0, perk: "Preço padrão de revenda no atacado", badgeClass: "rv-badge-neutral" },
+  { name: "Prata", minSales: 25, perk: "5% de desconto extra + suporte prioritário", badgeClass: "rv-badge-neutral border-[var(--rv-border)]" },
+  { name: "Ouro", minSales: 75, perk: "10% de desconto + gerente de contas dedicado", badgeClass: "rv-badge-amber" },
+  { name: "Diamante", minSales: 200, perk: "15% de desconto + preço mínimo garantido VIP", badgeClass: "rv-badge-red font-bold" },
 ];
 
 type RankRow = { position: number; name: string; sales: number; tier: string };
 
 const RANKING: RankRow[] = [
-  { position: 1, name: "Maicon D.", sales: 214, tier: "Diamante" },
+  { position: 1, name: "Maicon D. (Você)", sales: 214, tier: "Diamante" },
   { position: 2, name: "Rafael Souza", sales: 178, tier: "Ouro" },
   { position: 3, name: "Bruna Martins", sales: 156, tier: "Ouro" },
   { position: 4, name: "Lucas Almeida", sales: 141, tier: "Ouro" },
@@ -45,98 +42,137 @@ const RANKING: RankRow[] = [
   { position: 23, name: "Renata Bastos", sales: 4, tier: "Bronze" },
 ];
 
-const rankIcon = (position: number) => {
-  if (position === 1) return <Trophy className="h-4 w-4 text-primary" />;
-  if (position === 2) return <Medal className="h-4 w-4 text-muted-foreground" />;
-  if (position === 3) return <Star className="h-4 w-4 text-muted-foreground" />;
-  return <span className="text-xs font-semibold text-muted-foreground">#{position}</span>;
-};
-
 export function ResellerRanking() {
+  const currentSales = 214;
+  const currentTier = "Diamante";
+
   return (
     <div className="space-y-8">
-      <section>
-        <header className="mb-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-primary">
-            <Crown className="h-3.5 w-3.5" /> Hierarquia
+      {/* Header section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--rv-border)] pb-5">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="rv-badge rv-badge-red font-mono uppercase text-[10px]">
+              <Trophy className="h-3 w-3" /> Ranking & Benefícios
+            </span>
+            <span className="rv-badge rv-badge-neutral">Módulo de Desempenho</span>
           </div>
-          <h2 className="mt-3 text-2xl font-bold tracking-tight">Níveis de revendedor</h2>
-          <p className="text-sm text-muted-foreground">
-            Quanto mais chaves você vende, melhor o seu nível e as suas condições.
+          <h2 className="text-xl font-bold text-[var(--rv-text-main)] tracking-tight">Níveis Operacionais de Revenda</h2>
+          <p className="text-xs text-[var(--rv-text-muted)]">
+            Aumente seu volume mensal de vendas para desbloquear maiores margens de lucro e suporte prioritário.
           </p>
-        </header>
-
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {TIERS.map((t) => (
-            <Card
-              key={t.name}
-              className="relative overflow-hidden border-border/60 bg-card p-5 transition-transform hover:-translate-y-1"
-            >
-              <span className="plan-top-glow" />
-              <div
-                className="mb-3 grid h-10 w-10 place-items-center rounded-xl border"
-                style={{ borderColor: `${t.color}55`, background: `${t.color}1a` }}
-              >
-                <Crown className="h-5 w-5" style={{ color: t.color }} />
-              </div>
-              <p className="text-lg font-bold">{t.name}</p>
-              <p className="text-xs text-muted-foreground">{t.desc}</p>
-              <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-primary">
-                {t.min}+ chaves vendidas
-              </p>
-            </Card>
-          ))}
         </div>
-      </section>
 
-      <section>
-        <Card className="border-border/60 bg-card p-6">
-          <div className="mb-5 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
+        <div className="flex items-center gap-3 bg-[var(--rv-card-alt-bg)] border border-[var(--rv-border)] p-3 rounded-xl">
+          <Crown className="h-5 w-5 text-amber-500 shrink-0" />
+          <div>
+            <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--rv-text-subtle)] block">Seu Nível Atual</span>
+            <span className="text-xs font-bold text-[var(--rv-text-main)]">{currentTier} · {currentSales} Licenças</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tier Benefits Cards Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {TIERS.map((t) => (
+          <div
+            key={t.name}
+            className={`rv-card p-5 flex flex-col justify-between ${
+              t.name === currentTier ? "border-red-600/80 shadow-md" : ""
+            }`}
+          >
             <div>
-              <h3 className="text-lg font-bold leading-tight">Ranking de revendedores</h3>
-              <p className="text-xs text-muted-foreground">
-                Atualizado conforme as vendas confirmadas.
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <span className={`rv-badge ${t.badgeClass}`}>{t.name}</span>
+                <span className="text-[10px] font-mono text-[var(--rv-text-subtle)]">{t.minSales}+ Vendas</span>
+              </div>
+              <p className="text-xs text-[var(--rv-text-muted)] leading-relaxed font-medium mb-3">{t.perk}</p>
+            </div>
+
+            <div className="border-t border-[var(--rv-border)] pt-3 mt-2">
+              <span className="text-[11px] text-[var(--rv-text-subtle)] font-mono">
+                {t.minSales === 0 ? "Acesso imediato" : `Meta: ${t.minSales} licenças`}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Leaderboard Table */}
+      <div className="rv-card p-6 space-y-4">
+        <div className="flex items-center justify-between border-b border-[var(--rv-border)] pb-4">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-red-600" />
+            <div>
+              <h3 className="text-base font-bold text-[var(--rv-text-main)]">Classificação Geral de Revendedores</h3>
+              <p className="text-xs text-[var(--rv-text-muted)]">Ranking em tempo real baseado no total de licenças liquidadas.</p>
             </div>
           </div>
 
-          {RANKING.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border/70 px-6 py-14 text-center">
-              <Trophy className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-              <p className="font-medium">O ranking ainda está vazio</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Assim que as primeiras vendas forem confirmadas, os revendedores aparecem aqui.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                    <th className="py-2 pr-3">Pos.</th>
-                    <th className="py-2 pr-3">Revendedor</th>
-                    <th className="py-2 pr-3">Nível</th>
-                    <th className="py-2 pr-3">Chaves vendidas</th>
+          <span className="rv-badge rv-badge-neutral font-mono">{RANKING.length} Participantes</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="rv-table">
+            <thead>
+              <tr>
+                <th className="w-16">Pos.</th>
+                <th>Revendedor</th>
+                <th>Nível</th>
+                <th className="text-right">Licenças Vendidas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {RANKING.map((r) => {
+                const isTop1 = r.position === 1;
+                const isTop2 = r.position === 2;
+                const isTop3 = r.position === 3;
+
+                return (
+                  <tr
+                    key={r.position}
+                    className={r.name.includes("(Você)") ? "bg-red-500/10 font-semibold" : ""}
+                  >
+                    <td>
+                      {isTop1 && (
+                        <span className="rv-badge rv-badge-amber font-mono font-bold">#1 🥇</span>
+                      )}
+                      {isTop2 && (
+                        <span className="rv-badge rv-badge-neutral font-mono font-bold">#2 🥈</span>
+                      )}
+                      {isTop3 && (
+                        <span className="rv-badge rv-badge-neutral font-mono font-bold text-amber-700">#3 🥉</span>
+                      )}
+                      {!isTop1 && !isTop2 && !isTop3 && (
+                        <span className="font-mono text-xs text-[var(--rv-text-subtle)]">#{r.position}</span>
+                      )}
+                    </td>
+                    <td className="font-medium text-[var(--rv-text-main)]">
+                      {r.name}
+                    </td>
+                    <td>
+                      <span
+                        className={`rv-badge ${
+                          r.tier === "Diamante"
+                            ? "rv-badge-red font-bold"
+                            : r.tier === "Ouro"
+                              ? "rv-badge-amber"
+                              : "rv-badge-neutral"
+                        }`}
+                      >
+                        {r.tier}
+                      </span>
+                    </td>
+                    <td className="text-right font-mono font-bold text-[var(--rv-text-main)]">
+                      {r.sales} un.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {RANKING.map((r) => (
-                    <tr key={r.position} className="border-b hover:bg-muted/30">
-                      <td className="py-3 pr-3">{rankIcon(r.position)}</td>
-                      <td className="py-3 pr-3 font-medium">{r.name}</td>
-                      <td className="py-3 pr-3">
-                        <Badge variant="secondary">{r.tier}</Badge>
-                      </td>
-                      <td className="py-3 pr-3 font-semibold">{r.sales}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
-      </section>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

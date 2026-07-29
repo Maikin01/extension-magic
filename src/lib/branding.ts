@@ -14,7 +14,7 @@ const DEFAULT_BRAND: Branding = {
   name: "Rise Lovable",
   displayFirst: "RISE",
   displaySecond: "LOVABLE",
-  logoUrl: riseLogo.url,
+  logoUrl: "/logo.png",
   logoAlt: "Rise Lovable",
 };
 
