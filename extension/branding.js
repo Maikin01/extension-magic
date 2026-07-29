@@ -8,12 +8,6 @@ const BRANDS = {
         title: 'Rise Lovable',
         logoSrc: 'icons/logo.png',
     },
-    UV78ZDXT: {
-        firstLine: 'Apice',
-        secondLine: 'Lovable',
-        title: 'Apice Lovable',
-        logoSrc: 'icons/apice-logo.png',
-    },
 };
 
 const BRAND_STORAGE_KEY = 'lvbl_branding_code';
