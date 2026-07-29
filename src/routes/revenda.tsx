@@ -18,10 +18,12 @@ import {
   Headphones,
   Clock,
   Search,
+  GraduationCap,
 } from "lucide-react";
 import { AccessGate } from "@/components/reseller/AccessGate";
 import { KeyStore } from "@/components/reseller/KeyStore";
 import { ResellerSupport } from "@/components/reseller/ResellerSupport";
+import { ResellerTutorial } from "@/components/reseller/ResellerTutorial";
 import { useAuth } from "@/auth/AuthProvider";
 import { getMyDashboard } from "@/lib/api/license-api";
 import { getMyResellerInfo, getResellerStats } from "@/lib/api/reseller-api";
@@ -52,7 +54,7 @@ export const Route = createFileRoute("/revenda")({
   component: ResellerPanelPage,
 });
 
-type Tab = "chaves" | "minhas" | "marketplace" | "ranking" | "suporte";
+type Tab = "chaves" | "minhas" | "marketplace" | "ranking" | "tutorial" | "suporte";
 type ThemeMode = "dark" | "light";
 
 function getUserInitials(email?: string): string {
@@ -98,6 +100,7 @@ function ResellerPanelPage() {
     {
       title: "ATENDIMENTO",
       items: [
+        { key: "tutorial", label: "Tutorial", icon: GraduationCap },
         { key: "suporte", label: "Central de Suporte", icon: Headphones },
       ],
     },
@@ -302,6 +305,9 @@ function ResellerPanelPage() {
               )}
 
               {/* ABA 5: CENTRAL DE SUPORTE */}
+              {/* ABA: TUTORIAL */}
+              {tab === "tutorial" && <ResellerTutorial />}
+
               {tab === "suporte" && <ResellerSupport />}
             </main>
           </div>
