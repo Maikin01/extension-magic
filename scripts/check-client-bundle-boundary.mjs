@@ -87,6 +87,10 @@ async function scanSource() {
     const source = await readFile(file, "utf8");
     const relativeFile = toProjectPath(file);
 
+    // src/lib/mcp/** roda apenas no servidor (endpoint MCP), fora do bundle do browser.
+    if (relativeFile.startsWith("src/lib/mcp/")) continue;
+
+
     if (/\.functions\s*\.\s*invoke\s*\(/.test(source) && !browserEdgeAllowlist.has(relativeFile)) {
       violations.push(`${relativeFile}: .functions.invoke fora de src/lib/api/backend-client.ts`);
     }
