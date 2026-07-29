@@ -7,6 +7,7 @@ import { UsersTab } from "@/components/admin/UsersTab";
 import { PaymentsTab } from "@/components/admin/PaymentsTab";
 import { LogsTab } from "@/components/admin/LogsTab";
 import { ResellersTab } from "@/components/admin/ResellersTab";
+import { MarketplaceTab } from "@/components/admin/MarketplaceTab";
 import { AdminGate } from "@/components/admin/AdminGate";
 import { ShieldCheck } from "lucide-react";
 
@@ -39,6 +40,7 @@ function AdminPage() {
               <TabsTrigger value="plans">Planos</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="resellers">Revendedores</TabsTrigger>
+              <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
               <TabsTrigger value="payments">Pagamentos</TabsTrigger>
               <TabsTrigger value="logs">Logs</TabsTrigger>
             </TabsList>
@@ -54,6 +56,9 @@ function AdminPage() {
             </TabsContent>
             <TabsContent value="resellers">
               <ResellersTab />
+            </TabsContent>
+            <TabsContent value="marketplace">
+              <MarketplaceTab />
             </TabsContent>
             <TabsContent value="payments">
               <PaymentsTab />

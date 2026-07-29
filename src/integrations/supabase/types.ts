@@ -245,6 +245,119 @@ export type Database = {
           },
         ]
       }
+      marketplace_orders: {
+        Row: {
+          amount_cents: number
+          buyer_id: string
+          buyer_note: string | null
+          created_at: string
+          delivered_at: string | null
+          delivered_content: string | null
+          id: string
+          product_id: string
+          status: Database["public"]["Enums"]["marketplace_order_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount_cents?: number
+          buyer_id: string
+          buyer_note?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivered_content?: string | null
+          id?: string
+          product_id: string
+          status?: Database["public"]["Enums"]["marketplace_order_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          buyer_id?: string
+          buyer_note?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivered_content?: string | null
+          id?: string
+          product_id?: string
+          status?: Database["public"]["Enums"]["marketplace_order_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_products: {
+        Row: {
+          category: string
+          cover_url: string | null
+          created_at: string
+          delivery_content: string | null
+          delivery_instructions: string | null
+          delivery_type: Database["public"]["Enums"]["marketplace_delivery_type"]
+          description: string | null
+          featured: boolean
+          id: string
+          is_active: boolean
+          name: string
+          old_price_cents: number | null
+          price_cents: number
+          rating: number
+          slug: string
+          sort_order: number
+          stock: number | null
+          tagline: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          delivery_content?: string | null
+          delivery_instructions?: string | null
+          delivery_type?: Database["public"]["Enums"]["marketplace_delivery_type"]
+          description?: string | null
+          featured?: boolean
+          id?: string
+          is_active?: boolean
+          name: string
+          old_price_cents?: number | null
+          price_cents?: number
+          rating?: number
+          slug: string
+          sort_order?: number
+          stock?: number | null
+          tagline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          delivery_content?: string | null
+          delivery_instructions?: string | null
+          delivery_type?: Database["public"]["Enums"]["marketplace_delivery_type"]
+          description?: string | null
+          featured?: boolean
+          id?: string
+          is_active?: boolean
+          name?: string
+          old_price_cents?: number | null
+          price_cents?: number
+          rating?: number
+          slug?: string
+          sort_order?: number
+          stock?: number | null
+          tagline?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount_cents: number
@@ -466,6 +579,8 @@ export type Database = {
         | "error"
       app_role: "admin" | "user" | "cliente" | "revendedor" | "owner"
       license_status: "pending" | "active" | "expired" | "suspended" | "revoked"
+      marketplace_delivery_type: "link" | "text" | "file" | "manual"
+      marketplace_order_status: "pending" | "paid" | "delivered" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -607,6 +722,8 @@ export const Constants = {
       ],
       app_role: ["admin", "user", "cliente", "revendedor", "owner"],
       license_status: ["pending", "active", "expired", "suspended", "revoked"],
+      marketplace_delivery_type: ["link", "text", "file", "manual"],
+      marketplace_order_status: ["pending", "paid", "delivered", "cancelled"],
     },
   },
 } as const
