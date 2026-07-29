@@ -12,12 +12,16 @@ type AuditLogRow = Database["public"]["Tables"]["admin_audit_log"]["Row"];
 export type LicenseWithRelations = LicenseRow & {
   plans: PlanRow | { name: string; slug: string } | null;
   profiles?: { full_name: string | null; email: string | null } | null;
+  is_deleted?: boolean;
 };
+
+export type TrialClaim = LicenseWithRelations & { is_deleted: boolean };
 
 export type DashboardResponse = {
   profile: ProfileRow | null;
   licenses: LicenseWithRelations[];
   currentLicense: LicenseWithRelations | null;
+  trialClaim: TrialClaim | null;
   devices: DeviceRow[];
   logs: ActivationLogRow[];
 };
