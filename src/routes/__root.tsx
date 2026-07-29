@@ -37,8 +37,13 @@ function NotFoundComponent() {
   );
 }
 
-const RECOVERABLE_ERROR = /hydrat|Loading chunk|dynamically imported module|Failed to fetch/i;
-let autoRecovered = false;
+const RECOVERABLE_ERROR =
+  /hydrat|Loading chunk|dynamically imported module|Importing a module script failed|Unable to preload CSS|Failed to fetch/i;
+const RECOVERY_RELOAD_KEY = "rise_lovable_preview_error_recovered";
+
+function getErrorText(error: Error) {
+  return [error.message, error.stack].filter(Boolean).join("\n");
+}
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
@@ -48,14 +53,22 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   useEffect(() => {
-    // Erros de hidratação/chunk são transitórios: tenta recuperar sozinho uma vez
-    // em vez de mostrar a tela de "Algo deu errado" para o usuário.
-    if (autoRecovered || !RECOVERABLE_ERROR.test(error?.message ?? "")) return;
-    autoRecovered = true;
+    // No preview da Lovable, HMR/chunks podem ficar apontando para uma versão
+    // antiga após edições. Recarrega uma vez para buscar o bundle atual.
+    const errorText = getErrorText(error);
+    if (!RECOVERABLE_ERROR.test(errorText)) return;
+
+    const recoveryKey = `${RECOVERY_RELOAD_KEY}:${window.location.pathname}`;
+    if (window.sessionStorage.getItem(recoveryKey) !== "1") {
+      window.sessionStorage.setItem(recoveryKey, "1");
+      window.location.reload();
+      return;
+    }
+
     const id = window.setTimeout(() => {
-      router.invalidate();
+      void router.invalidate();
       reset();
-    }, 50);
+    }, 100);
     return () => window.clearTimeout(id);
   }, [error, reset, router]);
 
@@ -166,6 +179,13 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    Object.keys(window.sessionStorage)
+      .filter((key) => key.startsWith(`${RECOVERY_RELOAD_KEY}:`))
+      .forEach((key) => window.sessionStorage.removeItem(key));
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
