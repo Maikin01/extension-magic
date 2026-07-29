@@ -1053,6 +1053,12 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
     );
   }
 
+  const orderLabel = isResellerOrder
+    ? `Rise Lovable — ${quantity}x ${
+      customDays ? `chave de ${customDays} dia(s)` : plan.name
+    } (revenda)`
+    : `Rise Lovable — ${plan.name}`;
+
   if (payment.provider_payment_id && payment.qr_code) {
     return {
       payment_id: payment.id,
@@ -1062,7 +1068,7 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
       ticket_url: payment.ticket_url,
       expires_at: payment.expires_at,
       amount_cents: payment.amount_cents,
-      plan_name: plan.name,
+      plan_name: orderLabel,
     };
   }
 
@@ -1071,7 +1077,7 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
     if (!supabaseUrl) throw new Error("SUPABASE_URL não configurada.");
     const pix = await createPixPayment({
       amountCents: payment.amount_cents,
-      description: `Rise Lovable — ${plan.name}`,
+      description: orderLabel,
       buyerName: payment.buyer_name,
       buyerEmail: context.email,
       buyerWhatsapp: payment.buyer_whatsapp ?? undefined,
@@ -1104,7 +1110,7 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
       .eq("id", payment.id);
     if (updateError) throw updateError;
     if (effectiveStatus === "approved") {
-      await finalizePaymentIfApproved(context.admin, payment.id);
+      await finalizePaymentIfApproved(context.admin, payment.id, quantity);
     }
     return {
       payment_id: payment.id,
@@ -1114,7 +1120,7 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
       ticket_url: pix.ticket_url,
       expires_at: pix.date_of_expiration,
       amount_cents: payment.amount_cents,
-      plan_name: plan.name,
+      plan_name: orderLabel,
     };
   } catch (error) {
     await context.admin
