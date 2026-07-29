@@ -18,6 +18,7 @@ import {
   Headphones,
   Clock,
   Search,
+  GraduationCap,
 } from "lucide-react";
 import { AccessGate } from "@/components/reseller/AccessGate";
 import { KeyStore } from "@/components/reseller/KeyStore";
