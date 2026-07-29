@@ -290,13 +290,9 @@ function ResellerPanelPage() {
               {/* ABA 2: MINHAS LICENÇAS */}
               {tab === "minhas" && <MyKeys />}
 
-              {/* ABA 3 & 4: MARKETPLACE E RANKING (Em breve) */}
-              {tab === "marketplace" && (
-                <ComingSoonCard
-                  title="Marketplace VIP em Breve"
-                  subtitle="Estamos organizando os melhores utilitários e produtos exclusivos para revenda com desconto de parceiro. Em breve disponível!"
-                />
-              )}
+              {/* ABA 3: MARKETPLACE */}
+              {tab === "marketplace" && <Marketplace />}
+
               {tab === "ranking" && (
                 <ComingSoonCard
                   title="Ranking & Níveis de Desempenho em Breve"
