@@ -118,3 +118,14 @@ Deno.test("extrai somente compra paga do produto exato", () => {
     "Outro produto deveria ser ignorado.",
   );
 });
+
+Deno.test("aceita também o produto Extensão ilimitada", () => {
+  const extensionPurchase = structuredClone(payload);
+  extensionPurchase.data.item.product_name = "Extensão ilimitada";
+  const parsed = parseRiseCheckoutEvent(extensionPurchase);
+  assert(
+    parsed.kind === "purchase" &&
+      parsed.purchase.productName === "Extensão ilimitada",
+    "Extensão ilimitada deveria conceder acesso de revendedor.",
+  );
+});

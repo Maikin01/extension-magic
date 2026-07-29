@@ -1,4 +1,7 @@
-export const RESELLER_PRODUCT_NAME = "Revenda lovable";
+export const RESELLER_PRODUCT_NAMES = [
+  "Revenda lovable",
+  "Extensão ilimitada",
+] as const;
 export const RISECHECKOUT_SIGNATURE_TOLERANCE_MS = 5 * 60 * 1000;
 
 export class RiseCheckoutWebhookError extends Error {
@@ -89,7 +92,12 @@ export function parseRiseCheckoutEvent(
   }
 
   const productName = nonEmptyString(item.product_name, 300);
-  if (productName !== RESELLER_PRODUCT_NAME) {
+  if (
+    !productName ||
+    !RESELLER_PRODUCT_NAMES.includes(
+      productName as (typeof RESELLER_PRODUCT_NAMES)[number],
+    )
+  ) {
     return { kind: "ignored", reason: "product_not_supported" };
   }
 
