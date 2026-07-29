@@ -132,8 +132,7 @@ export const claimTrialLicense = (): Promise<{
   license: LicenseWithRelations;
   existed?: boolean;
   deleted?: boolean;
-}> =>
-  backendApi.invoke("claimTrialLicense");
+}> => backendApi.invoke("claimTrialLicense");
 
 export const getAdminOverview = (): Promise<AdminOverviewResponse> =>
   backendApi.invoke("getAdminOverview");
