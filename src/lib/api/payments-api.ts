@@ -8,6 +8,9 @@ const createCheckoutSchema = z.object({
   buyer_cpf: z.string().max(20).optional(),
   referral_code: z.string().min(4).max(16).optional().nullable(),
   idempotency_key: z.string().uuid(),
+  reseller: z.boolean().optional(),
+  quantity: z.number().int().min(1).max(200).optional(),
+  custom_duration_days: z.number().int().min(1).max(3650).optional().nullable(),
 });
 const checkoutStatusSchema = z.object({ payment_id: z.string().uuid() });
 type Input<T> = { data: T };
@@ -18,11 +21,15 @@ export type PixCheckoutResponse = {
   qr_code: string | null;
   qr_code_base64: string | null;
   expires_at: string | null;
+  amount_cents?: number;
+  plan_name?: string | null;
 };
 
 export type CheckoutStatusResponse = {
   status: string;
   license_key: string | null;
+  license_keys?: string[];
+  quantity?: number;
   plan_name: string | null;
   expires_at: string | null;
 };
