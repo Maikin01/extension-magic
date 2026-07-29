@@ -66,7 +66,7 @@ export function AccessGate({ children }: Props) {
               </Button>
             ) : unauthenticated ? (
               <Button asChild className="btn-neon w-full">
-                <Link to="/auth">Entrar na conta</Link>
+                <Link to="/revenda/entrar">Entrar na conta de revendedor</Link>
               </Button>
             ) : failed ? (
               <Button className="btn-neon w-full" onClick={() => void refresh()}>

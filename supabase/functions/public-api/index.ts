@@ -10,6 +10,7 @@ import {
 } from "../_shared/http.ts";
 import { hashLicenseKey, normalizeLicenseKey } from "../_shared/license.ts";
 import { clientIp, consumeRateLimit } from "../_shared/rate-limit.ts";
+import { normalizeRiseCheckoutEmail } from "../_shared/risecheckout-webhook.ts";
 
 function isString(value: unknown, min: number, max: number): value is string {
   return typeof value === "string" && value.length >= min &&
@@ -57,6 +58,164 @@ async function validateReferralCode(payload: any) {
     return { valid: false, reseller_name: null };
   }
   return { valid: true, reseller_name: profile.full_name ?? null };
+}
+
+async function enforceResellerAuthRateLimit(
+  request: Request,
+  email: string,
+  action: "check" | "register",
+  http: HttpContext,
+) {
+  const bucket = action === "register"
+    ? { limit: 3, windowSeconds: 60 * 60 }
+    : { limit: 8, windowSeconds: 15 * 60 };
+  const admin = createAdminClient();
+  const rate = await consumeRateLimit(
+    admin,
+    `reseller-auth-${action}`,
+    [clientIp(request), email],
+    bucket.limit,
+    bucket.windowSeconds,
+    { requestId: http.requestId },
+  );
+  if (!rate.allowed) {
+    throw new ApiHttpError(
+      429,
+      "RATE_LIMITED",
+      "Muitas tentativas. Aguarde alguns minutos e tente novamente.",
+      { retryAfterSeconds: Math.max(1, rate.retryAfterSeconds) },
+    );
+  }
+}
+
+async function getResellerSignupStatus(
+  request: Request,
+  payload: any,
+  http: HttpContext,
+) {
+  const email = normalizeRiseCheckoutEmail(payload?.email);
+  if (!email) {
+    throw new ApiHttpError(400, "INVALID_EMAIL", "Informe um email válido.");
+  }
+  await enforceResellerAuthRateLimit(request, email, "check", http);
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("get_reseller_signup_status", {
+    p_email: email,
+  });
+  if (error) throw error;
+  const status = data && typeof data === "object"
+    ? (data as Record<string, unknown>)
+    : {};
+  return {
+    eligible: status.eligible === true,
+    account_exists: status.account_exists === true,
+    already_claimed: status.already_claimed === true,
+  };
+}
+
+async function registerReseller(
+  request: Request,
+  payload: any,
+  http: HttpContext,
+) {
+  const email = normalizeRiseCheckoutEmail(payload?.email);
+  const password = typeof payload?.password === "string"
+    ? payload.password
+    : "";
+  const fullName = typeof payload?.full_name === "string"
+    ? payload.full_name.trim()
+    : "";
+  if (!email) {
+    throw new ApiHttpError(400, "INVALID_EMAIL", "Informe um email válido.");
+  }
+  if (password.length < 8 || password.length > 72) {
+    throw new ApiHttpError(
+      400,
+      "INVALID_PASSWORD",
+      "A senha deve ter entre 8 e 72 caracteres.",
+    );
+  }
+  if (fullName.length > 100) {
+    throw new ApiHttpError(400, "INVALID_NAME", "Nome muito longo.");
+  }
+
+  await enforceResellerAuthRateLimit(request, email, "register", http);
+  const admin = createAdminClient();
+  const { data: signupStatus, error: statusError } = await admin.rpc(
+    "get_reseller_signup_status",
+    {
+      p_email: email,
+    },
+  );
+  if (statusError) throw statusError;
+  const status = signupStatus && typeof signupStatus === "object"
+    ? (signupStatus as Record<string, unknown>)
+    : {};
+  if (status.account_exists === true) {
+    throw new ApiHttpError(
+      409,
+      "ACCOUNT_EXISTS",
+      "Já existe uma conta com este email. Entre usando sua senha atual.",
+    );
+  }
+  if (status.eligible !== true) {
+    throw new ApiHttpError(
+      403,
+      "PURCHASE_NOT_FOUND",
+      "Não encontramos uma compra aprovada para este email.",
+    );
+  }
+
+  const { data: created, error: createError } = await admin.auth.admin
+    .createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: fullName ? { full_name: fullName } : {},
+    });
+  if (createError || !created.user) {
+    if (
+      createError?.message &&
+      /already|registered|exists|duplicate/i.test(createError.message)
+    ) {
+      throw new ApiHttpError(
+        409,
+        "ACCOUNT_EXISTS",
+        "Já existe uma conta com este email. Entre usando sua senha atual.",
+      );
+    }
+    throw createError ?? new Error("Não foi possível criar a conta.");
+  }
+
+  const { data: claimed, error: claimError } = await admin.rpc(
+    "claim_reseller_entitlements",
+    {
+      p_user_id: created.user.id,
+      p_email: email,
+    },
+  );
+  if (claimError || claimed !== true) {
+    const { error: cleanupError } = await admin.auth.admin.deleteUser(
+      created.user.id,
+    );
+    if (cleanupError) {
+      console.error(
+        "[reseller-register-cleanup]",
+        JSON.stringify({
+          userId: created.user.id,
+          code: cleanupError.code ?? null,
+        }),
+      );
+    }
+    if (claimError) throw claimError;
+    throw new ApiHttpError(
+      409,
+      "PURCHASE_ALREADY_CLAIMED",
+      "Esta compra já foi vinculada a outra conta.",
+    );
+  }
+
+  return { ok: true };
 }
 
 async function activateLicense(
@@ -143,7 +302,7 @@ async function activateLicense(
   );
   if (activationError) throw activationError;
   const activation = activationData && typeof activationData === "object"
-    ? activationData as Record<string, unknown>
+    ? (activationData as Record<string, unknown>)
     : null;
   if (!activation || activation.valid !== true) {
     const reason = typeof activation?.reason === "string"
@@ -340,7 +499,12 @@ Deno.serve(async (request) => {
     if (typeof action !== "string" || action.length > 80) {
       throw new ApiHttpError(400, "ACTION_REQUIRED", "Ação obrigatória.");
     }
-    const allowedActions = new Set(["getPublicPlans", "validateReferralCode"]);
+    const allowedActions = new Set([
+      "getPublicPlans",
+      "validateReferralCode",
+      "getResellerSignupStatus",
+      "registerReseller",
+    ]);
     if (!allowedActions.has(action)) {
       throw new ApiHttpError(
         404,
@@ -372,6 +536,20 @@ Deno.serve(async (request) => {
     }
     if (action === "validateReferralCode") {
       return json(await validateReferralCode(record?.data), 200, http);
+    }
+    if (action === "getResellerSignupStatus") {
+      return json(
+        await getResellerSignupStatus(request, record?.data, http),
+        200,
+        http,
+      );
+    }
+    if (action === "registerReseller") {
+      return json(
+        await registerReseller(request, record?.data, http),
+        200,
+        http,
+      );
     }
     throw new ApiHttpError(404, "UNKNOWN_ACTION", "Ação pública desconhecida.");
   } catch (error) {

@@ -90,6 +90,7 @@ const ADMIN_MUTATION_ACTIONS = new Set([
 
 const BACKEND_ACTIONS = new Set([
   "getMyAccessContext",
+  "claimResellerAccess",
   "getMyDashboard",
   "claimTrialLicense",
   "getAdminOverview",
@@ -121,6 +122,42 @@ const BACKEND_ACTIONS = new Set([
   "adminListMarketplaceOrders",
   "adminUpdateMarketplaceOrder",
 ]);
+
+async function claimResellerAccess(context: AuthContext) {
+  const roles = await getUserRoles(context.admin, context.userId);
+  if (
+    roles.includes("revendedor") || roles.includes("admin") ||
+    roles.includes("owner")
+  ) {
+    return { ok: true, roles };
+  }
+  if (!context.email) {
+    throw new ApiHttpError(
+      400,
+      "EMAIL_REQUIRED",
+      "Sua conta não possui um email válido.",
+    );
+  }
+  const { data: claimed, error } = await context.admin.rpc(
+    "claim_reseller_entitlements",
+    {
+      p_user_id: context.userId,
+      p_email: context.email,
+    },
+  );
+  if (error) throw error;
+  if (claimed !== true) {
+    throw new ApiHttpError(
+      403,
+      "RESELLER_PURCHASE_NOT_FOUND",
+      "Esta conta não possui uma compra aprovada de acesso à revenda.",
+    );
+  }
+  return {
+    ok: true,
+    roles: await getUserRoles(context.admin, context.userId),
+  };
+}
 
 async function enforceBackendRateLimit(
   context: AuthContext,
@@ -185,11 +222,10 @@ async function getMyDashboard(context: AuthContext) {
       .eq("user_id", userId)
       .order("created_at", { ascending: false }),
     admin.from("profiles").select("*").eq("id", userId).maybeSingle(),
-    admin
-      .from("trial_license_claims")
-      .select("*, plans(*)")
-      .eq("user_id", userId)
-      .maybeSingle(),
+    admin.from("trial_license_claims").select("*, plans(*)").eq(
+      "user_id",
+      userId,
+    ).maybeSingle(),
   ]);
   if (licensesResult.error) throw licensesResult.error;
   if (profileResult.error) throw profileResult.error;
@@ -200,7 +236,9 @@ async function getMyDashboard(context: AuthContext) {
       ...trialClaimResult.data,
       status: trialClaimResult.data.license_status,
       is_deleted: !trialClaimResult.data.license_id ||
-        !licenses.some((license) => license.id === trialClaimResult.data.license_id),
+        !licenses.some((license) =>
+          license.id === trialClaimResult.data.license_id
+        ),
     }
     : null;
   const currentLicense =
@@ -245,16 +283,13 @@ async function claimTrialLicense(context: AuthContext) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const licenseKey = generateLicenseKey();
     const licenseKeyHash = await hashLicenseKey(licenseKey);
-    const { data, error: claimError } = await admin.rpc(
-      "claim_trial_license",
-      {
-        p_user_id: userId,
-        p_plan_id: plan.id,
-        p_license_key: licenseKey,
-        p_license_key_hash: licenseKeyHash,
-        p_expires_at: null,
-      },
-    );
+    const { data, error: claimError } = await admin.rpc("claim_trial_license", {
+      p_user_id: userId,
+      p_plan_id: plan.id,
+      p_license_key: licenseKey,
+      p_license_key_hash: licenseKeyHash,
+      p_expires_at: null,
+    });
     if (!claimError && data && typeof data === "object") {
       return data as { license: Record<string, unknown>; existed: boolean };
     }
@@ -278,9 +313,13 @@ async function getAdminOverview(context: AuthContext) {
       admin.from("profiles").select("id, full_name, avatar_url"),
       admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
       admin.from("plans").select("*").order("sort_order"),
-      admin.from("activation_logs").select("*").order("created_at", {
-        ascending: false,
-      }).limit(50),
+      admin
+        .from("activation_logs")
+        .select("*")
+        .order("created_at", {
+          ascending: false,
+        })
+        .limit(50),
     ]);
   if (licensesResult.error) throw licensesResult.error;
   if (usersResult.error) throw usersResult.error;
@@ -897,7 +936,9 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
 
   const isResellerOrder = data.reseller === true;
   const quantity = isResellerOrder ? (data.quantity ?? 1) : 1;
-  const customDays = isResellerOrder ? (data.custom_duration_days ?? null) : null;
+  const customDays = isResellerOrder
+    ? (data.custom_duration_days ?? null)
+    : null;
 
   if (isResellerOrder) {
     const roles = await getUserRoles(context.admin, context.userId);
@@ -930,9 +971,9 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
   if (error || !plan) throw new Error("Plano não encontrado.");
 
   const unitPriceCents = isResellerOrder
-    ? (customDays
+    ? customDays
       ? resellerCustomPriceCents(customDays)
-      : RESELLER_WHOLESALE_CENTS[data.plan_slug])
+      : RESELLER_WHOLESALE_CENTS[data.plan_slug]
     : plan.price_cents;
   const amountCents = unitPriceCents * quantity;
 
@@ -971,17 +1012,19 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
       resellerId = profile.id;
     }
   }
-  const requestFingerprint = await sha256Hex(JSON.stringify({
-    planId: plan.id,
-    buyerName: normalizedBuyerName,
-    buyerWhatsapp: normalizedBuyerWhatsapp,
-    buyerCpf: normalizedBuyerCpf,
-    buyerEmail: context.email.trim().toLowerCase(),
-    resellerId,
-    quantity,
-    customDays,
-    amountCents,
-  }));
+  const requestFingerprint = await sha256Hex(
+    JSON.stringify({
+      planId: plan.id,
+      buyerName: normalizedBuyerName,
+      buyerWhatsapp: normalizedBuyerWhatsapp,
+      buyerCpf: normalizedBuyerCpf,
+      buyerEmail: context.email.trim().toLowerCase(),
+      resellerId,
+      quantity,
+      customDays,
+      amountCents,
+    }),
+  );
   const existingResult = await context.admin
     .from("payments")
     .select("*")
@@ -1008,7 +1051,6 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
         buyer_email: context.email,
         status: "pending",
       })
-
       .select()
       .single();
 
@@ -1195,7 +1237,6 @@ async function getCheckoutStatus(context: AuthContext, input: unknown) {
   };
 }
 
-
 async function getAdminAccessStatus(context: AuthContext) {
   const roles = await getUserRoles(context.admin, context.userId);
   const isAdmin = roles.some((role) => ADMIN_ROLES.includes(role));
@@ -1234,13 +1275,18 @@ async function getAdminAccessStatus(context: AuthContext) {
 }
 
 const productSchema = z.object({
-  slug: z.string().min(2).max(60).regex(/^[a-z0-9_-]+$/),
+  slug: z
+    .string()
+    .min(2)
+    .max(60)
+    .regex(/^[a-z0-9_-]+$/),
   name: z.string().min(1).max(120),
   tagline: z.string().max(200).optional().nullable(),
   description: z.string().max(4000).optional().nullable(),
   category: z.string().min(1).max(40),
   price_cents: z.number().int().min(0).max(100_000_000),
-  old_price_cents: z.number().int().min(0).max(100_000_000).optional().nullable(),
+  old_price_cents: z.number().int().min(0).max(100_000_000).optional()
+    .nullable(),
   cover_url: z.string().url().max(500).optional().nullable(),
   delivery_type: z.enum(["link", "text", "file", "manual"]),
   delivery_content: z.string().max(20_000).optional().nullable(),
@@ -1322,7 +1368,9 @@ async function createMarketplaceOrder(context: AuthContext, input: unknown) {
 async function listMyMarketplaceOrders(context: AuthContext) {
   const { data, error } = await context.admin
     .from("marketplace_orders")
-    .select("*, marketplace_products(name, delivery_type, delivery_instructions)")
+    .select(
+      "*, marketplace_products(name, delivery_type, delivery_instructions)",
+    )
     .eq("buyer_id", context.userId)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -1336,8 +1384,11 @@ async function listMyMarketplaceOrders(context: AuthContext) {
       delivered_at: row.delivered_at,
       product_name: row.marketplace_products?.name ?? null,
       delivery_type: row.marketplace_products?.delivery_type ?? null,
-      delivery_instructions: row.marketplace_products?.delivery_instructions ?? null,
-      delivered_content: row.status === "delivered" ? row.delivered_content : null,
+      delivery_instructions: row.marketplace_products?.delivery_instructions ??
+        null,
+      delivered_content: row.status === "delivered"
+        ? row.delivered_content
+        : null,
     })),
   };
 }
@@ -1353,7 +1404,10 @@ async function adminListMarketplaceProducts(context: AuthContext) {
   return { products: data ?? [] };
 }
 
-async function adminCreateMarketplaceProduct(context: AuthContext, input: unknown) {
+async function adminCreateMarketplaceProduct(
+  context: AuthContext,
+  input: unknown,
+) {
   const adminId = await assertAdmin(context);
   const data = productSchema.parse(input);
   const { data: product, error } = await context.admin
@@ -1371,7 +1425,10 @@ async function adminCreateMarketplaceProduct(context: AuthContext, input: unknow
   return { product };
 }
 
-async function adminUpdateMarketplaceProduct(context: AuthContext, input: unknown) {
+async function adminUpdateMarketplaceProduct(
+  context: AuthContext,
+  input: unknown,
+) {
   const adminId = await assertAdmin(context);
   const data = productSchema.extend({ id: z.string().uuid() }).parse(input);
   const { id, ...updates } = data;
@@ -1391,7 +1448,10 @@ async function adminUpdateMarketplaceProduct(context: AuthContext, input: unknow
   return { product };
 }
 
-async function adminDeleteMarketplaceProduct(context: AuthContext, input: unknown) {
+async function adminDeleteMarketplaceProduct(
+  context: AuthContext,
+  input: unknown,
+) {
   const adminId = await assertAdmin(context);
   const data = z.object({ product_id: z.string().uuid() }).parse(input);
   const { error } = await context.admin
@@ -1445,7 +1505,10 @@ async function adminListMarketplaceOrders(context: AuthContext) {
   };
 }
 
-async function adminUpdateMarketplaceOrder(context: AuthContext, input: unknown) {
+async function adminUpdateMarketplaceOrder(
+  context: AuthContext,
+  input: unknown,
+) {
   const adminId = await assertAdmin(context);
   const data = z
     .object({
@@ -1457,19 +1520,27 @@ async function adminUpdateMarketplaceOrder(context: AuthContext, input: unknown)
 
   const { data: order, error } = await context.admin
     .from("marketplace_orders")
-    .select("*, marketplace_products(delivery_type, delivery_content, stock, id)")
+    .select(
+      "*, marketplace_products(delivery_type, delivery_content, stock, id)",
+    )
     .eq("id", data.order_id)
     .maybeSingle();
   if (error) throw error;
-  if (!order) throw new ApiHttpError(404, "ORDER_NOT_FOUND", "Pedido não encontrado.");
+  if (!order) {
+    throw new ApiHttpError(404, "ORDER_NOT_FOUND", "Pedido não encontrado.");
+  }
 
   const product: any = order.marketplace_products ?? {};
   let status = data.status;
-  let delivered_content = data.delivered_content ?? order.delivered_content ?? null;
+  let delivered_content = data.delivered_content ?? order.delivered_content ??
+    null;
   let delivered_at = order.delivered_at;
 
   // Pagamento confirmado: entrega automática quando o produto tem entregável salvo.
-  if (status === "paid" && product.delivery_type !== "manual" && product.delivery_content) {
+  if (
+    status === "paid" && product.delivery_type !== "manual" &&
+    product.delivery_content
+  ) {
     delivered_content = product.delivery_content;
     status = "delivered";
   }
@@ -1482,7 +1553,10 @@ async function adminUpdateMarketplaceOrder(context: AuthContext, input: unknown)
       );
     }
     delivered_at = delivered_at ?? new Date().toISOString();
-    if (order.status !== "delivered" && product.id && typeof product.stock === "number") {
+    if (
+      order.status !== "delivered" && product.id &&
+      typeof product.stock === "number"
+    ) {
       await context.admin
         .from("marketplace_products")
         .update({ stock: Math.max(0, product.stock - 1) })
@@ -1509,7 +1583,6 @@ async function adminUpdateMarketplaceOrder(context: AuthContext, input: unknown)
 }
 
 async function dispatch(
-
   action: string,
   input: unknown,
   context: AuthContext,
@@ -1517,6 +1590,8 @@ async function dispatch(
   switch (action) {
     case "getMyAccessContext":
       return getMyAccessContext(context);
+    case "claimResellerAccess":
+      return claimResellerAccess(context);
     case "getMyDashboard":
       return getMyDashboard(context);
     case "claimTrialLicense":

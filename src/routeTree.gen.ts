@@ -15,6 +15,8 @@ import { Route as McpRouteImport } from './routes/mcp'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RevendaEntrarRouteImport } from './routes/revenda_.entrar'
+import { Route as RevendaCriarContaRouteImport } from './routes/revenda_.criar-conta'
 import { Route as AuthenticatedResellerRouteImport } from './routes/_authenticated/reseller'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -53,6 +55,16 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RevendaEntrarRoute = RevendaEntrarRouteImport.update({
+  id: '/revenda_/entrar',
+  path: '/revenda/entrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RevendaCriarContaRoute = RevendaCriarContaRouteImport.update({
+  id: '/revenda_/criar-conta',
+  path: '/revenda/criar-conta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedResellerRoute = AuthenticatedResellerRouteImport.update({
@@ -123,6 +135,8 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/reseller': typeof AuthenticatedResellerRoute
+  '/revenda/criar-conta': typeof RevendaCriarContaRoute
+  '/revenda/entrar': typeof RevendaEntrarRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/license/activate': typeof ApiPublicLicenseActivateRoute
@@ -140,6 +154,8 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/reseller': typeof AuthenticatedResellerRoute
+  '/revenda/criar-conta': typeof RevendaCriarContaRoute
+  '/revenda/entrar': typeof RevendaEntrarRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/license/activate': typeof ApiPublicLicenseActivateRoute
@@ -159,6 +175,8 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/reseller': typeof AuthenticatedResellerRoute
+  '/revenda_/criar-conta': typeof RevendaCriarContaRoute
+  '/revenda_/entrar': typeof RevendaEntrarRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/license/activate': typeof ApiPublicLicenseActivateRoute
@@ -178,6 +196,8 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/reseller'
+    | '/revenda/criar-conta'
+    | '/revenda/entrar'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/license/activate'
@@ -195,6 +215,8 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/reseller'
+    | '/revenda/criar-conta'
+    | '/revenda/entrar'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/license/activate'
@@ -213,6 +235,8 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
     | '/_authenticated/reseller'
+    | '/revenda_/criar-conta'
+    | '/revenda_/entrar'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/license/activate'
@@ -229,6 +253,8 @@ export interface RootRouteChildren {
   RevendaRoute: typeof RevendaRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  RevendaCriarContaRoute: typeof RevendaCriarContaRoute
+  RevendaEntrarRoute: typeof RevendaEntrarRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicLicenseActivateRoute: typeof ApiPublicLicenseActivateRoute
@@ -278,6 +304,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/revenda_/entrar': {
+      id: '/revenda_/entrar'
+      path: '/revenda/entrar'
+      fullPath: '/revenda/entrar'
+      preLoaderRoute: typeof RevendaEntrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/revenda_/criar-conta': {
+      id: '/revenda_/criar-conta'
+      path: '/revenda/criar-conta'
+      fullPath: '/revenda/criar-conta'
+      preLoaderRoute: typeof RevendaCriarContaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/reseller': {
@@ -378,6 +418,8 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  RevendaCriarContaRoute: RevendaCriarContaRoute,
+  RevendaEntrarRoute: RevendaEntrarRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicLicenseActivateRoute: ApiPublicLicenseActivateRoute,
