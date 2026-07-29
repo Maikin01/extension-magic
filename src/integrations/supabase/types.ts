@@ -162,6 +162,30 @@ export type Database = {
           },
         ]
       }
+      edge_rate_limits: {
+        Row: {
+          key_hash: string
+          request_count: number
+          scope: string
+          updated_at: string
+          window_started_at: string
+        }
+        Insert: {
+          key_hash: string
+          request_count?: number
+          scope: string
+          updated_at?: string
+          window_started_at?: string
+        }
+        Update: {
+          key_hash?: string
+          request_count?: number
+          scope?: string
+          updated_at?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
       licenses: {
         Row: {
           activated_at: string | null
@@ -406,6 +430,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      consume_edge_rate_limit: {
+        Args: {
+          p_key_hash: string
+          p_limit: number
+          p_scope: string
+          p_window_seconds: number
+        }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          retry_after_seconds: number
+        }[]
+      }
       generate_referral_code: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
