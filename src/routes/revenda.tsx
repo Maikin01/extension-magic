@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { AccessGate } from "@/components/reseller/AccessGate";
 import { KeyStore } from "@/components/reseller/KeyStore";
+import { Marketplace } from "@/components/reseller/Marketplace";
 import { ResellerSupport } from "@/components/reseller/ResellerSupport";
 import { ResellerTutorial } from "@/components/reseller/ResellerTutorial";
 import { useAuth } from "@/auth/AuthProvider";
