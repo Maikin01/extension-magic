@@ -13,48 +13,6 @@ import {
 
 const CATEGORIES = ["Todos", "IA", "Ferramentas", "Assinaturas"] as const;
 
-const MOCK_PRODUCTS = [
-  {
-    id: "prod-1",
-    name: "Extensão Prompts Turbo IA",
-    tagline: "Injetor automático de prompts otimizados para criação de componentes.",
-    description: "Aumente a velocidade de prototipagem em 3x com templates prontos de alta conversão.",
-    category: "IA",
-    price_cents: 3990,
-    old_price_cents: 7990,
-    rating: 4.9,
-    stock: 45,
-    featured: true,
-    cover_url: null,
-  },
-  {
-    id: "prod-2",
-    name: "Gerador de Termos & Políticas",
-    tagline: "Gerador de documentos jurídicos para SaaS e agências.",
-    description: "Crie termos de uso e políticas de privacidade alinhadas com a LGPD em segundos.",
-    category: "Ferramentas",
-    price_cents: 2990,
-    old_price_cents: 5990,
-    rating: 4.8,
-    stock: 12,
-    featured: false,
-    cover_url: null,
-  },
-  {
-    id: "prod-3",
-    name: "Assinatura Pro Developer Tools",
-    tagline: "Pacote VIP de APIs e conectores premium para construtores.",
-    description: "Acesso ilimitado a webhooks rápidos e banco de ícones customizados.",
-    category: "Assinaturas",
-    price_cents: 9900,
-    old_price_cents: 14900,
-    rating: 5.0,
-    stock: 100,
-    featured: false,
-    cover_url: null,
-  },
-];
-
 export function Marketplace() {
   const qc = useQueryClient();
   const [cat, setCat] = useState<(typeof CATEGORIES)[number]>("Todos");
@@ -81,9 +39,7 @@ export function Marketplace() {
     onError: (e) => toast.error(translateError(e)),
   });
 
-  const rawList = (products.data?.products && products.data.products.length > 0)
-    ? products.data.products
-    : MOCK_PRODUCTS;
+  const rawList = products.data?.products ?? [];
 
   const list = rawList.filter((i) => cat === "Todos" || i.category === cat);
 

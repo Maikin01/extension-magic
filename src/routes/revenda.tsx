@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { AccessGate } from "@/components/reseller/AccessGate";
 import { KeyStore } from "@/components/reseller/KeyStore";
+import { Marketplace } from "@/components/reseller/Marketplace";
 import { ResellerSupport } from "@/components/reseller/ResellerSupport";
 import { ResellerTutorial } from "@/components/reseller/ResellerTutorial";
 import { useAuth } from "@/auth/AuthProvider";
@@ -93,7 +94,7 @@ function ResellerPanelPage() {
     {
       title: "REDE & MERCADO",
       items: [
-        { key: "marketplace", label: "Marketplace VIP", icon: Store, badge: "Em breve" },
+        { key: "marketplace", label: "Marketplace VIP", icon: Store },
         { key: "ranking", label: "Ranking & Níveis", icon: Trophy, badge: "Em breve" },
       ],
     },
@@ -290,13 +291,9 @@ function ResellerPanelPage() {
               {/* ABA 2: MINHAS LICENÇAS */}
               {tab === "minhas" && <MyKeys />}
 
-              {/* ABA 3 & 4: MARKETPLACE E RANKING (Em breve) */}
-              {tab === "marketplace" && (
-                <ComingSoonCard
-                  title="Marketplace VIP em Breve"
-                  subtitle="Estamos organizando os melhores utilitários e produtos exclusivos para revenda com desconto de parceiro. Em breve disponível!"
-                />
-              )}
+              {/* ABA 3: MARKETPLACE */}
+              {tab === "marketplace" && <Marketplace />}
+
               {tab === "ranking" && (
                 <ComingSoonCard
                   title="Ranking & Níveis de Desempenho em Breve"
