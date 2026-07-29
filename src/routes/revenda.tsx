@@ -98,6 +98,7 @@ function ResellerPanelPage() {
     {
       title: "ATENDIMENTO",
       items: [
+        { key: "tutorial", label: "Tutorial", icon: GraduationCap },
         { key: "suporte", label: "Central de Suporte", icon: Headphones },
       ],
     },
