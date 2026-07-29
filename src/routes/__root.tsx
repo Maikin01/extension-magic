@@ -37,12 +37,28 @@ function NotFoundComponent() {
   );
 }
 
+const RECOVERABLE_ERROR = /hydrat|Loading chunk|dynamically imported module|Failed to fetch/i;
+let autoRecovered = false;
+
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
+
+  useEffect(() => {
+    // Erros de hidratação/chunk são transitórios: tenta recuperar sozinho uma vez
+    // em vez de mostrar a tela de "Algo deu errado" para o usuário.
+    if (autoRecovered || !RECOVERABLE_ERROR.test(error?.message ?? "")) return;
+    autoRecovered = true;
+    const id = window.setTimeout(() => {
+      router.invalidate();
+      reset();
+    }, 50);
+    return () => window.clearTimeout(id);
+  }, [error, reset, router]);
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
