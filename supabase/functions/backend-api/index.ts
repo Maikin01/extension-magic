@@ -28,6 +28,7 @@ import {
 import {
   applyProviderPaymentStatus,
   finalizePaymentIfApproved,
+  finalizePaymentLicenses,
 } from "../_shared/payments.ts";
 import { enforceRateLimit, sha256Hex } from "../_shared/rate-limit.ts";
 
