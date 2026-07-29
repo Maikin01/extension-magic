@@ -10,8 +10,19 @@ import {
   listMyMarketplaceOrders,
   ORDER_STATUS_LABELS,
 } from "@/lib/api/marketplace-api";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 const CATEGORIES = ["Todos", "IA", "Ferramentas", "Assinaturas"] as const;
+
+function safeRating(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed.toFixed(1) : "5.0";
+}
+
+function safeCents(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 export function Marketplace() {
   const qc = useQueryClient();
@@ -100,7 +111,17 @@ export function Marketplace() {
         </div>
       </div>
 
-      {list.length === 0 && (
+      {products.isError && (
+        <QueryErrorState
+          error={products.error}
+          title="Não foi possível carregar o marketplace"
+          onRetry={() => void products.refetch()}
+          isRetrying={products.isRefetching}
+          className="rv-card"
+        />
+      )}
+
+      {!products.isError && !products.isLoading && list.length === 0 && (
         <div className="rv-card p-12 text-center border-dashed border-[var(--rv-border)]">
           <ShoppingBag className="mx-auto mb-3 h-8 w-8 text-[var(--rv-text-subtle)]" />
           <p className="font-semibold text-sm text-[var(--rv-text-main)]">
@@ -140,7 +161,7 @@ export function Marketplace() {
                     {item.category}
                   </span>
                   <span className="text-[11px] font-semibold text-amber-500 font-mono">
-                    ★ {item.rating.toFixed(1)}
+                    ★ {safeRating(item.rating)}
                   </span>
                 </div>
               </div>
@@ -158,11 +179,11 @@ export function Marketplace() {
               <div>
                 {item.old_price_cents && (
                   <span className="block text-xs text-[var(--rv-text-subtle)] line-through font-mono">
-                    {formatPrice(item.old_price_cents)}
+                    {formatPrice(safeCents(item.old_price_cents))}
                   </span>
                 )}
                 <span className="text-2xl font-bold font-mono text-[var(--rv-text-main)]">
-                  {formatPrice(item.price_cents)}
+                  {formatPrice(safeCents(item.price_cents))}
                 </span>
                 {item.stock !== null && (
                   <span className="block text-[10px] font-mono text-[var(--rv-text-subtle)] mt-0.5">
@@ -197,7 +218,14 @@ export function Marketplace() {
           </div>
         </div>
 
-        {(orders.data?.orders ?? []).length === 0 ? (
+        {orders.isError ? (
+          <QueryErrorState
+            error={orders.error}
+            title="Não foi possível carregar suas compras"
+            onRetry={() => void orders.refetch()}
+            isRetrying={orders.isRefetching}
+          />
+        ) : (orders.data?.orders ?? []).length === 0 ? (
           <div className="p-8 text-center border border-dashed border-[var(--rv-border)] rounded-xl">
             <p className="text-xs text-[var(--rv-text-muted)]">Você ainda não realizou compras neste módulo.</p>
           </div>
@@ -209,7 +237,7 @@ export function Marketplace() {
                   <div>
                     <h4 className="text-sm font-semibold text-[var(--rv-text-main)]">{o.product_name}</h4>
                     <p className="text-xs font-mono text-[var(--rv-text-muted)]">
-                      {formatPrice(o.amount_cents)} · {new Date(o.created_at).toLocaleString("pt-BR")}
+                      {formatPrice(safeCents(o.amount_cents))} · {new Date(o.created_at).toLocaleString("pt-BR")}
                     </p>
                   </div>
                   <span

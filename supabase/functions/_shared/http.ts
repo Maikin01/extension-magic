@@ -62,7 +62,9 @@ function allowedProtectedOrigins(): Set<string> {
     origins.push(
       "http://localhost:3000",
       "http://localhost:5173",
+      "http://localhost:8080",
       "http://127.0.0.1:5173",
+      "http://127.0.0.1:8080",
     );
   }
 
@@ -75,10 +77,16 @@ const TRUSTED_HOST_SUFFIXES = [
   ".lovable.dev",
 ];
 
+const TRUSTED_ORIGINS = new Set([
+  "https://lovable.dev",
+  "https://www.lovable.dev",
+]);
+
 function isTrustedHost(origin: string): boolean {
   try {
     const { protocol, hostname } = new URL(origin);
     if (protocol !== "https:") return false;
+    if (TRUSTED_ORIGINS.has(origin)) return true;
     return TRUSTED_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
   } catch {
     return false;
