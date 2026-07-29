@@ -977,6 +977,9 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
     buyerCpf: normalizedBuyerCpf,
     buyerEmail: context.email.trim().toLowerCase(),
     resellerId,
+    quantity,
+    customDays,
+    amountCents,
   }));
   const existingResult = await context.admin
     .from("payments")
@@ -996,12 +999,15 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
         reseller_id: resellerId,
         client_request_id: data.idempotency_key,
         request_fingerprint: requestFingerprint,
-        amount_cents: plan.price_cents,
+        amount_cents: amountCents,
+        quantity,
+        custom_duration_days: customDays,
         buyer_name: normalizedBuyerName,
         buyer_whatsapp: normalizedBuyerWhatsapp,
         buyer_email: context.email,
         status: "pending",
       })
+
       .select()
       .single();
 
