@@ -312,7 +312,6 @@ function ResellerPanelPage() {
 }
 
 function AccountOverviewBanner({ userEmail }: { userEmail?: string }) {
-  const [copiedRef, setCopiedRef] = useState(false);
   const info = useQuery({
     queryKey: ["reseller", "info"],
     queryFn: getMyResellerInfo,
@@ -329,25 +328,10 @@ function AccountOverviewBanner({ userEmail }: { userEmail?: string }) {
     queryFn: getMyDashboard,
     retry: false,
   });
-  const referralCode = info.data?.referral_code ?? "";
-  const referralLink =
-    referralCode && typeof window !== "undefined"
-      ? `${window.location.origin}/?ref=${referralCode}#plans`
-      : "";
   const activeLicenses =
     dashboard.data?.licenses.filter((license) => license.status === "active").length ?? 0;
   const summary = stats.data?.summary;
 
-  const copyReferral = async () => {
-    if (!referralLink) {
-      toast.error("Seu link de indicação ainda não está disponível.");
-      return;
-    }
-    await navigator.clipboard.writeText(referralLink);
-    setCopiedRef(true);
-    toast.success("Link de indicação copiado!");
-    setTimeout(() => setCopiedRef(false), 2000);
-  };
 
   return (
     <div className="space-y-8">
