@@ -69,6 +69,22 @@ function allowedProtectedOrigins(): Set<string> {
   return new Set(origins);
 }
 
+const TRUSTED_HOST_SUFFIXES = [
+  ".lovable.app",
+  ".lovableproject.com",
+  ".lovable.dev",
+];
+
+function isTrustedHost(origin: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(origin);
+    if (protocol !== "https:") return false;
+    return TRUSTED_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
+  } catch {
+    return false;
+  }
+}
+
 export function createHttpContext(
   request: Request,
   corsMode: CorsMode,
@@ -77,7 +93,9 @@ export function createHttpContext(
   const normalized = origin ? normalizedOrigin(origin) : null;
   const originAllowed = corsMode === "public" ||
     origin === null ||
-    (!!normalized && allowedProtectedOrigins().has(normalized));
+    (!!normalized &&
+      (allowedProtectedOrigins().has(normalized) || isTrustedHost(normalized)));
+
 
   return {
     requestId: requestIdFrom(request),
