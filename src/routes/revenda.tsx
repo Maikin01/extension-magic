@@ -47,14 +47,55 @@ function ResellerPanelPage() {
     void signOut();
   };
 
+  const navItems = [
+    { key: "chaves", label: "Comprar chaves", icon: KeyRound },
+    { key: "minhas", label: "Minhas chaves", icon: Wallet },
+    { key: "marketplace", label: "Marketplace", icon: ShoppingBag },
+    { key: "ranking", label: "Ranking", icon: Trophy },
+  ] as const;
+
   return (
     <AccessGate>
       <div className="min-h-screen bg-background">
         <SiteHeader />
 
-        <main className="mx-auto max-w-7xl px-4 py-10">
-          <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-            <div>
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-10 lg:flex-row">
+          <aside className="lg:w-64 lg:shrink-0">
+            <div className="lg:sticky lg:top-24">
+              <div className="rounded-2xl border border-border/60 bg-card p-3">
+                <p className="px-3 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Painel de revendas
+                </p>
+                <nav className="flex flex-row gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+                  {navItems.map((t) => (
+                    <Button
+                      key={t.key}
+                      size="sm"
+                      variant={tab === t.key ? "default" : "ghost"}
+                      className="shrink-0 justify-start rounded-xl lg:w-full"
+                      onClick={() => setTab(t.key)}
+                    >
+                      <t.icon className="mr-2 h-4 w-4 shrink-0" />
+                      {t.label}
+                    </Button>
+                  ))}
+                </nav>
+                <div className="mt-2 border-t border-border/60 pt-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-full justify-start rounded-xl text-muted-foreground"
+                    onClick={exit}
+                  >
+                    <LogOut className="mr-2 h-4 w-4 shrink-0" /> Sair do painel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <main className="min-w-0 flex-1">
+            <header className="mb-8">
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-primary">
                 <TrendingUp className="h-3.5 w-3.5" /> Painel de revendas
               </div>
@@ -65,68 +106,44 @@ function ResellerPanelPage() {
                   {user?.email ?? "conta autenticada"}
                 </span>
               </p>
+            </header>
+
+            <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <StatCard
+                icon={<Wallet className="h-5 w-5 text-primary" />}
+                label="Saldo em chaves"
+                value="0"
+                hint="chaves disponíveis"
+              />
+              <StatCard
+                icon={<TrendingUp className="h-5 w-5 text-primary" />}
+                label="Lucro estimado"
+                value={formatPrice(0)}
+                hint="no período"
+              />
+              <StatCard
+                icon={<ShoppingBag className="h-5 w-5 text-primary" />}
+                label="Compras no marketplace"
+                value="0"
+                hint="produtos adquiridos"
+              />
             </div>
-            <Button variant="outline" onClick={exit}>
-              <LogOut className="mr-2 h-4 w-4" /> Sair do painel
-            </Button>
-          </header>
 
-          <div className="mb-8 grid gap-4 md:grid-cols-3">
-            <StatCard
-              icon={<Wallet className="h-5 w-5 text-primary" />}
-              label="Saldo em chaves"
-              value="0"
-              hint="chaves disponíveis"
-            />
-            <StatCard
-              icon={<TrendingUp className="h-5 w-5 text-primary" />}
-              label="Lucro estimado"
-              value={formatPrice(0)}
-              hint="no período"
-            />
-            <StatCard
-              icon={<ShoppingBag className="h-5 w-5 text-primary" />}
-              label="Compras no marketplace"
-              value="0"
-              hint="produtos adquiridos"
-            />
-          </div>
+            {tab === "chaves" && <KeyStore />}
+            {tab === "minhas" && <MyKeys />}
+            {tab === "marketplace" && <Marketplace />}
+            {tab === "ranking" && <ResellerRanking />}
 
-          <nav className="mb-8 inline-flex flex-wrap gap-2 rounded-full border border-border/60 bg-card p-1">
-            {(
-              [
-                { key: "chaves", label: "Comprar chaves", icon: KeyRound },
-                { key: "minhas", label: "Minhas chaves", icon: Wallet },
-                { key: "marketplace", label: "Marketplace", icon: ShoppingBag },
-                { key: "ranking", label: "Ranking", icon: Trophy },
-              ] as const
-            ).map((t) => (
-              <Button
-                key={t.key}
-                size="sm"
-                variant={tab === t.key ? "default" : "ghost"}
-                className="rounded-full"
-                onClick={() => setTab(t.key)}
-              >
-                <t.icon className="mr-2 h-4 w-4" />
-                {t.label}
-              </Button>
-            ))}
-          </nav>
-
-          {tab === "chaves" && <KeyStore />}
-          {tab === "minhas" && <MyKeys />}
-          {tab === "marketplace" && <Marketplace />}
-          {tab === "ranking" && <ResellerRanking />}
-
-          <div className="mt-12">
-            <ResellerSupport />
-          </div>
-        </main>
+            <div className="mt-12">
+              <ResellerSupport />
+            </div>
+          </main>
+        </div>
       </div>
     </AccessGate>
   );
 }
+
 
 function MyKeys() {
   const keys: { key: string; plan: string; status: string; created: string }[] = [];
