@@ -1175,19 +1175,25 @@ async function getCheckoutStatus(context: AuthContext, input: unknown) {
       });
     }
   }
-  let licenseKey = payment.status === "approved"
-    ? payment.licenses?.license_key ?? null
-    : null;
-  if (payment.status === "approved" && !licenseKey) {
-    licenseKey = await finalizePaymentIfApproved(context.admin, payment.id);
+  const quantity = payment.quantity ?? 1;
+  let licenseKeys: string[] = [];
+  if (payment.status === "approved") {
+    licenseKeys = await finalizePaymentLicenses(
+      context.admin,
+      payment.id,
+      quantity,
+    );
   }
   return {
     status: payment.status,
-    license_key: licenseKey,
+    license_key: licenseKeys[0] ?? null,
+    license_keys: licenseKeys,
+    quantity,
     plan_name: payment.plans?.name ?? null,
     expires_at: payment.expires_at,
   };
 }
+
 
 async function getAdminAccessStatus(context: AuthContext) {
   const roles = await getUserRoles(context.admin, context.userId);
