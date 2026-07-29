@@ -128,7 +128,11 @@ type Ok = { ok: true };
 
 export const getMyDashboard = (): Promise<DashboardResponse> => backendApi.invoke("getMyDashboard");
 
-export const claimTrialLicense = (): Promise<{ license: LicenseRow; existed?: boolean }> =>
+export const claimTrialLicense = (): Promise<{
+  license: LicenseWithRelations;
+  existed?: boolean;
+  deleted?: boolean;
+}> =>
   backendApi.invoke("claimTrialLicense");
 
 export const getAdminOverview = (): Promise<AdminOverviewResponse> =>
