@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 export const Route = createFileRoute("/auth")({
-  ssr: false,
   head: () => ({
     meta: [
       { title: "Entrar — Rise Lovable" },
@@ -61,6 +60,7 @@ function sanitizeNextPath(value: string) {
 }
 
 function getAuthHashParams() {
+  if (typeof window === "undefined") return new URLSearchParams();
   const rawHash = window.location.hash.replace(/^#/, "");
   const authParamStart = rawHash.search(/(?:^|[#&?])(access_token|refresh_token|token_hash|type)=/);
   const paramsSource = authParamStart >= 0 ? rawHash.slice(authParamStart).replace(/^[#&?]/, "") : rawHash;
@@ -68,6 +68,16 @@ function getAuthHashParams() {
 }
 
 function readAuthUrlParams() {
+  if (typeof window === "undefined") {
+    return {
+      code: null as string | null,
+      tokenHash: null as string | null,
+      type: "signup",
+      accessToken: null as string | null,
+      refreshToken: null as string | null,
+      hasCallback: false,
+    };
+  }
   const url = new URL(window.location.href);
   const hash = getAuthHashParams();
   const tokenHash = url.searchParams.get("token_hash") ?? hash.get("token_hash");
