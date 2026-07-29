@@ -312,7 +312,6 @@ function ResellerPanelPage() {
 }
 
 function AccountOverviewBanner({ userEmail }: { userEmail?: string }) {
-  const [copiedRef, setCopiedRef] = useState(false);
   const info = useQuery({
     queryKey: ["reseller", "info"],
     queryFn: getMyResellerInfo,
@@ -329,25 +328,10 @@ function AccountOverviewBanner({ userEmail }: { userEmail?: string }) {
     queryFn: getMyDashboard,
     retry: false,
   });
-  const referralCode = info.data?.referral_code ?? "";
-  const referralLink =
-    referralCode && typeof window !== "undefined"
-      ? `${window.location.origin}/?ref=${referralCode}#plans`
-      : "";
   const activeLicenses =
     dashboard.data?.licenses.filter((license) => license.status === "active").length ?? 0;
   const summary = stats.data?.summary;
 
-  const copyReferral = async () => {
-    if (!referralLink) {
-      toast.error("Seu link de indicação ainda não está disponível.");
-      return;
-    }
-    await navigator.clipboard.writeText(referralLink);
-    setCopiedRef(true);
-    toast.success("Link de indicação copiado!");
-    setTimeout(() => setCopiedRef(false), 2000);
-  };
 
   return (
     <div className="space-y-8">
@@ -371,33 +355,6 @@ function AccountOverviewBanner({ userEmail }: { userEmail?: string }) {
             </p>
           </div>
 
-          {/* Referral Link Box */}
-          <div className="bg-[var(--rv-card-alt-bg)] border border-[var(--rv-border)] p-3.5 rounded-xl flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="min-w-0">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--rv-text-subtle)] block">
-                Seu Link de Indicação Direta
-              </span>
-              <span className="text-xs font-mono font-bold text-red-600 truncate block max-w-xs">
-                {info.isLoading ? "Carregando…" : referralCode || "Código indisponível"}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={copyReferral}
-              disabled={!referralLink}
-              className="rv-btn-secondary text-xs h-9 px-3.5 shrink-0 flex items-center justify-center gap-1.5"
-            >
-              {copiedRef ? (
-                <>
-                  <Check className="h-3.5 w-3.5 text-emerald-500" /> Copiado
-                </>
-              ) : (
-                <>
-                  <Copy className="h-3.5 w-3.5" /> Copiar Link
-                </>
-              )}
-            </button>
-          </div>
         </div>
       </div>
 
@@ -413,7 +370,7 @@ function AccountOverviewBanner({ userEmail }: { userEmail?: string }) {
           icon={<BarChart3 className="h-4 w-4 text-emerald-500" />}
           label="Vendas Confirmadas"
           value={stats.isLoading ? "…" : formatPrice(summary?.total_amount_cents ?? 0)}
-          hint="Faturamento atribuído ao seu link"
+          hint="Total faturado nas suas vendas"
         />
         <StatCard
           icon={<PackageCheck className="h-4 w-4 text-amber-500" />}
