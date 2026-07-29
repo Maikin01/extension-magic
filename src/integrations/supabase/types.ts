@@ -517,6 +517,51 @@ export type Database = {
         }
         Relationships: []
       }
+      trial_license_claims: {
+        Row: {
+          activated_at: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          license_id: string | null
+          license_key: string
+          license_key_hash: string
+          license_status: Database["public"]["Enums"]["license_status"]
+          plan_id: string
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          license_id?: string | null
+          license_key: string
+          license_key_hash: string
+          license_status?: Database["public"]["Enums"]["license_status"]
+          plan_id: string
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          license_id?: string | null
+          license_key?: string
+          license_key_hash?: string
+          license_status?: Database["public"]["Enums"]["license_status"]
+          plan_id?: string
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -543,6 +588,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_trial_license: {
+        Args: {
+          p_expires_at: string
+          p_license_key: string
+          p_license_key_hash: string
+          p_plan_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       consume_edge_rate_limit: {
         Args: {
           p_key_hash: string
