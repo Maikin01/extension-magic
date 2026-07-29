@@ -1,6 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Copy, KeyRound, LogOut, ShoppingBag, Trophy, TrendingUp, Wallet } from "lucide-react";
+import {
+  Copy,
+  KeyRound,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ShoppingBag,
+  Trophy,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 import { SiteHeader } from "@/components/site/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -42,6 +52,7 @@ type Tab = "chaves" | "minhas" | "marketplace" | "ranking";
 function ResellerPanelPage() {
   const { user, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("chaves");
+  const [collapsed, setCollapsed] = useState(false);
 
   const exit = () => {
     void signOut();
@@ -59,90 +70,138 @@ function ResellerPanelPage() {
       <div className="min-h-screen bg-background">
         <SiteHeader />
 
-        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-10 lg:flex-row">
-          <aside className="lg:w-64 lg:shrink-0">
-            <div className="lg:sticky lg:top-24">
-              <div className="rounded-2xl border border-border/60 bg-card p-3">
-                <p className="px-3 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <div className="flex min-h-[calc(100vh-4rem)]">
+          <aside
+            className={`sticky top-16 hidden h-[calc(100vh-4rem)] shrink-0 flex-col border-r border-border/60 bg-card/60 transition-[width] duration-300 lg:flex ${
+              collapsed ? "w-[72px]" : "w-64"
+            }`}
+          >
+            <div className="flex h-14 items-center justify-between gap-2 border-b border-border/60 px-3">
+              {!collapsed && (
+                <p className="truncate text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                   Painel de revendas
                 </p>
-                <nav className="flex flex-row gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
-                  {navItems.map((t) => (
-                    <Button
-                      key={t.key}
-                      size="sm"
-                      variant={tab === t.key ? "default" : "ghost"}
-                      className="shrink-0 justify-start rounded-xl lg:w-full"
-                      onClick={() => setTab(t.key)}
-                    >
-                      <t.icon className="mr-2 h-4 w-4 shrink-0" />
-                      {t.label}
-                    </Button>
-                  ))}
-                </nav>
-                <div className="mt-2 border-t border-border/60 pt-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="w-full justify-start rounded-xl text-muted-foreground"
-                    onClick={exit}
-                  >
-                    <LogOut className="mr-2 h-4 w-4 shrink-0" /> Sair do painel
-                  </Button>
-                </div>
-              </div>
+              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="ml-auto h-8 w-8 shrink-0 rounded-lg"
+                onClick={() => setCollapsed((v) => !v)}
+                aria-label={collapsed ? "Expandir menu" : "Minimizar menu"}
+              >
+                {collapsed ? (
+                  <PanelLeftOpen className="h-4 w-4" />
+                ) : (
+                  <PanelLeftClose className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+
+            <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
+              {navItems.map((t) => (
+                <Button
+                  key={t.key}
+                  size="sm"
+                  variant={tab === t.key ? "default" : "ghost"}
+                  className={`h-10 w-full rounded-xl ${collapsed ? "justify-center px-0" : "justify-start"}`}
+                  onClick={() => setTab(t.key)}
+                  title={t.label}
+                >
+                  <t.icon className={`h-4 w-4 shrink-0 ${collapsed ? "" : "mr-2"}`} />
+                  {!collapsed && t.label}
+                </Button>
+              ))}
+            </nav>
+
+            <div className="border-t border-border/60 p-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className={`h-10 w-full rounded-xl text-muted-foreground ${collapsed ? "justify-center px-0" : "justify-start"}`}
+                onClick={exit}
+                title="Sair do painel"
+              >
+                <LogOut className={`h-4 w-4 shrink-0 ${collapsed ? "" : "mr-2"}`} />
+                {!collapsed && "Sair do painel"}
+              </Button>
             </div>
           </aside>
 
-          <main className="min-w-0 flex-1">
-            <header className="mb-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-primary">
-                <TrendingUp className="h-3.5 w-3.5" /> Painel de revendas
+          <div className="min-w-0 flex-1">
+            <nav className="flex gap-1 overflow-x-auto border-b border-border/60 bg-card/60 p-2 lg:hidden">
+              {navItems.map((t) => (
+                <Button
+                  key={t.key}
+                  size="sm"
+                  variant={tab === t.key ? "default" : "ghost"}
+                  className="shrink-0 justify-start rounded-xl"
+                  onClick={() => setTab(t.key)}
+                >
+                  <t.icon className="mr-2 h-4 w-4 shrink-0" />
+                  {t.label}
+                </Button>
+              ))}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="shrink-0 rounded-xl text-muted-foreground"
+                onClick={exit}
+              >
+                <LogOut className="mr-2 h-4 w-4 shrink-0" /> Sair
+              </Button>
+            </nav>
+
+            <main className="mx-auto min-w-0 max-w-6xl px-4 py-10 sm:px-6">
+              <header className="mb-8">
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-primary">
+                  <TrendingUp className="h-3.5 w-3.5" /> Painel de revendas
+                </div>
+                <h1 className="mt-3 text-3xl font-bold tracking-tight">Bem-vindo de volta</h1>
+                <p className="text-sm text-muted-foreground">
+                  Acesso liberado para{" "}
+                  <span className="font-medium text-foreground">
+                    {user?.email ?? "conta autenticada"}
+                  </span>
+                </p>
+              </header>
+
+              <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <StatCard
+                  icon={<Wallet className="h-5 w-5 text-primary" />}
+                  label="Saldo em chaves"
+                  value="0"
+                  hint="chaves disponíveis"
+                />
+                <StatCard
+                  icon={<TrendingUp className="h-5 w-5 text-primary" />}
+                  label="Lucro estimado"
+                  value={formatPrice(0)}
+                  hint="no período"
+                />
+                <StatCard
+                  icon={<ShoppingBag className="h-5 w-5 text-primary" />}
+                  label="Compras no marketplace"
+                  value="0"
+                  hint="produtos adquiridos"
+                />
               </div>
-              <h1 className="mt-3 text-3xl font-bold tracking-tight">Bem-vindo de volta</h1>
-              <p className="text-sm text-muted-foreground">
-                Acesso liberado para{" "}
-                <span className="font-medium text-foreground">
-                  {user?.email ?? "conta autenticada"}
-                </span>
-              </p>
-            </header>
 
-            <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <StatCard
-                icon={<Wallet className="h-5 w-5 text-primary" />}
-                label="Saldo em chaves"
-                value="0"
-                hint="chaves disponíveis"
-              />
-              <StatCard
-                icon={<TrendingUp className="h-5 w-5 text-primary" />}
-                label="Lucro estimado"
-                value={formatPrice(0)}
-                hint="no período"
-              />
-              <StatCard
-                icon={<ShoppingBag className="h-5 w-5 text-primary" />}
-                label="Compras no marketplace"
-                value="0"
-                hint="produtos adquiridos"
-              />
-            </div>
+              {tab === "chaves" && <KeyStore />}
+              {tab === "minhas" && <MyKeys />}
+              {tab === "marketplace" && <Marketplace />}
+              {tab === "ranking" && <ResellerRanking />}
 
-            {tab === "chaves" && <KeyStore />}
-            {tab === "minhas" && <MyKeys />}
-            {tab === "marketplace" && <Marketplace />}
-            {tab === "ranking" && <ResellerRanking />}
-
-            <div className="mt-12">
-              <ResellerSupport />
-            </div>
-          </main>
+              <div className="mt-12">
+                <ResellerSupport />
+              </div>
+            </main>
+          </div>
         </div>
       </div>
     </AccessGate>
   );
 }
+
 
 
 function MyKeys() {
