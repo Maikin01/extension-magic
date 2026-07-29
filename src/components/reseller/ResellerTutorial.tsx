@@ -108,25 +108,8 @@ export function ResellerTutorial() {
         </p>
       </div>
 
-      {/* Steps */}
-      <div>
-        <h3 className="text-sm font-bold text-[var(--rv-text-main)] uppercase tracking-wider mb-4">
-          Passo a passo
-        </h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          {STEPS.map((s) => (
-            <div key={s.title} className="rv-card p-5 flex gap-4">
-              <div className="shrink-0 h-9 w-9 rounded-lg bg-red-600/10 border border-red-600/30 flex items-center justify-center">
-                <s.icon className="h-4 w-4 text-red-600" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-[var(--rv-text-main)] mb-1">{s.title}</p>
-                <p className="text-xs leading-relaxed text-[var(--rv-text-muted)]">{s.text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+
+
 
       {/* FAQ */}
       <div className="rv-card p-5">
