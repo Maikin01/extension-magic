@@ -305,6 +305,9 @@ function ResellerPanelPage() {
               )}
 
               {/* ABA 5: CENTRAL DE SUPORTE */}
+              {/* ABA: TUTORIAL */}
+              {tab === "tutorial" && <ResellerTutorial />}
+
               {tab === "suporte" && <ResellerSupport />}
             </main>
           </div>
