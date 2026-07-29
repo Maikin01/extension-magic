@@ -110,7 +110,7 @@ Deno.serve(async (request) => {
       raw: remote,
     });
     if (effectiveStatus === "approved") {
-      await finalizePaymentIfApproved(admin, payment.id);
+      await finalizePaymentIfApproved(admin, payment.id, payment.quantity ?? 1);
     }
     return json({ ok: true }, 200, http);
   } catch (error) {
