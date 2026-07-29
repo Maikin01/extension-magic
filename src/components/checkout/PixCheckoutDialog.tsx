@@ -18,14 +18,22 @@ import { formatPrice } from "@/lib/license-utils";
 type Plan = { slug: string; name: string; price_cents: number };
 type Step = "form" | "pix" | "success";
 
+export type ResellerOrder = {
+  quantity: number;
+  customDurationDays?: number | null;
+  totalCents: number;
+};
+
 export function PixCheckoutDialog({
   plan,
   open,
   onOpenChange,
+  order,
 }: {
   plan: Plan | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  order?: ResellerOrder | null;
 }) {
   const createPix = createPixCheckout;
   const getStatus = getCheckoutStatus;
@@ -36,7 +44,7 @@ export function PixCheckoutDialog({
   const [cpf, setCpf] = useState("");
   const [loading, setLoading] = useState(false);
   const [pix, setPix] = useState<Awaited<ReturnType<typeof createPix>> | null>(null);
-  const [licenseKey, setLicenseKey] = useState<string | null>(null);
+  const [licenseKeys, setLicenseKeys] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const pollRef = useRef<number | null>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
@@ -48,7 +56,7 @@ export function PixCheckoutDialog({
       setWpp("");
       setCpf("");
       setPix(null);
-      setLicenseKey(null);
+      setLicenseKeys([]);
       setCopied(false);
       setLoading(false);
       idempotencyKeyRef.current = null;
@@ -63,7 +71,13 @@ export function PixCheckoutDialog({
       try {
         const res = await getStatus({ data: { payment_id: pix.payment_id } });
         if (res.status === "approved") {
-          setLicenseKey(res.license_key);
+          setLicenseKeys(
+            res.license_keys?.length
+              ? res.license_keys
+              : res.license_key
+                ? [res.license_key]
+                : [],
+          );
           setStep("success");
           if (pollRef.current) window.clearInterval(pollRef.current);
         } else if (
@@ -108,6 +122,9 @@ export function PixCheckoutDialog({
           buyer_cpf: cleanCpf || undefined,
           referral_code: referral || undefined,
           idempotency_key: idempotencyKeyRef.current,
+          reseller: order ? true : undefined,
+          quantity: order ? order.quantity : undefined,
+          custom_duration_days: order?.customDurationDays ?? undefined,
         },
       });
       setPix(res);
@@ -138,11 +155,15 @@ export function PixCheckoutDialog({
         {step === "form" && (
           <>
             <DialogHeader>
-              <DialogTitle className="font-display text-2xl">Assinar {plan.name}</DialogTitle>
+              <DialogTitle className="font-display text-2xl">
+                {order ? `Comprar ${order.quantity}x ${plan.name}` : `Assinar ${plan.name}`}
+              </DialogTitle>
               <DialogDescription className="text-white/60">
                 Pagamento via Pix —{" "}
-                <span className="font-bold text-white">{formatPrice(plan.price_cents)}</span>.
-                Preencha os dados abaixo para gerar o QR Code.
+                <span className="font-bold text-white">
+                  {formatPrice(order ? order.totalCents : plan.price_cents)}
+                </span>
+                . Preencha os dados abaixo para gerar o QR Code.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">
@@ -265,22 +286,29 @@ export function PixCheckoutDialog({
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-2">
-              <div className="ring-glow rounded-xl border border-primary/40 bg-primary/5 p-4">
+              <div className="ring-glow max-h-64 space-y-2 overflow-y-auto rounded-xl border border-primary/40 bg-primary/5 p-4">
                 <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Sua chave
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  {licenseKeys.length > 1 ? `Suas ${licenseKeys.length} chaves` : "Sua chave"}
                 </div>
-                <div className="break-all font-mono text-sm font-bold text-white">
-                  {licenseKey ?? "—"}
-                </div>
+                {licenseKeys.length === 0 && <div className="text-sm text-white/60">—</div>}
+                {licenseKeys.map((key) => (
+                  <div key={key} className="break-all font-mono text-sm font-bold text-white">
+                    {key}
+                  </div>
+                ))}
               </div>
-              {licenseKey && (
+              <p className="text-[11px] text-white/40">
+                O tempo de cada chave só começa a contar na primeira ativação na extensão.
+              </p>
+              {licenseKeys.length > 0 && (
                 <Button
                   type="button"
                   className="btn-neon h-12 w-full text-sm font-bold uppercase tracking-widest"
-                  onClick={() => copyToClipboard(licenseKey)}
+                  onClick={() => copyToClipboard(licenseKeys.join("\n"))}
                 >
                   {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-                  {copied ? "Copiado" : "Copiar chave"}
+                  {copied ? "Copiado" : licenseKeys.length > 1 ? "Copiar chaves" : "Copiar chave"}
                 </Button>
               )}
               <Button

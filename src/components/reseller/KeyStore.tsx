@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Check, Key, Minus, Plus, Zap, Sliders, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatPrice } from "@/lib/license-utils";
+import { PixCheckoutDialog, type ResellerOrder } from "@/components/checkout/PixCheckoutDialog";
 
 type KeyProduct = {
   slug: string;
+  planSlug: string;
   name: string;
   duration: string;
   costCents: number;
@@ -16,6 +18,7 @@ type KeyProduct = {
 const KEY_PRODUCTS: KeyProduct[] = [
   {
     slug: "semanal",
+    planSlug: "weekly",
     name: "Chave Semanal",
     duration: "Validade de 7 Dias",
     costCents: 1490,
@@ -24,6 +27,7 @@ const KEY_PRODUCTS: KeyProduct[] = [
   },
   {
     slug: "mensal",
+    planSlug: "monthly",
     name: "Chave Mensal",
     duration: "Validade de 30 Dias",
     costCents: 2990,
@@ -33,6 +37,7 @@ const KEY_PRODUCTS: KeyProduct[] = [
   },
   {
     slug: "vitalicia",
+    planSlug: "lifetime",
     name: "Chave Vitalícia",
     duration: "Acesso Permanente",
     costCents: 14990,
@@ -71,8 +76,20 @@ export function KeyStore() {
   const [qty, setQty] = useState<Record<string, number>>({});
   const [customDays, setCustomDays] = useState("30");
   const [customQty, setCustomQty] = useState("1");
+  const [checkoutPlan, setCheckoutPlan] = useState<
+    { slug: string; name: string; price_cents: number } | null
+  >(null);
+  const [checkoutOrder, setCheckoutOrder] = useState<ResellerOrder | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
-
+  const openCheckout = (
+    plan: { slug: string; name: string; price_cents: number },
+    order: ResellerOrder,
+  ) => {
+    setCheckoutPlan(plan);
+    setCheckoutOrder(order);
+    setCheckoutOpen(true);
+  };
 
   const setQuantity = (slug: string, value: number) =>
     setQty((prev) => ({ ...prev, [slug]: Math.max(1, Math.min(500, value)) }));
@@ -172,6 +189,12 @@ export function KeyStore() {
                 {/* Purchase Button */}
                 <button
                   type="button"
+                  onClick={() =>
+                    openCheckout(
+                      { slug: p.planSlug, name: p.name, price_cents: p.costCents },
+                      { quantity: count, totalCents: totalCost },
+                    )
+                  }
                   className="rv-btn-primary w-full flex items-center justify-center gap-2"
                 >
                   <Zap className="h-4 w-4" />
@@ -238,6 +261,22 @@ export function KeyStore() {
           <div>
             <button
               type="button"
+              onClick={() => {
+                const days = Math.max(1, Math.floor(Number(customDays) || 0));
+                const units = Math.max(1, Math.min(200, Math.floor(Number(customQty) || 0)));
+                openCheckout(
+                  {
+                    slug: "monthly",
+                    name: `Chave de ${days} dia(s)`,
+                    price_cents: customKeyPriceCents(days),
+                  },
+                  {
+                    quantity: units,
+                    customDurationDays: days,
+                    totalCents: customKeyPriceCents(days) * units,
+                  },
+                );
+              }}
               className="rv-btn-secondary w-full flex items-center justify-center gap-2 h-9"
             >
               <Tag className="h-3.5 w-3.5" />
@@ -246,6 +285,19 @@ export function KeyStore() {
           </div>
         </div>
       </div>
+
+      <PixCheckoutDialog
+        plan={checkoutPlan}
+        order={checkoutOrder}
+        open={checkoutOpen}
+        onOpenChange={(v) => {
+          setCheckoutOpen(v);
+          if (!v) {
+            setCheckoutPlan(null);
+            setCheckoutOrder(null);
+          }
+        }}
+      />
     </div>
   );
 }
