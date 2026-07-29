@@ -53,7 +53,7 @@ export const Route = createFileRoute("/revenda")({
   component: ResellerPanelPage,
 });
 
-type Tab = "chaves" | "minhas" | "marketplace" | "ranking" | "suporte";
+type Tab = "chaves" | "minhas" | "marketplace" | "ranking" | "tutorial" | "suporte";
 type ThemeMode = "dark" | "light";
 
 function getUserInitials(email?: string): string {
