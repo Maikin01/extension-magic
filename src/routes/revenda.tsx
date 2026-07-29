@@ -345,14 +345,6 @@ function AccountOverviewBanner({ userEmail }: { userEmail?: string }) {
       <div className="rv-card p-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="rv-badge rv-badge-red font-mono text-[10px] uppercase font-bold">
-                Revendedor Autorizado
-              </span>
-              <span className="rv-badge rv-badge-emerald font-mono text-[10px]">
-                Perfil validado
-              </span>
-            </div>
             <h1 className="text-2xl font-bold tracking-tight text-[var(--rv-text-main)]">
               Painel de Controle de Revenda
             </h1>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Key, Minus, Plus, Zap, Sliders, Tag } from "lucide-react";
+import { Check, Minus, Plus, Sliders, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatPrice } from "@/lib/license-utils";
 import { PixCheckoutDialog, type ResellerOrder } from "@/components/checkout/PixCheckoutDialog";
@@ -97,13 +97,8 @@ export function KeyStore() {
   return (
     <div className="space-y-8">
       {/* Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--rv-border)] pb-5">
+      <div className="border-b border-[var(--rv-border)] pb-5">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="rv-badge rv-badge-red font-mono uppercase text-[10px]">
-              <Key className="h-3 w-3" /> Catálogo de Licenças
-            </span>
-          </div>
           <h2 className="text-xl font-bold text-[var(--rv-text-main)] tracking-tight">Adquirir Licenças de Revenda</h2>
           <p className="text-xs text-[var(--rv-text-muted)]">
             Adquira chaves no atacado com desconto direto de distribuidor. Suas chaves geradas ficam disponíveis instantaneamente.
@@ -112,7 +107,7 @@ export function KeyStore() {
       </div>
 
       {/* Main Catalog Grid */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {KEY_PRODUCTS.map((p) => {
           const count = qty[p.slug] ?? 1;
           const profitMargin = p.suggestedCents - p.costCents;
@@ -195,9 +190,8 @@ export function KeyStore() {
                       { quantity: count, totalCents: totalCost },
                     )
                   }
-                  className="rv-btn-primary w-full flex items-center justify-center gap-2"
+                  className="rv-btn-primary w-full flex items-center justify-center"
                 >
-                  <Zap className="h-4 w-4" />
                   <span>Comprar • {formatPrice(totalCost)}</span>
                 </button>
               </div>
