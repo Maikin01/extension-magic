@@ -41,10 +41,38 @@ const KEY_PRODUCTS: KeyProduct[] = [
   },
 ];
 
+const WEEK_CENTS = 1490;
+const MONTH_CENTS = 2990;
+const LIFETIME_CENTS = 14990;
+const MIN_ORDER_CENTS = 990;
+
+/**
+ * Preço proporcional ancorado nas faixas oficiais:
+ * até 7 dias  -> R$ 14,90 / 7 dias (R$ 2,13/dia)
+ * 8 a 30 dias -> interpolado entre R$ 14,90 e R$ 29,90
+ * acima de 30 -> R$ 29,90 + ~R$ 1,00/dia extra, limitado à vitalícia
+ */
+export function customKeyPriceCents(days: number) {
+  const d = Math.max(1, Math.floor(days) || 1);
+  let cents: number;
+  if (d <= 7) {
+    cents = (WEEK_CENTS / 7) * d;
+  } else if (d <= 30) {
+    cents = WEEK_CENTS + ((MONTH_CENTS - WEEK_CENTS) / 23) * (d - 7);
+  } else {
+    cents = MONTH_CENTS + 100 * (d - 30);
+  }
+  cents = Math.min(LIFETIME_CENTS, Math.max(MIN_ORDER_CENTS, cents));
+  // arredonda para os 10 centavos mais próximos (para cima)
+  return Math.ceil(cents / 10) * 10;
+}
+
 export function KeyStore() {
   const [qty, setQty] = useState<Record<string, number>>({});
   const [customDays, setCustomDays] = useState("30");
   const [customQty, setCustomQty] = useState("1");
+
+
 
   const setQuantity = (slug: string, value: number) =>
     setQty((prev) => ({ ...prev, [slug]: Math.max(1, Math.min(500, value)) }));
