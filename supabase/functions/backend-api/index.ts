@@ -1116,7 +1116,283 @@ async function getAdminAccessStatus(context: AuthContext) {
   };
 }
 
+const productSchema = z.object({
+  slug: z.string().min(2).max(60).regex(/^[a-z0-9_-]+$/),
+  name: z.string().min(1).max(120),
+  tagline: z.string().max(200).optional().nullable(),
+  description: z.string().max(4000).optional().nullable(),
+  category: z.string().min(1).max(40),
+  price_cents: z.number().int().min(0).max(100_000_000),
+  old_price_cents: z.number().int().min(0).max(100_000_000).optional().nullable(),
+  cover_url: z.string().url().max(500).optional().nullable(),
+  delivery_type: z.enum(["link", "text", "file", "manual"]),
+  delivery_content: z.string().max(20_000).optional().nullable(),
+  delivery_instructions: z.string().max(4000).optional().nullable(),
+  stock: z.number().int().min(0).max(1_000_000).optional().nullable(),
+  rating: z.number().min(0).max(5).optional(),
+  is_active: z.boolean(),
+  featured: z.boolean(),
+  sort_order: z.number().int().min(0).max(999),
+});
+
+function publicProduct(row: any) {
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    tagline: row.tagline,
+    description: row.description,
+    category: row.category,
+    price_cents: row.price_cents,
+    old_price_cents: row.old_price_cents,
+    cover_url: row.cover_url,
+    delivery_type: row.delivery_type,
+    delivery_instructions: row.delivery_instructions,
+    stock: row.stock,
+    rating: Number(row.rating ?? 5),
+    featured: row.featured,
+  };
+}
+
+async function listMarketplaceProducts(context: AuthContext) {
+  const { data, error } = await context.admin
+    .from("marketplace_products")
+    .select("*")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return { products: (data ?? []).map(publicProduct) };
+}
+
+async function createMarketplaceOrder(context: AuthContext, input: unknown) {
+  const data = z
+    .object({
+      product_id: z.string().uuid(),
+      buyer_note: z.string().max(500).optional().nullable(),
+    })
+    .parse(input);
+
+  const { data: product, error } = await context.admin
+    .from("marketplace_products")
+    .select("*")
+    .eq("id", data.product_id)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (error) throw error;
+  if (!product) {
+    throw new ApiHttpError(404, "PRODUCT_NOT_FOUND", "Produto indisponível.");
+  }
+  if (product.stock !== null && product.stock <= 0) {
+    throw new ApiHttpError(409, "OUT_OF_STOCK", "Produto esgotado.");
+  }
+
+  const { data: order, error: orderError } = await context.admin
+    .from("marketplace_orders")
+    .insert({
+      product_id: product.id,
+      buyer_id: context.userId,
+      amount_cents: product.price_cents,
+      buyer_note: data.buyer_note ?? null,
+      status: "pending",
+    })
+    .select()
+    .single();
+  if (orderError) throw orderError;
+  return { order: { id: order.id, status: order.status } };
+}
+
+async function listMyMarketplaceOrders(context: AuthContext) {
+  const { data, error } = await context.admin
+    .from("marketplace_orders")
+    .select("*, marketplace_products(name, delivery_type, delivery_instructions)")
+    .eq("buyer_id", context.userId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw error;
+  return {
+    orders: (data ?? []).map((row: any) => ({
+      id: row.id,
+      status: row.status,
+      amount_cents: row.amount_cents,
+      created_at: row.created_at,
+      delivered_at: row.delivered_at,
+      product_name: row.marketplace_products?.name ?? null,
+      delivery_type: row.marketplace_products?.delivery_type ?? null,
+      delivery_instructions: row.marketplace_products?.delivery_instructions ?? null,
+      delivered_content: row.status === "delivered" ? row.delivered_content : null,
+    })),
+  };
+}
+
+async function adminListMarketplaceProducts(context: AuthContext) {
+  await assertAdmin(context);
+  const { data, error } = await context.admin
+    .from("marketplace_products")
+    .select("*")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return { products: data ?? [] };
+}
+
+async function adminCreateMarketplaceProduct(context: AuthContext, input: unknown) {
+  const adminId = await assertAdmin(context);
+  const data = productSchema.parse(input);
+  const { data: product, error } = await context.admin
+    .from("marketplace_products")
+    .insert(data)
+    .select()
+    .single();
+  if (error) throw error;
+  await context.admin.from("admin_audit_log").insert({
+    admin_id: adminId,
+    action: "create_marketplace_product",
+    target_type: "marketplace_product",
+    target_id: product.id,
+  });
+  return { product };
+}
+
+async function adminUpdateMarketplaceProduct(context: AuthContext, input: unknown) {
+  const adminId = await assertAdmin(context);
+  const data = productSchema.extend({ id: z.string().uuid() }).parse(input);
+  const { id, ...updates } = data;
+  const { data: product, error } = await context.admin
+    .from("marketplace_products")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  await context.admin.from("admin_audit_log").insert({
+    admin_id: adminId,
+    action: "update_marketplace_product",
+    target_type: "marketplace_product",
+    target_id: id,
+  });
+  return { product };
+}
+
+async function adminDeleteMarketplaceProduct(context: AuthContext, input: unknown) {
+  const adminId = await assertAdmin(context);
+  const data = z.object({ product_id: z.string().uuid() }).parse(input);
+  const { error } = await context.admin
+    .from("marketplace_products")
+    .delete()
+    .eq("id", data.product_id);
+  if (error) {
+    throw new ApiHttpError(
+      409,
+      "PRODUCT_IN_USE",
+      "Não é possível excluir: este produto já possui pedidos. Desative-o.",
+    );
+  }
+  await context.admin.from("admin_audit_log").insert({
+    admin_id: adminId,
+    action: "delete_marketplace_product",
+    target_type: "marketplace_product",
+    target_id: data.product_id,
+  });
+  return { ok: true };
+}
+
+async function adminListMarketplaceOrders(context: AuthContext) {
+  await assertAdmin(context);
+  const [ordersResult, usersResult] = await Promise.all([
+    context.admin
+      .from("marketplace_orders")
+      .select("*, marketplace_products(name, delivery_type, delivery_content)")
+      .order("created_at", { ascending: false })
+      .limit(500),
+    context.admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
+  ]);
+  if (ordersResult.error) throw ordersResult.error;
+  const emails = new Map(
+    (usersResult.data?.users ?? []).map((user: any) => [user.id, user.email]),
+  );
+  return {
+    orders: (ordersResult.data ?? []).map((row: any) => ({
+      id: row.id,
+      status: row.status,
+      amount_cents: row.amount_cents,
+      created_at: row.created_at,
+      delivered_at: row.delivered_at,
+      buyer_id: row.buyer_id,
+      buyer_email: emails.get(row.buyer_id) ?? null,
+      buyer_note: row.buyer_note,
+      delivered_content: row.delivered_content,
+      product_name: row.marketplace_products?.name ?? null,
+      delivery_type: row.marketplace_products?.delivery_type ?? null,
+    })),
+  };
+}
+
+async function adminUpdateMarketplaceOrder(context: AuthContext, input: unknown) {
+  const adminId = await assertAdmin(context);
+  const data = z
+    .object({
+      order_id: z.string().uuid(),
+      status: z.enum(["pending", "paid", "delivered", "cancelled"]),
+      delivered_content: z.string().max(20_000).optional().nullable(),
+    })
+    .parse(input);
+
+  const { data: order, error } = await context.admin
+    .from("marketplace_orders")
+    .select("*, marketplace_products(delivery_type, delivery_content, stock, id)")
+    .eq("id", data.order_id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!order) throw new ApiHttpError(404, "ORDER_NOT_FOUND", "Pedido não encontrado.");
+
+  const product: any = order.marketplace_products ?? {};
+  let status = data.status;
+  let delivered_content = data.delivered_content ?? order.delivered_content ?? null;
+  let delivered_at = order.delivered_at;
+
+  // Pagamento confirmado: entrega automática quando o produto tem entregável salvo.
+  if (status === "paid" && product.delivery_type !== "manual" && product.delivery_content) {
+    delivered_content = product.delivery_content;
+    status = "delivered";
+  }
+  if (status === "delivered") {
+    if (!delivered_content) {
+      throw new ApiHttpError(
+        400,
+        "DELIVERY_CONTENT_REQUIRED",
+        "Informe o entregável antes de marcar como entregue.",
+      );
+    }
+    delivered_at = delivered_at ?? new Date().toISOString();
+    if (order.status !== "delivered" && product.id && typeof product.stock === "number") {
+      await context.admin
+        .from("marketplace_products")
+        .update({ stock: Math.max(0, product.stock - 1) })
+        .eq("id", product.id);
+    }
+  }
+
+  const { data: updated, error: updateError } = await context.admin
+    .from("marketplace_orders")
+    .update({ status, delivered_content, delivered_at })
+    .eq("id", data.order_id)
+    .select()
+    .single();
+  if (updateError) throw updateError;
+
+  await context.admin.from("admin_audit_log").insert({
+    admin_id: adminId,
+    action: "update_marketplace_order",
+    target_type: "marketplace_order",
+    target_id: data.order_id,
+    details: { status },
+  });
+  return { order: { id: updated.id, status: updated.status } };
+}
+
 async function dispatch(
+
   action: string,
   input: unknown,
   context: AuthContext,
