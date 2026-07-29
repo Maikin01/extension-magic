@@ -23,6 +23,7 @@ import {
 import { AccessGate } from "@/components/reseller/AccessGate";
 import { KeyStore } from "@/components/reseller/KeyStore";
 import { ResellerSupport } from "@/components/reseller/ResellerSupport";
+import { ResellerTutorial } from "@/components/reseller/ResellerTutorial";
 import { useAuth } from "@/auth/AuthProvider";
 import { getMyDashboard } from "@/lib/api/license-api";
 import { getMyResellerInfo, getResellerStats } from "@/lib/api/reseller-api";
