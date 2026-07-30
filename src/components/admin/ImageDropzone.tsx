@@ -8,6 +8,24 @@ import { cn } from "@/lib/utils";
 
 const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
 const MAX_BYTES = 5 * 1024 * 1024;
+const MIN_SIDE = 600;
+const RATIO_TOLERANCE = 0.03;
+
+function readDimensions(file: File) {
+  return new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Não foi possível ler a imagem."));
+    };
+    img.src = url;
+  });
+}
 
 type Props = {
   value: string;
@@ -30,6 +48,17 @@ export function ImageDropzone({ value, onChange }: Props) {
     }
     setUploading(true);
     try {
+      const { width, height } = await readDimensions(file);
+      if (Math.abs(width / height - 1) > RATIO_TOLERANCE) {
+        toast.error(
+          `Proporção inválida (${width}x${height}). Use imagens quadradas 1:1 — ex.: 1000x1000 px.`,
+        );
+        return;
+      }
+      if (width < MIN_SIDE || height < MIN_SIDE) {
+        toast.error(`Imagem pequena demais. Mínimo de ${MIN_SIDE}x${MIN_SIDE} px.`);
+        return;
+      }
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `products/${crypto.randomUUID()}.${ext}`;
       const { error } = await supabase.storage
@@ -94,6 +123,9 @@ export function ImageDropzone({ value, onChange }: Props) {
             <p className="text-sm font-medium">Arraste a imagem aqui</p>
             <p className="text-xs text-muted-foreground">
               ou clique para escolher • PNG, JPG ou WEBP até 5 MB
+            </p>
+            <p className="text-xs font-medium text-primary">
+              Proporção obrigatória 1:1 (quadrada) — recomendado 1000x1000 px
             </p>
           </>
         )}
