@@ -394,6 +394,51 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_stock_items: {
+        Row: {
+          content: string
+          created_at: string
+          delivered_at: string | null
+          id: string
+          order_id: string | null
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          order_id?: string | null
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          order_id?: string | null
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_stock_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_stock_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount_cents: number
@@ -742,6 +787,10 @@ export type Database = {
         }
         Returns: string
       }
+      claim_marketplace_stock_item: {
+        Args: { p_order_id: string; p_product_id: string }
+        Returns: string
+      }
       claim_reseller_entitlements: {
         Args: { p_email: string; p_user_id: string }
         Returns: boolean
@@ -788,6 +837,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      product_has_stock_items: {
+        Args: { p_product_id: string }
         Returns: boolean
       }
     }
