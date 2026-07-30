@@ -1297,7 +1297,10 @@ const productSchema = z.object({
   price_cents: z.number().int().min(0).max(100_000_000),
   old_price_cents: z.number().int().min(0).max(100_000_000).optional()
     .nullable(),
-  cover_url: z.string().url().max(500).optional().nullable(),
+  cover_url: z.string().max(1_500_000).refine(
+    (value) => value.startsWith("data:image/webp;base64,") || URL.canParse(value),
+    "Imagem inválida.",
+  ).optional().nullable(),
   delivery_type: z.enum(["link", "text", "file", "manual"]),
   delivery_content: z.string().max(20_000).optional().nullable(),
   delivery_instructions: z.string().max(4000).optional().nullable(),

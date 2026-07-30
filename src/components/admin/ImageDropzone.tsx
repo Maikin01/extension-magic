@@ -10,6 +10,7 @@ const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
 const MAX_BYTES = 5 * 1024 * 1024;
 const MIN_SIDE = 600;
 const RATIO_TOLERANCE = 0.03;
+const OUTPUT_SIDE = 1000;
 
 function readDimensions(file: File) {
   return new Promise<{ width: number; height: number }>((resolve, reject) => {
@@ -22,6 +23,31 @@ function readDimensions(file: File) {
     img.onerror = () => {
       URL.revokeObjectURL(url);
       reject(new Error("Não foi possível ler a imagem."));
+    };
+    img.src = url;
+  });
+}
+
+function optimizeImage(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+      canvas.width = OUTPUT_SIDE;
+      canvas.height = OUTPUT_SIDE;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        reject(new Error("Não foi possível processar a imagem."));
+        return;
+      }
+      context.drawImage(img, 0, 0, OUTPUT_SIDE, OUTPUT_SIDE);
+      resolve(canvas.toDataURL("image/webp", 0.82));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Não foi possível processar a imagem."));
     };
     img.src = url;
   });
@@ -64,7 +90,15 @@ export function ImageDropzone({ value, onChange }: Props) {
       const { error } = await supabase.storage
         .from("marketplace")
         .upload(path, file, { cacheControl: "31536000", upsert: false });
-      if (error) throw error;
+
+      if (error) {
+        const normalizedMessage = error.message.toLowerCase();
+        if (!normalizedMessage.includes("bucket not found")) throw error;
+        onChange(await optimizeImage(file));
+        toast.success("Imagem processada e adicionada ao produto!");
+        return;
+      }
+
       const { data, error: signError } = await supabase.storage
         .from("marketplace")
         .createSignedUrl(path, TEN_YEARS);
