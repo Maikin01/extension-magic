@@ -400,6 +400,7 @@ export type Database = {
           buyer_email: string | null
           buyer_name: string
           buyer_whatsapp: string
+          client_request_id: string | null
           created_at: string
           custom_duration_days: number | null
           expires_at: string | null
@@ -413,6 +414,7 @@ export type Database = {
           qr_code_base64: string | null
           quantity: number
           raw: Json | null
+          request_fingerprint: string | null
           reseller_id: string | null
           status: string
           ticket_url: string | null
@@ -424,6 +426,7 @@ export type Database = {
           buyer_email?: string | null
           buyer_name: string
           buyer_whatsapp: string
+          client_request_id?: string | null
           created_at?: string
           custom_duration_days?: number | null
           expires_at?: string | null
@@ -437,6 +440,7 @@ export type Database = {
           qr_code_base64?: string | null
           quantity?: number
           raw?: Json | null
+          request_fingerprint?: string | null
           reseller_id?: string | null
           status?: string
           ticket_url?: string | null
@@ -448,6 +452,7 @@ export type Database = {
           buyer_email?: string | null
           buyer_name?: string
           buyer_whatsapp?: string
+          client_request_id?: string | null
           created_at?: string
           custom_duration_days?: number | null
           expires_at?: string | null
@@ -461,6 +466,7 @@ export type Database = {
           qr_code_base64?: string | null
           quantity?: number
           raw?: Json | null
+          request_fingerprint?: string | null
           reseller_id?: string | null
           status?: string
           ticket_url?: string | null
@@ -539,6 +545,7 @@ export type Database = {
           full_name: string | null
           id: string
           referral_code: string | null
+          trial_claimed_at: string | null
           updated_at: string
         }
         Insert: {
@@ -547,6 +554,7 @@ export type Database = {
           full_name?: string | null
           id: string
           referral_code?: string | null
+          trial_claimed_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -555,6 +563,76 @@ export type Database = {
           full_name?: string | null
           id?: string
           referral_code?: string | null
+          trial_claimed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      risecheckout_reseller_entitlements: {
+        Row: {
+          amount_cents: number | null
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          currency: string | null
+          customer_name: string | null
+          email_normalized: string
+          event_created_at: string | null
+          id: string
+          last_event_at: string
+          last_event_type: string
+          order_id: string
+          order_item_id: string
+          paid_at: string | null
+          product_id: string | null
+          product_name: string
+          provider: string
+          raw_payload: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents?: number | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_name?: string | null
+          email_normalized: string
+          event_created_at?: string | null
+          id?: string
+          last_event_at?: string
+          last_event_type: string
+          order_id: string
+          order_item_id: string
+          paid_at?: string | null
+          product_id?: string | null
+          product_name: string
+          provider?: string
+          raw_payload: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_name?: string | null
+          email_normalized?: string
+          event_created_at?: string | null
+          id?: string
+          last_event_at?: string
+          last_event_type?: string
+          order_id?: string
+          order_item_id?: string
+          paid_at?: string | null
+          product_id?: string | null
+          product_name?: string
+          provider?: string
+          raw_payload?: Json
+          status?: string
           updated_at?: string
         }
         Relationships: []
@@ -645,6 +723,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_license_device: {
+        Args: {
+          p_browser: string
+          p_device_hash: string
+          p_ext_version: string
+          p_license_id: string
+          p_os: string
+        }
+        Returns: Json
+      }
+      apply_payment_status: {
+        Args: {
+          p_payment_id: string
+          p_provider_payment_id: string
+          p_raw: Json
+          p_status: string
+        }
+        Returns: string
+      }
+      claim_reseller_entitlements: {
+        Args: { p_email: string; p_user_id: string }
+        Returns: boolean
+      }
       claim_trial_license: {
         Args: {
           p_expires_at: string
@@ -681,6 +782,7 @@ export type Database = {
         Returns: Json
       }
       generate_referral_code: { Args: { _user_id: string }; Returns: string }
+      get_reseller_signup_status: { Args: { p_email: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
