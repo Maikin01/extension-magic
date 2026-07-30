@@ -111,9 +111,7 @@ export function ImageDropzone({ value, onChange }: Props) {
         });
 
       if (error) {
-        onChange(optimized);
-        toast.success("Imagem processada e adicionada ao produto!");
-        return;
+        throw new Error(`Não foi possível enviar a imagem: ${error.message}`);
       }
 
       const { data, error: signError } = await supabase.storage
