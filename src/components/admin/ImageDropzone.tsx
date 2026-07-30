@@ -48,6 +48,17 @@ export function ImageDropzone({ value, onChange }: Props) {
     }
     setUploading(true);
     try {
+      const { width, height } = await readDimensions(file);
+      if (Math.abs(width / height - 1) > RATIO_TOLERANCE) {
+        toast.error(
+          `Proporção inválida (${width}x${height}). Use imagens quadradas 1:1 — ex.: 1000x1000 px.`,
+        );
+        return;
+      }
+      if (width < MIN_SIDE || height < MIN_SIDE) {
+        toast.error(`Imagem pequena demais. Mínimo de ${MIN_SIDE}x${MIN_SIDE} px.`);
+        return;
+      }
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `products/${crypto.randomUUID()}.${ext}`;
       const { error } = await supabase.storage
