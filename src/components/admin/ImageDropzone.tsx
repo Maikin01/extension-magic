@@ -8,6 +8,24 @@ import { cn } from "@/lib/utils";
 
 const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
 const MAX_BYTES = 5 * 1024 * 1024;
+const MIN_SIDE = 600;
+const RATIO_TOLERANCE = 0.03;
+
+function readDimensions(file: File) {
+  return new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Não foi possível ler a imagem."));
+    };
+    img.src = url;
+  });
+}
 
 type Props = {
   value: string;
