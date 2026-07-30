@@ -169,8 +169,20 @@ function normalizeError(error: unknown): ApiHttpError {
   if (error instanceof ApiHttpError) return error;
 
   if (error instanceof Error && error.name === "ZodError") {
-    return new ApiHttpError(400, "VALIDATION_ERROR", "Dados inválidos.", {
+    const issues = (error as unknown as { issues?: Array<{ path?: unknown[]; message?: string }> })
+      .issues ?? [];
+    const fields: FieldIssue[] = issues.map((issue) => ({
+      field: Array.isArray(issue.path) ? issue.path.join(".") : "",
+      message: issue.message ?? "Valor inválido.",
+    }));
+    const summary = fields.length
+      ? `Dados inválidos: ${
+        fields.map((f) => `${f.field || "campo"} (${f.message})`).join("; ")
+      }`
+      : "Dados inválidos.";
+    return new ApiHttpError(400, "VALIDATION_ERROR", summary, {
       cause: error,
+      fields,
     });
   }
 
