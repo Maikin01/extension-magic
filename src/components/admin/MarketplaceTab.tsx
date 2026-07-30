@@ -373,6 +373,7 @@ function ProductsPanel() {
                   value={form.cover_url ?? ""}
                   onChange={(url) => setForm((f) => ({ ...f, cover_url: url }))}
                 />
+                {fieldError("cover_url")}
               </div>
 
               <div className="rounded-xl border border-border/60 p-3">
