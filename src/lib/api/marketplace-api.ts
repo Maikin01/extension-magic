@@ -22,6 +22,8 @@ export type MarketplaceProduct = {
 
 export type AdminProduct = MarketplaceProduct & {
   delivery_content: string | null;
+  stock_items?: string[];
+  stock_items_used?: number;
   is_active: boolean;
   sort_order: number;
   created_at: string;
@@ -40,6 +42,7 @@ export type ProductInput = {
   delivery_content: string | null;
   delivery_instructions: string | null;
   stock: number | null;
+  stock_items?: string[];
   rating: number;
   is_active: boolean;
   featured: boolean;

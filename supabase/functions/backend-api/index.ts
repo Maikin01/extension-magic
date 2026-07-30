@@ -1305,6 +1305,7 @@ const productSchema = z.object({
   delivery_content: z.string().max(20_000).optional().nullable(),
   delivery_instructions: z.string().max(4000).optional().nullable(),
   stock: z.number().int().min(0).max(1_000_000).optional().nullable(),
+  stock_items: z.array(z.string().min(1).max(20_000)).max(5_000).optional(),
   rating: z.number().min(0).max(5).optional(),
   is_active: z.boolean(),
   featured: z.boolean(),
@@ -1593,6 +1594,75 @@ async function listMyMarketplaceOrders(context: AuthContext) {
   };
 }
 
+/** Substitui o estoque unitário do produto (um entregável por unidade). */
+async function replaceStockItems(
+  admin: any,
+  productId: string,
+  items: string[],
+) {
+  const { data: existing, error } = await admin
+    .from("marketplace_stock_items")
+    .select("id, content, order_id")
+    .eq("product_id", productId);
+  if (error) throw error;
+
+  const rows = existing ?? [];
+  const used = rows.filter((row: any) => row.order_id);
+  const available = rows.filter((row: any) => !row.order_id);
+  const wanted = items.map((item) => item.trim()).filter(Boolean);
+
+  // Mantém as unidades já entregues; só o estoque disponível é reescrito.
+  const usedContents = new Set(used.map((row: any) => row.content));
+  const target = wanted.filter((item) => !usedContents.has(item));
+
+  const keep: string[] = [];
+  const toDelete: string[] = [];
+  const remaining = [...target];
+  for (const row of available) {
+    const index = remaining.indexOf(row.content);
+    if (index >= 0) {
+      remaining.splice(index, 1);
+      keep.push(row.content);
+    } else {
+      toDelete.push(row.id);
+    }
+  }
+
+  if (toDelete.length) {
+    const { error: deleteError } = await admin
+      .from("marketplace_stock_items")
+      .delete()
+      .in("id", toDelete);
+    if (deleteError) throw deleteError;
+  }
+  if (remaining.length) {
+    const { error: insertError } = await admin
+      .from("marketplace_stock_items")
+      .insert(
+        remaining.map((content) => ({ product_id: productId, content })),
+      );
+    if (insertError) throw insertError;
+  }
+  return keep.length + remaining.length;
+}
+
+async function loadStockItems(admin: any, productIds: string[]) {
+  if (!productIds.length) return new Map<string, any[]>();
+  const { data, error } = await admin
+    .from("marketplace_stock_items")
+    .select("id, product_id, content, order_id, delivered_at, created_at")
+    .in("product_id", productIds)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  const map = new Map<string, any[]>();
+  for (const row of data ?? []) {
+    const list = map.get(row.product_id) ?? [];
+    list.push(row);
+    map.set(row.product_id, list);
+  }
+  return map;
+}
+
 async function adminListMarketplaceProducts(context: AuthContext) {
   await assertAdmin(context);
   const { data, error } = await context.admin
@@ -1601,7 +1671,23 @@ async function adminListMarketplaceProducts(context: AuthContext) {
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return { products: data ?? [] };
+  const rows = data ?? [];
+  const items = await loadStockItems(
+    context.admin,
+    rows.map((row: any) => row.id),
+  );
+  return {
+    products: rows.map((row: any) => {
+      const list = items.get(row.id) ?? [];
+      return {
+        ...row,
+        stock_items: list.filter((item: any) => !item.order_id).map((item: any) =>
+          item.content
+        ),
+        stock_items_used: list.filter((item: any) => !!item.order_id).length,
+      };
+    }),
+  };
 }
 
 async function adminCreateMarketplaceProduct(
@@ -1609,13 +1695,18 @@ async function adminCreateMarketplaceProduct(
   input: unknown,
 ) {
   const adminId = await assertAdmin(context);
-  const data = productSchema.parse(input);
+  const { stock_items, ...data } = productSchema.parse(input);
   const { data: product, error } = await context.admin
     .from("marketplace_products")
-    .insert(data)
+    .insert(
+      stock_items && stock_items.length
+        ? { ...data, stock: stock_items.length }
+        : data,
+    )
     .select()
     .single();
   if (error) throw error;
+  if (stock_items) await replaceStockItems(context.admin, product.id, stock_items);
   await context.admin.from("admin_audit_log").insert({
     admin_id: adminId,
     action: "create_marketplace_product",
@@ -1631,7 +1722,11 @@ async function adminUpdateMarketplaceProduct(
 ) {
   const adminId = await assertAdmin(context);
   const data = productSchema.extend({ id: z.string().uuid() }).parse(input);
-  const { id, ...updates } = data;
+  const { id, stock_items, ...updates } = data;
+  if (stock_items) {
+    await replaceStockItems(context.admin, id, stock_items);
+    (updates as any).stock = stock_items.length;
+  }
   const { data: product, error } = await context.admin
     .from("marketplace_products")
     .update(updates)
@@ -1729,14 +1824,21 @@ async function adminUpdateMarketplaceOrder(
   let delivered_content = data.delivered_content ?? order.delivered_content ??
     null;
   let delivered_at = order.delivered_at;
+  let unitContent: string | null = null;
 
-  // Pagamento confirmado: entrega automática quando o produto tem entregável salvo.
-  if (
-    status === "paid" && product.delivery_type !== "manual" &&
-    product.delivery_content
-  ) {
-    delivered_content = product.delivery_content;
-    status = "delivered";
+  // Pagamento confirmado: entrega automática (uma unidade do estoque por pedido).
+  if (status === "paid" && product.delivery_type !== "manual") {
+    if (!delivered_content && product.id) {
+      const claimed = await context.admin.rpc("claim_marketplace_stock_item", {
+        p_product_id: product.id,
+        p_order_id: order.id,
+      });
+      if (claimed.error) throw claimed.error;
+      unitContent = (claimed.data as string | null) ?? null;
+    }
+    delivered_content = delivered_content ?? unitContent ??
+      product.delivery_content ?? null;
+    if (delivered_content) status = "delivered";
   }
   if (status === "delivered") {
     if (!delivered_content) {
@@ -1748,7 +1850,7 @@ async function adminUpdateMarketplaceOrder(
     }
     delivered_at = delivered_at ?? new Date().toISOString();
     if (
-      order.status !== "delivered" && product.id &&
+      !unitContent && order.status !== "delivered" && product.id &&
       typeof product.stock === "number"
     ) {
       await context.admin

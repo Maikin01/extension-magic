@@ -14,17 +14,29 @@ export async function deliverMarketplaceOrder(admin: any, orderId: string) {
   }
 
   const product: any = order.marketplace_products ?? {};
-  const autoDeliver = product.delivery_type !== "manual" &&
-    !!product.delivery_content;
+
+  // Estoque unitário: cada unidade tem seu próprio entregável (link/chave).
+  let unitContent: string | null = null;
+  if (product.id && product.delivery_type !== "manual") {
+    const { data: claimed, error: claimError } = await admin.rpc(
+      "claim_marketplace_stock_item",
+      { p_product_id: product.id, p_order_id: order.id },
+    );
+    if (claimError) throw claimError;
+    unitContent = (claimed as string | null) ?? null;
+  }
+
+  const deliveryContent = order.delivered_content ?? unitContent ??
+    product.delivery_content ?? null;
+  const autoDeliver = product.delivery_type !== "manual" && !!deliveryContent;
   const updates: Record<string, unknown> = {
     status: autoDeliver ? "delivered" : "paid",
     paid_at: order.paid_at ?? new Date().toISOString(),
   };
   if (autoDeliver) {
-    updates.delivered_content = order.delivered_content ??
-      product.delivery_content;
+    updates.delivered_content = deliveryContent;
     updates.delivered_at = order.delivered_at ?? new Date().toISOString();
-    if (product.id && typeof product.stock === "number") {
+    if (!unitContent && product.id && typeof product.stock === "number") {
       await admin
         .from("marketplace_products")
         .update({ stock: Math.max(0, product.stock - 1) })
