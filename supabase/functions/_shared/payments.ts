@@ -77,7 +77,16 @@ export async function reconcilePendingPayments(
     .select(
       "id, user_id, quantity, amount_cents, buyer_email, provider_payment_id, status",
     )
-    .in("status", ["pending", "in_process", "authorized"])
+    .in("status", [
+      "pending",
+      "in_process",
+      "authorized",
+      "in_mediation",
+      // cancelado/rejeitado pode ser um evento fora de ordem de um Pix pago:
+      // reconsultamos no provedor para não deixar cliente sem chave.
+      "cancelled",
+      "rejected",
+    ])
     .not("provider_payment_id", "is", null)
     .gte("created_at", since)
     .order("created_at", { ascending: false })
@@ -109,6 +118,31 @@ export async function reconcilePendingPayments(
     } catch (err) {
       console.warn(
         "[reconcile-payments]",
+        JSON.stringify({
+          paymentId: payment.id,
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
+  }
+
+  // Segunda rede: pagamentos já aprovados que ficaram sem chave gerada.
+  let missing = admin
+    .from("payments")
+    .select("id, quantity")
+    .eq("status", "approved")
+    .is("license_id", null)
+    .gte("created_at", since)
+    .limit(50);
+  if (options.userId) missing = missing.eq("user_id", options.userId);
+  const { data: orphans } = await missing;
+  for (const payment of orphans ?? []) {
+    try {
+      await finalizePaymentLicenses(admin, payment.id, payment.quantity ?? 1);
+      approved += 1;
+    } catch (err) {
+      console.warn(
+        "[reconcile-payments:orphan]",
         JSON.stringify({
           paymentId: payment.id,
           message: err instanceof Error ? err.message : String(err),
