@@ -87,10 +87,29 @@ const emptyForm: Form = {
 
 const toCents = (value: string) => Math.round(Number(value.replace(",", ".") || "0") * 100);
 
+const FIELD_LABELS: Record<string, string> = {
+  slug: "Identificador (slug)",
+  name: "Nome",
+  tagline: "Chamada curta",
+  description: "Descrição completa",
+  category: "Categoria",
+  price_cents: "Preço",
+  old_price_cents: "Preço antigo",
+  cover_url: "Imagem de capa",
+  delivery_type: "Tipo de entregável",
+  delivery_content: "Entregável",
+  delivery_instructions: "Instruções de uso",
+  stock: "Estoque",
+  stock_items: "Estoque por unidade",
+  rating: "Avaliação",
+  sort_order: "Ordem",
+};
+
 function ProductsPanel() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Form>(emptyForm);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin", "marketplace", "products"],
@@ -123,6 +142,40 @@ function ProductsPanel() {
         featured: form.featured,
         sort_order: Number(form.sort_order) || 0,
       };
+
+      // Validação local: aponta o campo exato antes de chamar o backend.
+      const local: Record<string, string> = {};
+      if (payload.name.length < 1) local.name = "Informe o nome do produto.";
+      if (payload.slug.length < 2) local.slug = "Informe ao menos 2 caracteres.";
+      else if (!/^[a-z0-9_-]+$/.test(payload.slug)) {
+        local.slug = "Use apenas letras minúsculas, números, - e _.";
+      }
+      if (!payload.category) local.category = "Escolha uma categoria.";
+      if (!Number.isFinite(payload.price_cents) || payload.price_cents < 0) {
+        local.price_cents = "Informe um preço válido (ex.: 49,90).";
+      }
+      if (
+        payload.cover_url &&
+        !/^data:image\/[a-z0-9.+-]+;base64,/i.test(payload.cover_url) &&
+        !/^https?:\/\//i.test(payload.cover_url)
+      ) {
+        local.cover_url = "Envie uma imagem ou informe uma URL http(s) válida.";
+      }
+      if (Number(payload.rating) < 0 || Number(payload.rating) > 5) {
+        local.rating = "A avaliação deve ficar entre 0 e 5.";
+      }
+      if (Object.keys(local).length) {
+        setFieldErrors(local);
+        throw new Error(
+          `Corrija: ${
+            Object.keys(local)
+              .map((k) => FIELD_LABELS[k] ?? k)
+              .join(", ")
+          }`,
+        );
+      }
+      setFieldErrors({});
+
       return form.id
         ? adminUpdateMarketplaceProduct({ ...payload, id: form.id })
         : adminCreateMarketplaceProduct(payload);
@@ -131,10 +184,34 @@ function ProductsPanel() {
       toast.success("Produto salvo!");
       setOpen(false);
       setForm(emptyForm);
+      setFieldErrors({});
       void qc.invalidateQueries({ queryKey: ["admin", "marketplace"] });
     },
-    onError: (e) => toast.error(translateError(e)),
+    onError: (e) => {
+      const fields = (e as { fields?: Array<{ field: string; message: string }> }).fields;
+      if (Array.isArray(fields) && fields.length) {
+        const mapped: Record<string, string> = {};
+        for (const issue of fields) {
+          mapped[issue.field.split(".")[0]] = issue.message;
+        }
+        setFieldErrors(mapped);
+        toast.error(
+          `Corrija: ${
+            fields.map((f) => FIELD_LABELS[f.field.split(".")[0]] ?? f.field).join(", ")
+          }`,
+        );
+        return;
+      }
+      toast.error(translateError(e));
+    },
   });
+
+  const fieldError = (name: string) =>
+    fieldErrors[name] ? (
+      <p className="text-[11px] font-medium text-destructive">{fieldErrors[name]}</p>
+    ) : null;
+  const invalid = (name: string) =>
+    fieldErrors[name] ? "border-destructive focus-visible:ring-destructive" : "";
 
   const [pendingDelete, setPendingDelete] = useState<AdminProduct | null>(null);
 
