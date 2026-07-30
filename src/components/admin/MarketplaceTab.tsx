@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QueryErrorState } from "@/components/QueryErrorState";
+import { ImageDropzone } from "@/components/admin/ImageDropzone";
 import { formatPrice } from "@/lib/license-utils";
 import { translateError } from "@/lib/translate-error";
 import {
