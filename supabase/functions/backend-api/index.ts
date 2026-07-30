@@ -707,6 +707,8 @@ async function adminGetAuditLog(context: AuthContext) {
 
 async function adminListPayments(context: AuthContext) {
   await assertAdmin(context);
+  // Reconcilia pendentes antes de listar: nada fica "pendente" se já foi pago.
+  await reconcilePendingPayments(context.admin, { limit: 40 });
   const { data, error } = await context.admin
     .from("payments")
     .select(
