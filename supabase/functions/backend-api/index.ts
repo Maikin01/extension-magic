@@ -86,6 +86,7 @@ const ADMIN_MUTATION_ACTIONS = new Set([
   "createMarketplaceOrder",
   "createMarketplacePixCheckout",
   "adminCreateMarketplaceProduct",
+  "adminUploadMarketplaceImage",
   "adminUpdateMarketplaceProduct",
   "adminDeleteMarketplaceProduct",
   "adminUpdateMarketplaceOrder",
@@ -122,6 +123,7 @@ const BACKEND_ACTIONS = new Set([
   "listMyMarketplaceOrders",
   "adminListMarketplaceProducts",
   "adminCreateMarketplaceProduct",
+  "adminUploadMarketplaceImage",
   "adminUpdateMarketplaceProduct",
   "adminDeleteMarketplaceProduct",
   "adminListMarketplaceOrders",
@@ -1731,6 +1733,56 @@ async function adminCreateMarketplaceProduct(
   return { product };
 }
 
+async function adminUploadMarketplaceImage(
+  context: AuthContext,
+  input: unknown,
+) {
+  await assertAdmin(context);
+  const { data_url } = z.object({
+    data_url: z.string().max(650_000, "A imagem excede o limite permitido."),
+  }).parse(input);
+  const match = /^data:image\/(webp);base64,([a-z0-9+/=]+)$/i.exec(data_url);
+  if (!match) {
+    throw new ApiHttpError(400, "INVALID_IMAGE", "A imagem enviada é inválida.");
+  }
+
+  const bytes = Uint8Array.from(atob(match[2]), (character) => character.charCodeAt(0));
+  if (bytes.byteLength > 500_000) {
+    throw new ApiHttpError(400, "IMAGE_TOO_LARGE", "A imagem excede o limite permitido.");
+  }
+
+  const path = `products/${crypto.randomUUID()}.webp`;
+  const { error: uploadError } = await context.admin.storage
+    .from("marketplace")
+    .upload(path, bytes, {
+      cacheControl: "31536000",
+      contentType: "image/webp",
+      upsert: false,
+    });
+  if (uploadError) {
+    console.error("[marketplace-image-upload]", uploadError.message);
+    throw new ApiHttpError(
+      500,
+      "IMAGE_UPLOAD_FAILED",
+      "Não foi possível armazenar a imagem. Tente novamente.",
+      { cause: uploadError },
+    );
+  }
+
+  const { data: signed, error: signError } = await context.admin.storage
+    .from("marketplace")
+    .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  if (signError || !signed?.signedUrl) {
+    throw new ApiHttpError(
+      500,
+      "IMAGE_URL_FAILED",
+      "A imagem foi enviada, mas não foi possível gerar o link.",
+      { cause: signError },
+    );
+  }
+  return { url: signed.signedUrl };
+}
+
 async function adminUpdateMarketplaceProduct(
   context: AuthContext,
   input: unknown,
@@ -1959,6 +2011,8 @@ async function dispatch(
       return adminListMarketplaceProducts(context);
     case "adminCreateMarketplaceProduct":
       return adminCreateMarketplaceProduct(context, input);
+    case "adminUploadMarketplaceImage":
+      return adminUploadMarketplaceImage(context, input);
     case "adminUpdateMarketplaceProduct":
       return adminUpdateMarketplaceProduct(context, input);
     case "adminDeleteMarketplaceProduct":

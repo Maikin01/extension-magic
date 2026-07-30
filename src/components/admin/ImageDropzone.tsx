@@ -1,17 +1,16 @@
 import { useRef, useState } from "react";
 import { ImagePlus, Loader2, Trash2, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { adminUploadMarketplaceImage } from "@/lib/api/marketplace-api";
 import { cn } from "@/lib/utils";
 
-const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
 const MAX_BYTES = 5 * 1024 * 1024;
 const MIN_SIDE = 600;
 const RATIO_TOLERANCE = 0.03;
 const OUTPUT_SIDE = 1000;
-const MAX_DATA_URL_BYTES = 900_000;
+const MAX_DATA_URL_BYTES = 600_000;
 
 function readDimensions(file: File) {
   return new Promise<{ width: number; height: number }>((resolve, reject) => {
@@ -99,31 +98,8 @@ export function ImageDropzone({ value, onChange }: Props) {
         return;
       }
       const optimized = await optimizeImage(file);
-      const response = await fetch(optimized);
-      const optimizedFile = await response.blob();
-      const path = `products/${crypto.randomUUID()}.webp`;
-      const { error } = await supabase.storage
-        .from("marketplace")
-        .upload(path, optimizedFile, {
-          cacheControl: "31536000",
-          contentType: "image/webp",
-          upsert: false,
-        });
-
-      if (error) {
-        if (/bucket not found/i.test(error.message)) {
-          onChange(optimized);
-          toast.success("Imagem adicionada ao produto!");
-          return;
-        }
-        throw new Error(`Não foi possível enviar a imagem: ${error.message}`);
-      }
-
-      const { data, error: signError } = await supabase.storage
-        .from("marketplace")
-        .createSignedUrl(path, TEN_YEARS);
-      if (signError) throw signError;
-      onChange(data.signedUrl);
+      const { url } = await adminUploadMarketplaceImage(optimized);
+      onChange(url);
       toast.success("Imagem enviada!");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao enviar a imagem.");
