@@ -87,6 +87,15 @@ export const listMyMarketplaceOrders = () =>
 export const adminListMarketplaceProducts = () =>
   backendApi.invoke<{ products: AdminProduct[] }>("adminListMarketplaceProducts");
 
+export const adminUploadMarketplaceImage = (data_url: string) =>
+  backendApi.invoke<{ url: string }>(
+    "adminUploadMarketplaceImage",
+    { data_url },
+    {
+      timeoutMs: 45_000,
+    },
+  );
+
 export const adminCreateMarketplaceProduct = (data: ProductInput) =>
   backendApi.invoke<{ product: AdminProduct }>("adminCreateMarketplaceProduct", data, {
     timeoutMs: 45_000,
