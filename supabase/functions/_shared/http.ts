@@ -12,17 +12,24 @@ const EXPOSED_HEADERS = "x-request-id, retry-after";
 const ALLOWED_HEADERS =
   "authorization, x-client-info, apikey, content-type, x-request-id";
 
+export type FieldIssue = { field: string; message: string };
+
 export class ApiHttpError extends Error {
   readonly status: number;
   readonly code: string;
   readonly publicMessage: string;
   readonly retryAfterSeconds?: number;
+  readonly fields?: FieldIssue[];
 
   constructor(
     status: number,
     code: string,
     publicMessage: string,
-    options: { cause?: unknown; retryAfterSeconds?: number } = {},
+    options: {
+      cause?: unknown;
+      retryAfterSeconds?: number;
+      fields?: FieldIssue[];
+    } = {},
   ) {
     super(
       publicMessage,
@@ -33,6 +40,7 @@ export class ApiHttpError extends Error {
     this.code = code;
     this.publicMessage = publicMessage;
     this.retryAfterSeconds = options.retryAfterSeconds;
+    this.fields = options.fields;
   }
 }
 
@@ -161,8 +169,20 @@ function normalizeError(error: unknown): ApiHttpError {
   if (error instanceof ApiHttpError) return error;
 
   if (error instanceof Error && error.name === "ZodError") {
-    return new ApiHttpError(400, "VALIDATION_ERROR", "Dados inválidos.", {
+    const issues = (error as unknown as { issues?: Array<{ path?: unknown[]; message?: string }> })
+      .issues ?? [];
+    const fields: FieldIssue[] = issues.map((issue) => ({
+      field: Array.isArray(issue.path) ? issue.path.join(".") : "",
+      message: issue.message ?? "Valor inválido.",
+    }));
+    const summary = fields.length
+      ? `Dados inválidos: ${
+        fields.map((f) => `${f.field || "campo"} (${f.message})`).join("; ")
+      }`
+      : "Dados inválidos.";
+    return new ApiHttpError(400, "VALIDATION_ERROR", summary, {
       cause: error,
+      fields,
     });
   }
 
@@ -220,6 +240,7 @@ export function errorResponse(error: unknown, context?: HttpContext): Response {
     {
       error: normalized.publicMessage,
       code: normalized.code,
+      fields: normalized.fields ?? undefined,
       requestId: context?.requestId ?? crypto.randomUUID(),
     },
     normalized.status,

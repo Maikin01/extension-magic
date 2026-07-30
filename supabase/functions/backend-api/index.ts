@@ -1284,32 +1284,37 @@ async function getAdminAccessStatus(context: AuthContext) {
   };
 }
 
+const optionalText = (max: number) =>
+  z.string().max(max).optional().nullable().transform((v) =>
+    v == null || v.trim() === "" ? null : v
+  );
+
 const productSchema = z.object({
   slug: z
     .string()
-    .min(2)
+    .min(2, "Use ao menos 2 caracteres.")
     .max(60)
-    .regex(/^[a-z0-9_-]+$/),
-  name: z.string().min(1).max(120),
-  tagline: z.string().max(200).optional().nullable(),
-  description: z.string().max(4000).optional().nullable(),
-  category: z.string().min(1).max(40),
-  price_cents: z.number().int().min(0).max(100_000_000),
-  old_price_cents: z.number().int().min(0).max(100_000_000).optional()
+    .regex(/^[a-z0-9_-]+$/, "Use apenas letras minúsculas, números, - e _."),
+  name: z.string().min(1, "Informe o nome.").max(120),
+  tagline: optionalText(200),
+  description: optionalText(4000),
+  category: z.string().min(1, "Informe a categoria.").max(40),
+  price_cents: z.coerce.number().int().min(0).max(100_000_000),
+  old_price_cents: z.coerce.number().int().min(0).max(100_000_000).optional()
     .nullable(),
   cover_url: z.string().max(1_500_000).refine(
-    (value) => value.startsWith("data:image/webp;base64,") || URL.canParse(value),
-    "Imagem inválida.",
-  ).optional().nullable(),
+    (value) => /^data:image\/[a-z0-9.+-]+;base64,/i.test(value) || URL.canParse(value),
+    "Envie uma imagem válida ou uma URL http(s).",
+  ).optional().nullable().or(z.literal("").transform(() => null)),
   delivery_type: z.enum(["link", "text", "file", "manual"]),
-  delivery_content: z.string().max(20_000).optional().nullable(),
-  delivery_instructions: z.string().max(4000).optional().nullable(),
-  stock: z.number().int().min(0).max(1_000_000).optional().nullable(),
+  delivery_content: optionalText(20_000),
+  delivery_instructions: optionalText(4000),
+  stock: z.coerce.number().int().min(0).max(1_000_000).optional().nullable(),
   stock_items: z.array(z.string().min(1).max(20_000)).max(5_000).optional(),
-  rating: z.number().min(0).max(5).optional(),
+  rating: z.coerce.number().min(0).max(5).optional(),
   is_active: z.boolean(),
   featured: z.boolean(),
-  sort_order: z.number().int().min(0).max(999),
+  sort_order: z.coerce.number().int().min(0).max(999),
 });
 
 function publicProduct(row: any) {

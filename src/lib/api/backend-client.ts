@@ -3,23 +3,34 @@ import { getSupabasePublicConfig } from "@/integrations/supabase/public-config";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 
+export type FieldIssue = { field: string; message: string };
+
 type ErrorPayload = {
   code?: unknown;
   message?: unknown;
   requestId?: unknown;
+  fields?: unknown;
 };
 
 export class BackendApiError extends Error {
   readonly code: string;
   readonly status: number;
   readonly requestId: string;
+  readonly fields: FieldIssue[];
 
-  constructor(options: { message: string; code?: string; status?: number; requestId: string }) {
+  constructor(options: {
+    message: string;
+    code?: string;
+    status?: number;
+    requestId: string;
+    fields?: FieldIssue[];
+  }) {
     super(options.message);
     this.name = "BackendApiError";
     this.code = options.code ?? "BACKEND_ERROR";
     this.status = options.status ?? 500;
     this.requestId = options.requestId;
+    this.fields = options.fields ?? [];
   }
 }
 
@@ -39,6 +50,7 @@ function normalizeErrorPayload(payload: unknown): ErrorPayload {
       code: record.code,
       message: nested,
       requestId: record.requestId,
+      fields: record.fields,
     };
   }
   return record as ErrorPayload;
@@ -117,6 +129,11 @@ async function request<T>(options: {
             : `O backend respondeu com HTTP ${response.status}.`,
         code: typeof details.code === "string" ? details.code : `HTTP_${response.status}`,
         status: response.status,
+        fields: Array.isArray(details.fields)
+          ? (details.fields as FieldIssue[]).filter(
+              (f) => f && typeof f.message === "string",
+            )
+          : [],
         requestId:
           typeof details.requestId === "string"
             ? details.requestId
