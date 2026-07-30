@@ -1,33 +1,71 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Cpu, Wrench, Layers, Store, ShoppingBag, PackageCheck, Copy, Check, Filter } from "lucide-react";
-import { formatPrice } from "@/lib/license-utils";
-import { translateError } from "@/lib/translate-error";
 import {
-  createMarketplaceOrder,
+  ArrowLeft,
+  Check,
+  ChevronRight,
+  Copy,
+  Filter,
+  PackageCheck,
+  ShoppingBag,
+  Store,
+  Zap,
+} from "lucide-react";
+import { formatPrice } from "@/lib/license-utils";
+import {
   listMarketplaceProducts,
   listMyMarketplaceOrders,
   ORDER_STATUS_LABELS,
+  type MarketplaceProduct,
 } from "@/lib/api/marketplace-api";
 import { QueryErrorState } from "@/components/QueryErrorState";
+import { MarketplacePixDialog } from "@/components/checkout/MarketplacePixDialog";
 
 const CATEGORIES = ["Todos", "IA", "Ferramentas", "Assinaturas"] as const;
-
-function safeRating(value: unknown) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed.toFixed(1) : "5.0";
-}
 
 function safeCents(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function discountPercent(price: number, old: number | null) {
+  if (!old || old <= price) return null;
+  return Math.round(((old - price) / old) * 100);
+}
+
+function ProductCover({
+  product,
+  className = "",
+}: {
+  product: MarketplaceProduct;
+  className?: string;
+}) {
+  if (product.cover_url) {
+    return (
+      <img
+        src={product.cover_url}
+        alt={product.name}
+        loading="lazy"
+        className={`h-full w-full object-cover ${className}`}
+      />
+    );
+  }
+  return (
+    <div
+      className={`flex h-full w-full items-center justify-center bg-[var(--rv-card-alt-bg)] ${className}`}
+    >
+      <Store className="h-10 w-10 text-[var(--rv-text-subtle)]" />
+    </div>
+  );
+}
+
 export function Marketplace() {
   const qc = useQueryClient();
   const [cat, setCat] = useState<(typeof CATEGORIES)[number]>("Todos");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<MarketplaceProduct | null>(null);
+  const [checkout, setCheckout] = useState<MarketplaceProduct | null>(null);
 
   const products = useQuery({
     queryKey: ["marketplace", "products"],
@@ -41,17 +79,7 @@ export function Marketplace() {
     retry: false,
   });
 
-  const buy = useMutation({
-    mutationFn: (product_id: string) => createMarketplaceOrder({ product_id }),
-    onSuccess: () => {
-      toast.success("Pedido criado! O entregável será liberado assim que o pagamento for confirmado.");
-      void qc.invalidateQueries({ queryKey: ["marketplace", "my-orders"] });
-    },
-    onError: (e) => toast.error(translateError(e)),
-  });
-
   const rawList = products.data?.products ?? [];
-
   const list = rawList.filter((i) => cat === "Todos" || i.category === cat);
 
   const copy = async (value: string, id: string) => {
@@ -61,22 +89,219 @@ export function Marketplace() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case "IA":
-        return <Cpu className="h-4 w-4 text-red-600" />;
-      case "Ferramentas":
-        return <Wrench className="h-4 w-4 text-amber-500" />;
-      case "Assinaturas":
-        return <Layers className="h-4 w-4 text-emerald-500" />;
-      default:
-        return <Store className="h-4 w-4 text-[var(--rv-text-subtle)]" />;
-    }
+  const soldOut = (p: MarketplaceProduct) => p.stock !== null && p.stock <= 0;
+
+  const buy = (p: MarketplaceProduct) => {
+    if (soldOut(p)) return;
+    setCheckout(p);
   };
 
+  const ordersBlock = (
+    <div className="rv-card p-6 space-y-4">
+      <div className="flex items-center gap-2 border-b border-[var(--rv-border)] pb-4">
+        <PackageCheck className="h-5 w-5 text-red-600" />
+        <div>
+          <h3 className="text-base font-bold text-[var(--rv-text-main)]">
+            Histórico de Compras no Marketplace
+          </h3>
+          <p className="text-xs text-[var(--rv-text-muted)]">
+            Gerencie seus entregáveis e chaves liberadas de produtos do marketplace.
+          </p>
+        </div>
+      </div>
+
+      {orders.isError ? (
+        <QueryErrorState
+          error={orders.error}
+          title="Não foi possível carregar suas compras"
+          onRetry={() => void orders.refetch()}
+          isRetrying={orders.isRefetching}
+        />
+      ) : (orders.data?.orders ?? []).length === 0 ? (
+        <div className="p-8 text-center border border-dashed border-[var(--rv-border)] rounded-xl">
+          <p className="text-xs text-[var(--rv-text-muted)]">
+            Você ainda não realizou compras neste módulo.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {(orders.data?.orders ?? []).map((o) => (
+            <div
+              key={o.id}
+              className="bg-[var(--rv-card-alt-bg)] border border-[var(--rv-border)] rounded-xl p-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-[var(--rv-text-main)]">
+                    {o.product_name}
+                  </h4>
+                  <p className="text-xs font-mono text-[var(--rv-text-muted)]">
+                    {formatPrice(safeCents(o.amount_cents))} ·{" "}
+                    {new Date(o.created_at).toLocaleString("pt-BR")}
+                  </p>
+                </div>
+                <span
+                  className={`rv-badge ${
+                    o.status === "delivered" ? "rv-badge-emerald" : "rv-badge-neutral"
+                  }`}
+                >
+                  {ORDER_STATUS_LABELS[o.status]}
+                </span>
+              </div>
+
+              {o.delivered_content && (
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="flex-1 break-all rounded-lg bg-[var(--rv-input-bg)] border border-[var(--rv-border)] p-2.5 font-mono text-xs text-red-600 font-bold">
+                    {o.delivered_content}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copy(o.delivered_content!, o.id)}
+                    className="rv-btn-secondary h-9 px-3 text-xs flex items-center gap-1.5"
+                  >
+                    {copiedId === o.id ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-emerald-500" /> Copiado
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" /> Copiar
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+              {o.delivered_content && o.delivery_instructions && (
+                <p className="mt-2 text-xs text-[var(--rv-text-muted)]">{o.delivery_instructions}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const pixDialog = (
+    <MarketplacePixDialog
+      product={checkout}
+      open={!!checkout}
+      onOpenChange={(v) => !v && setCheckout(null)}
+      onPaid={() => {
+        void qc.invalidateQueries({ queryKey: ["marketplace", "my-orders"] });
+        void qc.invalidateQueries({ queryKey: ["marketplace", "products"] });
+      }}
+    />
+  );
+
+  /* ---------------- Página interna do produto ---------------- */
+  if (detail) {
+    const off = discountPercent(safeCents(detail.price_cents), detail.old_price_cents);
+    return (
+      <div className="space-y-8">
+        <button
+          type="button"
+          onClick={() => setDetail(null)}
+          className="flex items-center gap-2 text-xs font-semibold text-[var(--rv-text-muted)] hover:text-[var(--rv-text-main)]"
+        >
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </button>
+
+        <div className="flex items-center gap-1.5 text-[11px] text-[var(--rv-text-subtle)]">
+          <span>Marketplace</span>
+          <ChevronRight className="h-3 w-3" />
+          <span>{detail.category}</span>
+          <ChevronRight className="h-3 w-3" />
+          <span className="text-[var(--rv-text-main)] font-semibold">{detail.name}</span>
+        </div>
+
+        <div className="rv-card p-6 grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_260px]">
+          <div className="overflow-hidden rounded-2xl border border-[var(--rv-border)] aspect-[16/10]">
+            <ProductCover product={detail} />
+          </div>
+
+          <div className="min-w-0">
+            <span className="rv-badge rv-badge-neutral text-[10px] uppercase font-mono">
+              {detail.category}
+            </span>
+            <h2 className="mt-2 text-2xl font-bold text-[var(--rv-text-main)]">{detail.name}</h2>
+            {detail.tagline && (
+              <p className="mt-1 text-sm text-[var(--rv-text-muted)]">{detail.tagline}</p>
+            )}
+            <div className="mt-4 border-t border-[var(--rv-border)] pt-4">
+              {detail.old_price_cents && (
+                <span className="block text-xs font-mono text-[var(--rv-text-subtle)] line-through">
+                  {formatPrice(safeCents(detail.old_price_cents))}
+                </span>
+              )}
+              <div className="flex items-center gap-2">
+                {off && <span className="rv-badge rv-badge-emerald">-{off}%</span>}
+                <span className="text-3xl font-bold font-mono text-[var(--rv-text-main)]">
+                  {formatPrice(safeCents(detail.price_cents))}
+                </span>
+              </div>
+              <span className="mt-2 inline-flex items-center gap-1.5 rv-badge rv-badge-red text-[10px] uppercase">
+                <Zap className="h-3 w-3" />
+                {detail.delivery_type === "manual" ? "Entrega manual" : "Entrega automática"}
+              </span>
+            </div>
+          </div>
+
+          <div className="rv-card bg-[var(--rv-card-alt-bg)] p-5 h-fit space-y-3">
+            <p className="text-sm font-bold text-[var(--rv-text-main)]">
+              {soldOut(detail) ? "Indisponível" : "Estoque disponível"}
+            </p>
+            <p className="text-2xl font-bold font-mono text-[var(--rv-text-main)]">
+              {formatPrice(safeCents(detail.price_cents))}
+            </p>
+            {detail.stock !== null && (
+              <p className="text-[11px] font-mono text-[var(--rv-text-subtle)]">
+                {detail.stock} disponível(is)
+              </p>
+            )}
+            <button
+              type="button"
+              disabled={soldOut(detail)}
+              onClick={() => buy(detail)}
+              className={`rv-btn-primary w-full justify-center ${
+                soldOut(detail) ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              {soldOut(detail) ? "Esgotado" : "Comprar agora"}
+            </button>
+            <p className="text-[10px] text-center text-[var(--rv-text-subtle)]">
+              Pagamento via Pix — Mercado Pago
+            </p>
+          </div>
+        </div>
+
+        <div className="rv-card p-6">
+          <h3 className="text-base font-bold text-[var(--rv-text-main)] border-b border-[var(--rv-border)] pb-3">
+            Descrição
+          </h3>
+          <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-[var(--rv-text-muted)]">
+            {detail.description || "Este produto ainda não possui uma descrição detalhada."}
+          </p>
+          {detail.delivery_instructions && (
+            <div className="mt-5 rounded-xl border border-[var(--rv-border)] bg-[var(--rv-card-alt-bg)] p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--rv-text-subtle)]">
+                Condições de entrega
+              </p>
+              <p className="mt-1.5 text-xs text-[var(--rv-text-muted)]">
+                {detail.delivery_instructions}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {ordersBlock}
+        {pixDialog}
+      </div>
+    );
+  }
+
+  /* ---------------- Vitrine ---------------- */
   return (
     <div className="space-y-8">
-      {/* Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--rv-border)] pb-5">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -89,7 +314,8 @@ export function Marketplace() {
             Ferramentas & Complementos de Revenda
           </h2>
           <p className="text-xs text-[var(--rv-text-muted)]">
-            Adquira recursos exclusivos com desconto de revendedor para oferecer como upsell aos seus clientes.
+            Adquira recursos exclusivos com desconto de revendedor para oferecer como upsell aos
+            seus clientes.
           </p>
         </div>
 
@@ -128,157 +354,75 @@ export function Marketplace() {
             Nenhum produto disponível nesta categoria
           </p>
           <p className="mt-1 text-xs text-[var(--rv-text-muted)] max-w-sm mx-auto">
-            Novos plugins e utilitários de alta demanda são adicionados frequentemente pelo distribuidor.
+            Novos plugins e utilitários de alta demanda são adicionados frequentemente pelo
+            distribuidor.
           </p>
         </div>
       )}
 
-      {/* Grid of Products */}
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {list.map((item) => (
-          <div
-            key={item.id}
-            className={`rv-card p-6 flex flex-col justify-between ${
-              item.featured ? "border-red-600/80 shadow-md" : ""
-            }`}
-          >
-            <div>
-              <div className="flex items-start justify-between gap-3 mb-4">
-                {item.cover_url ? (
-                  <img
-                    src={item.cover_url}
-                    alt={item.name}
-                    loading="lazy"
-                    className="h-12 w-12 rounded-xl object-cover border border-[var(--rv-border)]"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--rv-card-alt-bg)] border border-[var(--rv-border)] shrink-0">
-                    {getCategoryIcon(item.category)}
-                  </div>
-                )}
-                <div className="flex flex-col items-end gap-1.5">
-                  <span className="rv-badge rv-badge-neutral text-[10px] uppercase font-mono">
-                    {item.category}
-                  </span>
-                  <span className="text-[11px] font-semibold text-amber-500 font-mono">
-                    ★ {safeRating(item.rating)}
-                  </span>
-                </div>
-              </div>
-
-              <h3 className="text-base font-bold text-[var(--rv-text-main)] mb-1">{item.name}</h3>
-              <p className="text-xs text-[var(--rv-text-muted)] mb-3">{item.tagline}</p>
-              {item.description && (
-                <p className="text-[11px] text-[var(--rv-text-subtle)] whitespace-pre-line mb-4 line-clamp-3">
-                  {item.description}
-                </p>
-              )}
-            </div>
-
-            <div className="border-t border-[var(--rv-border)] pt-4 flex items-end justify-between gap-3">
-              <div>
-                {item.old_price_cents && (
-                  <span className="block text-xs text-[var(--rv-text-subtle)] line-through font-mono">
-                    {formatPrice(safeCents(item.old_price_cents))}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {list.map((item) => {
+          const off = discountPercent(safeCents(item.price_cents), item.old_price_cents);
+          return (
+            <div
+              key={item.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => setDetail(item)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setDetail(item);
+                }
+              }}
+              className={`rv-card group cursor-pointer overflow-hidden p-2.5 transition-transform hover:-translate-y-0.5 ${
+                item.featured ? "border-red-600/80 shadow-md" : ""
+              }`}
+            >
+              <div className="relative overflow-hidden rounded-xl border border-[var(--rv-border)] aspect-[4/3]">
+                <ProductCover
+                  product={item}
+                  className="transition-transform duration-300 group-hover:scale-[1.03]"
+                />
+                {off && (
+                  <span className="absolute left-2 top-2 rounded-md bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                    -{off}%
                   </span>
                 )}
-                <span className="text-2xl font-bold font-mono text-[var(--rv-text-main)]">
-                  {formatPrice(safeCents(item.price_cents))}
-                </span>
-                {item.stock !== null && (
-                  <span className="block text-[10px] font-mono text-[var(--rv-text-subtle)] mt-0.5">
-                    {item.stock} unidades em estoque
+                {soldOut(item) && (
+                  <span className="absolute right-2 top-2 rounded-md bg-black/80 px-2 py-0.5 text-[10px] font-bold text-white">
+                    Esgotado
                   </span>
                 )}
               </div>
+
+              <p className="mt-2.5 truncate px-1 text-sm font-semibold text-[var(--rv-text-main)]">
+                {item.name}
+              </p>
+
               <button
                 type="button"
-                disabled={buy.isPending || (item.stock !== null && item.stock <= 0)}
-                onClick={() => buy.mutate(item.id)}
-                className={`rv-btn-primary ${
-                  item.stock !== null && item.stock <= 0 ? "opacity-50 cursor-not-allowed" : ""
+                disabled={soldOut(item)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  buy(item);
+                }}
+                className={`rv-btn-primary mt-2 flex w-full items-center justify-center gap-2 ${
+                  soldOut(item) ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
-                {item.stock !== null && item.stock <= 0 ? "Esgotado" : "Adquirir"}
+                <Zap className="h-4 w-4" />
+                {soldOut(item)
+                  ? "Esgotado"
+                  : `Comprar por ${formatPrice(safeCents(item.price_cents))}`}
               </button>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Orders Section */}
-      <div className="rv-card p-6 space-y-4">
-        <div className="flex items-center gap-2 border-b border-[var(--rv-border)] pb-4">
-          <PackageCheck className="h-5 w-5 text-red-600" />
-          <div>
-            <h3 className="text-base font-bold text-[var(--rv-text-main)]">Histórico de Compras no Marketplace</h3>
-            <p className="text-xs text-[var(--rv-text-muted)]">
-              Gerencie seus entregáveis e chaves liberadas de produtos do marketplace.
-            </p>
-          </div>
-        </div>
-
-        {orders.isError ? (
-          <QueryErrorState
-            error={orders.error}
-            title="Não foi possível carregar suas compras"
-            onRetry={() => void orders.refetch()}
-            isRetrying={orders.isRefetching}
-          />
-        ) : (orders.data?.orders ?? []).length === 0 ? (
-          <div className="p-8 text-center border border-dashed border-[var(--rv-border)] rounded-xl">
-            <p className="text-xs text-[var(--rv-text-muted)]">Você ainda não realizou compras neste módulo.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {(orders.data?.orders ?? []).map((o) => (
-              <div key={o.id} className="bg-[var(--rv-card-alt-bg)] border border-[var(--rv-border)] rounded-xl p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h4 className="text-sm font-semibold text-[var(--rv-text-main)]">{o.product_name}</h4>
-                    <p className="text-xs font-mono text-[var(--rv-text-muted)]">
-                      {formatPrice(safeCents(o.amount_cents))} · {new Date(o.created_at).toLocaleString("pt-BR")}
-                    </p>
-                  </div>
-                  <span
-                    className={`rv-badge ${
-                      o.status === "delivered" ? "rv-badge-emerald" : "rv-badge-neutral"
-                    }`}
-                  >
-                    {ORDER_STATUS_LABELS[o.status]}
-                  </span>
-                </div>
-
-                {o.delivered_content && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <div className="flex-1 break-all rounded-lg bg-[var(--rv-input-bg)] border border-[var(--rv-border)] p-2.5 font-mono text-xs text-red-600 font-bold">
-                      {o.delivered_content}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => copy(o.delivered_content!, o.id)}
-                      className="rv-btn-secondary h-9 px-3 text-xs flex items-center gap-1.5"
-                    >
-                      {copiedId === o.id ? (
-                        <>
-                          <Check className="h-3.5 w-3.5 text-emerald-500" /> Copiado
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3.5 w-3.5" /> Copiar
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-                {o.delivered_content && o.delivery_instructions && (
-                  <p className="mt-2 text-xs text-[var(--rv-text-muted)]">{o.delivery_instructions}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {ordersBlock}
+      {pixDialog}
     </div>
   );
 }
