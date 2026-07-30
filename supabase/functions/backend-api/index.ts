@@ -1365,6 +1365,231 @@ async function createMarketplaceOrder(context: AuthContext, input: unknown) {
   return { order: { id: order.id, status: order.status } };
 }
 
+export async function deliverMarketplaceOrder(admin: any, orderId: string) {
+  const { data: order, error } = await admin
+    .from("marketplace_orders")
+    .select("*, marketplace_products(id, delivery_type, delivery_content, stock)")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!order) return null;
+  if (order.status === "delivered" || order.status === "cancelled") return order;
+
+  const product: any = order.marketplace_products ?? {};
+  const autoDeliver = product.delivery_type !== "manual" &&
+    !!product.delivery_content;
+  const updates: Record<string, unknown> = {
+    status: autoDeliver ? "delivered" : "paid",
+    paid_at: order.paid_at ?? new Date().toISOString(),
+  };
+  if (autoDeliver) {
+    updates.delivered_content = order.delivered_content ??
+      product.delivery_content;
+    updates.delivered_at = order.delivered_at ?? new Date().toISOString();
+    if (product.id && typeof product.stock === "number") {
+      await admin
+        .from("marketplace_products")
+        .update({ stock: Math.max(0, product.stock - 1) })
+        .eq("id", product.id);
+    }
+  }
+  const { data: updated, error: updateError } = await admin
+    .from("marketplace_orders")
+    .update(updates)
+    .eq("id", orderId)
+    .select()
+    .single();
+  if (updateError) throw updateError;
+  return updated;
+}
+
+async function createMarketplacePixCheckout(
+  context: AuthContext,
+  input: unknown,
+) {
+  const data = z
+    .object({
+      product_id: z.string().uuid(),
+      buyer_name: z.string().min(2).max(120),
+      buyer_whatsapp: z.string().min(8).max(30),
+      buyer_cpf: z.string().max(20).optional(),
+      idempotency_key: z.string().uuid(),
+    })
+    .parse(input);
+
+  const { data: product, error } = await context.admin
+    .from("marketplace_products")
+    .select("*")
+    .eq("id", data.product_id)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (error) throw error;
+  if (!product) {
+    throw new ApiHttpError(404, "PRODUCT_NOT_FOUND", "Produto indisponível.");
+  }
+  if (product.stock !== null && product.stock <= 0) {
+    throw new ApiHttpError(409, "OUT_OF_STOCK", "Produto esgotado.");
+  }
+  if (!product.price_cents || product.price_cents <= 0) {
+    throw new ApiHttpError(
+      400,
+      "PAYMENT_NOT_REQUIRED",
+      "Este produto não possui preço válido.",
+    );
+  }
+  if (!context.email) {
+    throw new ApiHttpError(
+      400,
+      "USER_EMAIL_REQUIRED",
+      "E-mail do usuário não encontrado. Faça login novamente.",
+    );
+  }
+
+  const digits = (value: string) => value.replace(/\D+/g, "");
+  const buyerName = data.buyer_name.trim().replace(/\s+/g, " ");
+  const buyerWhatsapp = digits(data.buyer_whatsapp);
+  const buyerCpf = digits(data.buyer_cpf ?? "");
+
+  const existing = await context.admin
+    .from("marketplace_orders")
+    .select("*")
+    .eq("buyer_id", context.userId)
+    .eq("client_request_id", data.idempotency_key)
+    .maybeSingle();
+  if (existing.error) throw existing.error;
+
+  let order = existing.data;
+  if (!order) {
+    const inserted = await context.admin
+      .from("marketplace_orders")
+      .insert({
+        product_id: product.id,
+        buyer_id: context.userId,
+        amount_cents: product.price_cents,
+        status: "pending",
+        client_request_id: data.idempotency_key,
+        buyer_name: buyerName,
+        buyer_whatsapp: buyerWhatsapp,
+        buyer_email: context.email,
+      })
+      .select()
+      .single();
+    if (inserted.error) throw inserted.error;
+    order = inserted.data;
+  }
+
+  const label = `Rise Lovable — ${product.name}`;
+  if (order.provider_payment_id && order.qr_code) {
+    return {
+      order_id: order.id,
+      status: order.status,
+      qr_code: order.qr_code,
+      qr_code_base64: order.qr_code_base64,
+      ticket_url: order.ticket_url,
+      expires_at: order.expires_at,
+      amount_cents: order.amount_cents,
+      product_name: label,
+    };
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "");
+  if (!supabaseUrl) throw new Error("SUPABASE_URL não configurada.");
+  const pix = await createPixPayment({
+    amountCents: order.amount_cents,
+    description: label,
+    buyerName,
+    buyerEmail: context.email,
+    buyerWhatsapp: buyerWhatsapp || undefined,
+    buyerCpf: buyerCpf || undefined,
+    externalReference: `mkt_${order.id}`,
+    notificationUrl: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
+    idempotencyKey: order.id,
+    expiresInMinutes: 30,
+  });
+
+  const { error: updateError } = await context.admin
+    .from("marketplace_orders")
+    .update({
+      provider_payment_id: String(pix.raw?.id ?? ""),
+      qr_code: pix.qr_code,
+      qr_code_base64: pix.qr_code_base64,
+      ticket_url: pix.ticket_url,
+      expires_at: pix.date_of_expiration,
+    })
+    .eq("id", order.id);
+  if (updateError) throw updateError;
+
+  let status = order.status;
+  if (pix.raw?.status === "approved") {
+    const delivered = await deliverMarketplaceOrder(context.admin, order.id);
+    status = delivered?.status ?? status;
+  }
+
+  return {
+    order_id: order.id,
+    status,
+    qr_code: pix.qr_code,
+    qr_code_base64: pix.qr_code_base64,
+    ticket_url: pix.ticket_url,
+    expires_at: pix.date_of_expiration,
+    amount_cents: order.amount_cents,
+    product_name: label,
+  };
+}
+
+async function getMarketplaceOrderStatus(context: AuthContext, input: unknown) {
+  const data = z.object({ order_id: z.string().uuid() }).parse(input);
+  const { data: order, error } = await context.admin
+    .from("marketplace_orders")
+    .select("*, marketplace_products(name, delivery_instructions)")
+    .eq("id", data.order_id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!order) {
+    throw new ApiHttpError(404, "ORDER_NOT_FOUND", "Pedido não encontrado.");
+  }
+  if (order.buyer_id !== context.userId) {
+    throw new ApiHttpError(403, "FORBIDDEN", "Acesso negado.");
+  }
+
+  let current: any = order;
+  if (order.status === "pending" && order.provider_payment_id) {
+    try {
+      const remote = await getPayment(order.provider_payment_id);
+      if (remote?.status === "approved") {
+        current = await deliverMarketplaceOrder(context.admin, order.id) ??
+          order;
+      } else if (
+        ["cancelled", "rejected", "refunded", "charged_back"].includes(
+          String(remote?.status),
+        )
+      ) {
+        const { data: cancelled } = await context.admin
+          .from("marketplace_orders")
+          .update({ status: "cancelled" })
+          .eq("id", order.id)
+          .eq("status", "pending")
+          .select()
+          .maybeSingle();
+        current = cancelled ?? order;
+      }
+    } catch (pollError) {
+      console.warn("[marketplace-poll]", String(pollError));
+    }
+  }
+
+  return {
+    status: current.status,
+    delivered_content: current.status === "delivered"
+      ? current.delivered_content
+      : null,
+    delivery_instructions: order.marketplace_products?.delivery_instructions ??
+      null,
+    product_name: order.marketplace_products?.name ?? null,
+  };
+}
+
+
 async function listMyMarketplaceOrders(context: AuthContext) {
   const { data, error } = await context.admin
     .from("marketplace_orders")
