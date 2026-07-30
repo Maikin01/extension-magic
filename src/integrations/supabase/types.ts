@@ -248,38 +248,74 @@ export type Database = {
       marketplace_orders: {
         Row: {
           amount_cents: number
+          buyer_email: string | null
           buyer_id: string
+          buyer_name: string | null
           buyer_note: string | null
+          buyer_whatsapp: string | null
+          client_request_id: string | null
           created_at: string
           delivered_at: string | null
           delivered_content: string | null
+          expires_at: string | null
           id: string
+          paid_at: string | null
           product_id: string
+          provider: string
+          provider_payment_id: string | null
+          qr_code: string | null
+          qr_code_base64: string | null
+          raw: Json | null
           status: Database["public"]["Enums"]["marketplace_order_status"]
+          ticket_url: string | null
           updated_at: string
         }
         Insert: {
           amount_cents?: number
+          buyer_email?: string | null
           buyer_id: string
+          buyer_name?: string | null
           buyer_note?: string | null
+          buyer_whatsapp?: string | null
+          client_request_id?: string | null
           created_at?: string
           delivered_at?: string | null
           delivered_content?: string | null
+          expires_at?: string | null
           id?: string
+          paid_at?: string | null
           product_id: string
+          provider?: string
+          provider_payment_id?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          raw?: Json | null
           status?: Database["public"]["Enums"]["marketplace_order_status"]
+          ticket_url?: string | null
           updated_at?: string
         }
         Update: {
           amount_cents?: number
+          buyer_email?: string | null
           buyer_id?: string
+          buyer_name?: string | null
           buyer_note?: string | null
+          buyer_whatsapp?: string | null
+          client_request_id?: string | null
           created_at?: string
           delivered_at?: string | null
           delivered_content?: string | null
+          expires_at?: string | null
           id?: string
+          paid_at?: string | null
           product_id?: string
+          provider?: string
+          provider_payment_id?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          raw?: Json | null
           status?: Database["public"]["Enums"]["marketplace_order_status"]
+          ticket_url?: string | null
           updated_at?: string
         }
         Relationships: [
