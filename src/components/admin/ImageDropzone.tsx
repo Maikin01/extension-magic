@@ -1,0 +1,132 @@
+import { useRef, useState } from "react";
+import { ImagePlus, Loader2, Trash2, UploadCloud } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+
+const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
+const MAX_BYTES = 5 * 1024 * 1024;
+
+type Props = {
+  value: string;
+  onChange: (url: string) => void;
+};
+
+export function ImageDropzone({ value, onChange }: Props) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const upload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Envie um arquivo de imagem (PNG, JPG ou WEBP).");
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      toast.error("Imagem muito grande. Máximo de 5 MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `products/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("marketplace")
+        .upload(path, file, { cacheControl: "31536000", upsert: false });
+      if (error) throw error;
+      const { data, error: signError } = await supabase.storage
+        .from("marketplace")
+        .createSignedUrl(path, TEN_YEARS);
+      if (signError) throw signError;
+      onChange(data.signedUrl);
+      toast.success("Imagem enviada!");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar a imagem.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => inputRef.current?.click()}
+        onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          const file = e.dataTransfer.files?.[0];
+          if (file) void upload(file);
+        }}
+        className={cn(
+          "relative flex min-h-44 cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border-2 border-dashed border-border/70 bg-muted/20 px-4 py-6 text-center transition-colors",
+          dragging && "border-primary bg-primary/10",
+        )}
+      >
+        {value ? (
+          <>
+            <img
+              src={value}
+              alt="Capa do produto"
+              className="absolute inset-0 h-full w-full object-cover opacity-70"
+            />
+            <div className="relative z-10 rounded-lg bg-background/80 px-3 py-2 text-xs font-medium">
+              Clique ou arraste para trocar a imagem
+            </div>
+          </>
+        ) : uploading ? (
+          <>
+            <Loader2 className="h-7 w-7 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Enviando imagem…</p>
+          </>
+        ) : (
+          <>
+            <UploadCloud className="h-7 w-7 text-primary" />
+            <p className="text-sm font-medium">Arraste a imagem aqui</p>
+            <p className="text-xs text-muted-foreground">
+              ou clique para escolher • PNG, JPG ou WEBP até 5 MB
+            </p>
+          </>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void upload(file);
+            e.target.value = "";
+          }}
+        />
+      </div>
+
+      <div className="flex gap-2">
+        <Input
+          value={value}
+          placeholder="Ou cole a URL da imagem"
+          onChange={(e) => onChange(e.target.value)}
+        />
+        {value && (
+          <Button type="button" variant="ghost" size="icon" onClick={() => onChange("")}>
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        )}
+        {!value && (
+          <Button type="button" variant="outline" size="icon" onClick={() => inputRef.current?.click()}>
+            <ImagePlus className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
