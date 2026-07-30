@@ -15,11 +15,7 @@ import {
   hasRole,
   requireUser,
 } from "../_shared/supabase.ts";
-import {
-  generateLicenseKey,
-  hashLicenseKey,
-  insertUniqueLicense,
-} from "../_shared/license.ts";
+import { generateLicenseKey, hashLicenseKey, insertUniqueLicense } from "../_shared/license.ts";
 import {
   assertMercadoPagoPaymentContract,
   createPixPayment,
@@ -132,26 +128,16 @@ const BACKEND_ACTIONS = new Set([
 
 async function claimResellerAccess(context: AuthContext) {
   const roles = await getUserRoles(context.admin, context.userId);
-  if (
-    roles.includes("revendedor") || roles.includes("admin") ||
-    roles.includes("owner")
-  ) {
+  if (roles.includes("revendedor") || roles.includes("admin") || roles.includes("owner")) {
     return { ok: true, roles };
   }
   if (!context.email) {
-    throw new ApiHttpError(
-      400,
-      "EMAIL_REQUIRED",
-      "Sua conta não possui um email válido.",
-    );
+    throw new ApiHttpError(400, "EMAIL_REQUIRED", "Sua conta não possui um email válido.");
   }
-  const { data: claimed, error } = await context.admin.rpc(
-    "claim_reseller_entitlements",
-    {
-      p_user_id: context.userId,
-      p_email: context.email,
-    },
-  );
+  const { data: claimed, error } = await context.admin.rpc("claim_reseller_entitlements", {
+    p_user_id: context.userId,
+    p_email: context.email,
+  });
   if (error) throw error;
   if (claimed !== true) {
     throw new ApiHttpError(
@@ -171,12 +157,12 @@ async function enforceBackendRateLimit(
   action: string,
   requestId: string,
 ): Promise<void> {
-  const bucket = (action === "createPixCheckout" ||
-      action === "createMarketplacePixCheckout")
-    ? { scope: "backend-payment", limit: 10, windowSeconds: 600 }
-    : ADMIN_MUTATION_ACTIONS.has(action)
-    ? { scope: "backend-admin-mutation", limit: 60, windowSeconds: 60 }
-    : { scope: "backend-general", limit: 180, windowSeconds: 60 };
+  const bucket =
+    action === "createPixCheckout" || action === "createMarketplacePixCheckout"
+      ? { scope: "backend-payment", limit: 10, windowSeconds: 600 }
+      : ADMIN_MUTATION_ACTIONS.has(action)
+        ? { scope: "backend-admin-mutation", limit: 60, windowSeconds: 60 }
+        : { scope: "backend-general", limit: 180, windowSeconds: 60 };
 
   await enforceRateLimit(
     context.admin,
@@ -192,10 +178,7 @@ function summarize(rows: any[]) {
   const paid = rows.filter((row) => row.status === "approved");
   return {
     total_sales: paid.length,
-    total_amount_cents: paid.reduce(
-      (total, row) => total + (row.amount_cents ?? 0),
-      0,
-    ),
+    total_amount_cents: paid.reduce((total, row) => total + (row.amount_cents ?? 0), 0),
     pending_count: rows.filter((row) => row.status === "pending").length,
     all_count: rows.length,
   };
@@ -232,10 +215,7 @@ async function getMyDashboard(context: AuthContext) {
       .eq("user_id", userId)
       .order("created_at", { ascending: false }),
     admin.from("profiles").select("*").eq("id", userId).maybeSingle(),
-    admin.from("trial_license_claims").select("*, plans(*)").eq(
-      "user_id",
-      userId,
-    ).maybeSingle(),
+    admin.from("trial_license_claims").select("*, plans(*)").eq("user_id", userId).maybeSingle(),
   ]);
   if (licensesResult.error) throw licensesResult.error;
   if (profileResult.error) throw profileResult.error;
@@ -243,19 +223,18 @@ async function getMyDashboard(context: AuthContext) {
   const licenses = licensesResult.data ?? [];
   const trialClaim = trialClaimResult.data
     ? {
-      ...trialClaimResult.data,
-      status: trialClaimResult.data.license_status,
-      is_deleted: !trialClaimResult.data.license_id ||
-        !licenses.some((license) =>
-          license.id === trialClaimResult.data.license_id
-        ),
-    }
+        ...trialClaimResult.data,
+        status: trialClaimResult.data.license_status,
+        is_deleted:
+          !trialClaimResult.data.license_id ||
+          !licenses.some((license) => license.id === trialClaimResult.data.license_id),
+      }
     : null;
   const currentLicense =
     licenses.find((license) => license.status === "active") ??
-      licenses.find((license) => license.status === "pending") ??
-      licenses[0] ??
-      null;
+    licenses.find((license) => license.status === "pending") ??
+    licenses[0] ??
+    null;
   let devices: any[] = [];
   let logs: any[] = [];
   if (currentLicense) {
@@ -285,10 +264,7 @@ async function getMyDashboard(context: AuthContext) {
 
 async function claimTrialLicense(context: AuthContext) {
   const { admin, userId } = context;
-  const { data: plan, error } = await admin.from("plans").select("*").eq(
-    "slug",
-    "trial",
-  ).single();
+  const { data: plan, error } = await admin.from("plans").select("*").eq("slug", "trial").single();
   if (error || !plan) throw new Error("Plano de teste não encontrado.");
   for (let attempt = 0; attempt < 5; attempt++) {
     const licenseKey = generateLicenseKey();
@@ -313,29 +289,26 @@ async function claimTrialLicense(context: AuthContext) {
 async function getAdminOverview(context: AuthContext) {
   await assertAdmin(context);
   const { admin } = context;
-  const [licensesResult, profilesResult, usersResult, plansResult, logsResult] =
-    await Promise.all([
-      admin
-        .from("licenses")
-        .select("*, plans(name, slug)")
-        .order("created_at", { ascending: false })
-        .limit(500),
-      admin.from("profiles").select("id, full_name, avatar_url"),
-      admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
-      admin.from("plans").select("*").order("sort_order"),
-      admin
-        .from("activation_logs")
-        .select("*")
-        .order("created_at", {
-          ascending: false,
-        })
-        .limit(50),
-    ]);
+  const [licensesResult, profilesResult, usersResult, plansResult, logsResult] = await Promise.all([
+    admin
+      .from("licenses")
+      .select("*, plans(name, slug)")
+      .order("created_at", { ascending: false })
+      .limit(500),
+    admin.from("profiles").select("id, full_name, avatar_url"),
+    admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
+    admin.from("plans").select("*").order("sort_order"),
+    admin
+      .from("activation_logs")
+      .select("*")
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(50),
+  ]);
   if (licensesResult.error) throw licensesResult.error;
   if (usersResult.error) throw usersResult.error;
-  const profiles = new Map(
-    (profilesResult.data ?? []).map((profile) => [profile.id, profile]),
-  );
+  const profiles = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile]));
   const emails = new Map(
     (usersResult.data.users ?? []).map((user) => [user.id, user.email ?? null]),
   );
@@ -343,22 +316,18 @@ async function getAdminOverview(context: AuthContext) {
     ...license,
     profiles: license.user_id
       ? {
-        full_name: profiles.get(license.user_id)?.full_name ?? null,
-        email: emails.get(license.user_id) ?? null,
-      }
+          full_name: profiles.get(license.user_id)?.full_name ?? null,
+          email: emails.get(license.user_id) ?? null,
+        }
       : null,
   }));
   return {
     counts: {
       active: licenses.filter((license) => license.status === "active").length,
-      pending:
-        licenses.filter((license) => license.status === "pending").length,
-      expired:
-        licenses.filter((license) => license.status === "expired").length,
-      revoked:
-        licenses.filter((license) => license.status === "revoked").length,
-      suspended:
-        licenses.filter((license) => license.status === "suspended").length,
+      pending: licenses.filter((license) => license.status === "pending").length,
+      expired: licenses.filter((license) => license.status === "expired").length,
+      revoked: licenses.filter((license) => license.status === "revoked").length,
+      suspended: licenses.filter((license) => license.status === "suspended").length,
       total_users: usersResult.data.users.length,
     },
     licenses,
@@ -388,22 +357,18 @@ async function adminUpdateLicenseStatus(context: AuthContext, input: unknown) {
       .maybeSingle();
     if (licenseError) throw licenseError;
     if (!license) {
-      throw new ApiHttpError(
-        404,
-        "LICENSE_NOT_FOUND",
-        "Licença não encontrada.",
-      );
+      throw new ApiHttpError(404, "LICENSE_NOT_FOUND", "Licença não encontrada.");
     }
     if (!license.expires_at) {
       const durationMs = license.custom_duration_seconds
         ? license.custom_duration_seconds * 1_000
         : license.custom_duration_minutes
-        ? license.custom_duration_minutes * 60_000
-        : license.plans?.duration_minutes
-        ? license.plans.duration_minutes * 60_000
-        : license.plans?.duration_days
-        ? license.plans.duration_days * 86_400_000
-        : 0;
+          ? license.custom_duration_minutes * 60_000
+          : license.plans?.duration_minutes
+            ? license.plans.duration_minutes * 60_000
+            : license.plans?.duration_days
+              ? license.plans.duration_days * 86_400_000
+              : 0;
       if (!durationMs) {
         throw new ApiHttpError(
           400,
@@ -458,13 +423,11 @@ async function adminGenerateLicenses(context: AuthContext, input: unknown) {
         .max(60 * 60 * 24 * 3650)
         .optional()
         .nullable(),
-      max_devices_override: z.number().int().min(1).max(50).optional()
-        .nullable(),
+      max_devices_override: z.number().int().min(1).max(50).optional().nullable(),
     })
     .refine(
       (value) =>
-        !!value.plan_slug || !!value.custom_duration_minutes ||
-        !!value.custom_duration_seconds,
+        !!value.plan_slug || !!value.custom_duration_minutes || !!value.custom_duration_seconds,
     )
     .parse(input);
   let planId: string | null = null;
@@ -484,9 +447,8 @@ async function adminGenerateLicenses(context: AuthContext, input: unknown) {
       perPage: 500,
     });
     if (error) throw error;
-    targetUserId = users.users.find((user) =>
-      user.email?.toLowerCase() === data.email?.toLowerCase()
-    )?.id ??
+    targetUserId =
+      users.users.find((user) => user.email?.toLowerCase() === data.email?.toLowerCase())?.id ??
       null;
     if (!targetUserId) {
       throw new Error(`Usuário com email ${data.email} não encontrado.`);
@@ -518,10 +480,7 @@ async function adminGenerateLicenses(context: AuthContext, input: unknown) {
 async function adminDeleteLicense(context: AuthContext, input: unknown) {
   const adminId = await assertAdmin(context);
   const data = z.object({ license_id: z.string().uuid() }).parse(input);
-  const { error } = await context.admin.from("licenses").delete().eq(
-    "id",
-    data.license_id,
-  );
+  const { error } = await context.admin.from("licenses").delete().eq("id", data.license_id);
   if (error) throw error;
   await context.admin.from("admin_audit_log").insert({
     admin_id: adminId,
@@ -574,17 +533,14 @@ async function adminUpdatePlan(context: AuthContext, input: unknown) {
 
 async function adminListUsers(context: AuthContext) {
   await assertAdmin(context);
-  const [usersResult, profilesResult, rolesResult, licensesResult] =
-    await Promise.all([
-      context.admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
-      context.admin.from("profiles").select("*"),
-      context.admin.from("user_roles").select("*"),
-      context.admin.from("licenses").select("user_id, status"),
-    ]);
+  const [usersResult, profilesResult, rolesResult, licensesResult] = await Promise.all([
+    context.admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
+    context.admin.from("profiles").select("*"),
+    context.admin.from("user_roles").select("*"),
+    context.admin.from("licenses").select("user_id, status"),
+  ]);
   if (usersResult.error) throw usersResult.error;
-  const profiles = new Map(
-    (profilesResult.data ?? []).map((profile) => [profile.id, profile]),
-  );
+  const profiles = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile]));
   const roles = new Map<string, string[]>();
   for (const role of rolesResult.data ?? []) {
     roles.set(role.user_id, [...(roles.get(role.user_id) ?? []), role.role]);
@@ -592,10 +548,7 @@ async function adminListUsers(context: AuthContext) {
   const licenseCounts = new Map<string, number>();
   for (const license of licensesResult.data ?? []) {
     if (license.user_id) {
-      licenseCounts.set(
-        license.user_id,
-        (licenseCounts.get(license.user_id) ?? 0) + 1,
-      );
+      licenseCounts.set(license.user_id, (licenseCounts.get(license.user_id) ?? 0) + 1);
     }
   }
   return usersResult.data.users.map((user) => ({
@@ -755,9 +708,7 @@ async function getResellerStats(context: AuthContext, input: unknown) {
   const range = rangeSchema.parse(input);
   let query = context.admin
     .from("payments")
-    .select(
-      "id, status, amount_cents, created_at, paid_at, buyer_name, buyer_email, plans(name)",
-    )
+    .select("id, status, amount_cents, created_at, paid_at, buyer_name, buyer_email, plans(name)")
     .eq("reseller_id", context.userId)
     .order("created_at", { ascending: false })
     .limit(500);
@@ -792,24 +743,15 @@ async function adminListResellers(context: AuthContext, input: unknown) {
   if (range.from) paymentsQuery = paymentsQuery.gte("created_at", range.from);
   if (range.to) paymentsQuery = paymentsQuery.lte("created_at", range.to);
   const [profilesResult, usersResult, paymentsResult] = await Promise.all([
-    context.admin.from("profiles").select("id, full_name, referral_code").in(
-      "id",
-      resellerIds,
-    ),
+    context.admin.from("profiles").select("id, full_name, referral_code").in("id", resellerIds),
     context.admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
     paymentsQuery,
   ]);
   if (usersResult.error) throw usersResult.error;
   if (paymentsResult.error) throw paymentsResult.error;
-  const emails = new Map(
-    usersResult.data.users.map((user) => [user.id, user.email ?? null]),
-  );
-  const profiles = new Map(
-    (profilesResult.data ?? []).map((profile) => [profile.id, profile]),
-  );
-  const totals = new Map(
-    resellerIds.map((id) => [id, { paid: 0, paidCents: 0, pending: 0 }]),
-  );
+  const emails = new Map(usersResult.data.users.map((user) => [user.id, user.email ?? null]));
+  const profiles = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile]));
+  const totals = new Map(resellerIds.map((id) => [id, { paid: 0, paidCents: 0, pending: 0 }]));
   let globalPaidCents = 0;
   let globalPaid = 0;
   let globalPending = 0;
@@ -852,9 +794,7 @@ async function adminGetResellerDetail(context: AuthContext, input: unknown) {
   const range = rangeSchema.extend({ user_id: z.string().uuid() }).parse(input);
   let query = context.admin
     .from("payments")
-    .select(
-      "id, status, amount_cents, created_at, paid_at, buyer_name, buyer_email, plans(name)",
-    )
+    .select("id, status, amount_cents, created_at, paid_at, buyer_name, buyer_email, plans(name)")
     .eq("reseller_id", range.user_id)
     .order("created_at", { ascending: false })
     .limit(500);
@@ -918,15 +858,11 @@ function resellerCustomPriceCents(days: number): number {
   if (d <= 7) {
     cents = (RESELLER_WEEK_CENTS / 7) * d;
   } else if (d <= 30) {
-    cents = RESELLER_WEEK_CENTS +
-      ((RESELLER_MONTH_CENTS - RESELLER_WEEK_CENTS) / 23) * (d - 7);
+    cents = RESELLER_WEEK_CENTS + ((RESELLER_MONTH_CENTS - RESELLER_WEEK_CENTS) / 23) * (d - 7);
   } else {
     cents = RESELLER_MONTH_CENTS + 100 * (d - 30);
   }
-  cents = Math.min(
-    RESELLER_LIFETIME_CENTS,
-    Math.max(RESELLER_MIN_ORDER_CENTS, cents),
-  );
+  cents = Math.min(RESELLER_LIFETIME_CENTS, Math.max(RESELLER_MIN_ORDER_CENTS, cents));
   return Math.ceil(cents / 10) * 10;
 }
 
@@ -941,22 +877,17 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
       idempotency_key: z.string().uuid(),
       reseller: z.boolean().optional(),
       quantity: z.number().int().min(1).max(200).optional(),
-      custom_duration_days: z.number().int().min(1).max(3650).optional()
-        .nullable(),
+      custom_duration_days: z.number().int().min(1).max(3650).optional().nullable(),
     })
     .parse(input);
 
   const isResellerOrder = data.reseller === true;
   const quantity = isResellerOrder ? (data.quantity ?? 1) : 1;
-  const customDays = isResellerOrder
-    ? (data.custom_duration_days ?? null)
-    : null;
+  const customDays = isResellerOrder ? (data.custom_duration_days ?? null) : null;
 
   if (isResellerOrder) {
     const roles = await getUserRoles(context.admin, context.userId);
-    const allowed = roles.some((role) =>
-      role === "revendedor" || ADMIN_ROLES.includes(role)
-    );
+    const allowed = roles.some((role) => role === "revendedor" || ADMIN_ROLES.includes(role));
     if (!allowed) {
       throw new ApiHttpError(
         403,
@@ -965,11 +896,7 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
       );
     }
     if (!customDays && !(data.plan_slug in RESELLER_WHOLESALE_CENTS)) {
-      throw new ApiHttpError(
-        400,
-        "INVALID_RESELLER_PLAN",
-        "Plano indisponível para revenda.",
-      );
+      throw new ApiHttpError(400, "INVALID_RESELLER_PLAN", "Plano indisponível para revenda.");
     }
   }
 
@@ -1083,15 +1010,14 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
     }
   }
 
-  const legacyRequestMatches = payment.plan_id === plan.id &&
+  const legacyRequestMatches =
+    payment.plan_id === plan.id &&
     payment.buyer_name === normalizedBuyerName &&
     payment.buyer_whatsapp === normalizedBuyerWhatsapp &&
-    payment.buyer_email?.trim().toLowerCase() ===
-      context.email.trim().toLowerCase() &&
+    payment.buyer_email?.trim().toLowerCase() === context.email.trim().toLowerCase() &&
     payment.reseller_id === resellerId;
   if (
-    (payment.request_fingerprint &&
-      payment.request_fingerprint !== requestFingerprint) ||
+    (payment.request_fingerprint && payment.request_fingerprint !== requestFingerprint) ||
     (!payment.request_fingerprint && !legacyRequestMatches)
   ) {
     throw new ApiHttpError(
@@ -1110,8 +1036,8 @@ async function createPixCheckout(context: AuthContext, input: unknown) {
 
   const orderLabel = isResellerOrder
     ? `Rise Lovable — ${quantity}x ${
-      customDays ? `chave de ${customDays} dia(s)` : plan.name
-    } (revenda)`
+        customDays ? `chave de ${customDays} dia(s)` : plan.name
+      } (revenda)`
     : `Rise Lovable — ${plan.name}`;
 
   if (payment.provider_payment_id && payment.qr_code) {
@@ -1233,11 +1159,7 @@ async function getCheckoutStatus(context: AuthContext, input: unknown) {
   const quantity = payment.quantity ?? 1;
   let licenseKeys: string[] = [];
   if (payment.status === "approved") {
-    licenseKeys = await finalizePaymentLicenses(
-      context.admin,
-      payment.id,
-      quantity,
-    );
+    licenseKeys = await finalizePaymentLicenses(context.admin, payment.id, quantity);
   }
   return {
     status: payment.status,
@@ -1255,8 +1177,8 @@ async function getAdminAccessStatus(context: AuthContext) {
   const role = roles.includes("owner")
     ? "owner"
     : roles.includes("admin")
-    ? "admin"
-    : (roles[0] ?? null);
+      ? "admin"
+      : (roles[0] ?? null);
 
   if (!isAdmin) {
     return {
@@ -1273,8 +1195,7 @@ async function getAdminAccessStatus(context: AuthContext) {
   });
   if (factorsResult.error) throw factorsResult.error;
   const hasTotp = (factorsResult.data.factors ?? []).some(
-    (factor: any) =>
-      factor.factor_type === "totp" && factor.status === "verified",
+    (factor: any) => factor.factor_type === "totp" && factor.status === "verified",
   );
 
   return {
@@ -1287,9 +1208,12 @@ async function getAdminAccessStatus(context: AuthContext) {
 }
 
 const optionalText = (max: number) =>
-  z.string().max(max).optional().nullable().transform((v) =>
-    v == null || v.trim() === "" ? null : v
-  );
+  z
+    .string()
+    .max(max)
+    .optional()
+    .nullable()
+    .transform((v) => (v == null || v.trim() === "" ? null : v));
 
 const productSchema = z.object({
   slug: z
@@ -1302,10 +1226,11 @@ const productSchema = z.object({
   description: optionalText(4000),
   category: z.string().min(1, "Informe a categoria.").max(40),
   price_cents: z.coerce.number().int().min(0).max(100_000_000),
-  old_price_cents: z.coerce.number().int().min(0).max(100_000_000).optional()
-    .nullable(),
-  cover_url: z.string().max(1_500_000, "A imagem excede o limite permitido.").refine(
-    (value) => {
+  old_price_cents: z.coerce.number().int().min(0).max(100_000_000).optional().nullable(),
+  cover_url: z
+    .string()
+    .max(1_500_000, "A imagem excede o limite permitido.")
+    .refine((value) => {
       if (/^data:image\/(?:png|jpe?g|webp|gif|avif);base64,[a-z0-9+/=\s]+$/i.test(value)) {
         return true;
       }
@@ -1315,9 +1240,10 @@ const productSchema = z.object({
       } catch {
         return false;
       }
-    },
-    "Envie uma imagem válida ou uma URL http(s).",
-  ).optional().nullable().or(z.literal("").transform(() => null)),
+    }, "Envie uma imagem válida ou uma URL http(s).")
+    .optional()
+    .nullable()
+    .or(z.literal("").transform(() => null)),
   delivery_type: z.enum(["link", "text", "file", "manual"]),
   delivery_content: optionalText(20_000),
   delivery_instructions: optionalText(4000),
@@ -1396,10 +1322,7 @@ async function createMarketplaceOrder(context: AuthContext, input: unknown) {
   return { order: { id: order.id, status: order.status } };
 }
 
-async function createMarketplacePixCheckout(
-  context: AuthContext,
-  input: unknown,
-) {
+async function createMarketplacePixCheckout(context: AuthContext, input: unknown) {
   const data = z
     .object({
       product_id: z.string().uuid(),
@@ -1424,11 +1347,7 @@ async function createMarketplacePixCheckout(
     throw new ApiHttpError(409, "OUT_OF_STOCK", "Produto esgotado.");
   }
   if (!product.price_cents || product.price_cents <= 0) {
-    throw new ApiHttpError(
-      400,
-      "PAYMENT_NOT_REQUIRED",
-      "Este produto não possui preço válido.",
-    );
+    throw new ApiHttpError(400, "PAYMENT_NOT_REQUIRED", "Este produto não possui preço válido.");
   }
   if (!context.email) {
     throw new ApiHttpError(
@@ -1550,12 +1469,9 @@ async function getMarketplaceOrderStatus(context: AuthContext, input: unknown) {
     try {
       const remote = await getPayment(order.provider_payment_id);
       if (remote?.status === "approved") {
-        current = await deliverMarketplaceOrder(context.admin, order.id) ??
-          order;
+        current = (await deliverMarketplaceOrder(context.admin, order.id)) ?? order;
       } else if (
-        ["cancelled", "rejected", "refunded", "charged_back"].includes(
-          String(remote?.status),
-        )
+        ["cancelled", "rejected", "refunded", "charged_back"].includes(String(remote?.status))
       ) {
         const { data: cancelled } = await context.admin
           .from("marketplace_orders")
@@ -1573,22 +1489,16 @@ async function getMarketplaceOrderStatus(context: AuthContext, input: unknown) {
 
   return {
     status: current.status,
-    delivered_content: current.status === "delivered"
-      ? current.delivered_content
-      : null,
-    delivery_instructions: order.marketplace_products?.delivery_instructions ??
-      null,
+    delivered_content: current.status === "delivered" ? current.delivered_content : null,
+    delivery_instructions: order.marketplace_products?.delivery_instructions ?? null,
     product_name: order.marketplace_products?.name ?? null,
   };
 }
 
-
 async function listMyMarketplaceOrders(context: AuthContext) {
   const { data, error } = await context.admin
     .from("marketplace_orders")
-    .select(
-      "*, marketplace_products(name, delivery_type, delivery_instructions)",
-    )
+    .select("*, marketplace_products(name, delivery_type, delivery_instructions)")
     .eq("buyer_id", context.userId)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -1602,21 +1512,14 @@ async function listMyMarketplaceOrders(context: AuthContext) {
       delivered_at: row.delivered_at,
       product_name: row.marketplace_products?.name ?? null,
       delivery_type: row.marketplace_products?.delivery_type ?? null,
-      delivery_instructions: row.marketplace_products?.delivery_instructions ??
-        null,
-      delivered_content: row.status === "delivered"
-        ? row.delivered_content
-        : null,
+      delivery_instructions: row.marketplace_products?.delivery_instructions ?? null,
+      delivered_content: row.status === "delivered" ? row.delivered_content : null,
     })),
   };
 }
 
 /** Substitui o estoque unitário do produto (um entregável por unidade). */
-async function replaceStockItems(
-  admin: any,
-  productId: string,
-  items: string[],
-) {
+async function replaceStockItems(admin: any, productId: string, items: string[]) {
   const { data: existing, error } = await admin
     .from("marketplace_stock_items")
     .select("id, content, order_id")
@@ -1655,9 +1558,7 @@ async function replaceStockItems(
   if (remaining.length) {
     const { error: insertError } = await admin
       .from("marketplace_stock_items")
-      .insert(
-        remaining.map((content) => ({ product_id: productId, content })),
-      );
+      .insert(remaining.map((content) => ({ product_id: productId, content })));
     if (insertError) throw insertError;
   }
   return keep.length + remaining.length;
@@ -1698,19 +1599,14 @@ async function adminListMarketplaceProducts(context: AuthContext) {
       const list = items.get(row.id) ?? [];
       return {
         ...row,
-        stock_items: list.filter((item: any) => !item.order_id).map((item: any) =>
-          item.content
-        ),
+        stock_items: list.filter((item: any) => !item.order_id).map((item: any) => item.content),
         stock_items_used: list.filter((item: any) => !!item.order_id).length,
       };
     }),
   };
 }
 
-async function adminCreateMarketplaceProduct(
-  context: AuthContext,
-  input: unknown,
-) {
+async function adminCreateMarketplaceProduct(context: AuthContext, input: unknown) {
   const adminId = await assertAdmin(context);
   const { stock_items, ...parsed } = productSchema.parse(input);
   const data = {
@@ -1719,11 +1615,7 @@ async function adminCreateMarketplaceProduct(
   };
   const { data: product, error } = await context.admin
     .from("marketplace_products")
-    .insert(
-      stock_items && stock_items.length
-        ? { ...data, stock: stock_items.length }
-        : data,
-    )
+    .insert(stock_items && stock_items.length ? { ...data, stock: stock_items.length } : data)
     .select()
     .single();
   if (error) throw error;
@@ -1737,14 +1629,13 @@ async function adminCreateMarketplaceProduct(
   return { product };
 }
 
-async function adminUploadMarketplaceImage(
-  context: AuthContext,
-  input: unknown,
-) {
+async function adminUploadMarketplaceImage(context: AuthContext, input: unknown) {
   await assertAdmin(context);
-  const { data_url } = z.object({
-    data_url: z.string().max(650_000, "A imagem excede o limite permitido."),
-  }).parse(input);
+  const { data_url } = z
+    .object({
+      data_url: z.string().max(650_000, "A imagem excede o limite permitido."),
+    })
+    .parse(input);
   return { url: await persistMarketplaceImage(context, data_url) };
 }
 
@@ -1797,10 +1688,7 @@ async function persistMarketplaceImage(
   return signed.signedUrl;
 }
 
-async function adminUpdateMarketplaceProduct(
-  context: AuthContext,
-  input: unknown,
-) {
+async function adminUpdateMarketplaceProduct(context: AuthContext, input: unknown) {
   const adminId = await assertAdmin(context);
   const data = productSchema.extend({ id: z.string().uuid() }).parse(input);
   const { id, stock_items, ...updates } = data;
@@ -1825,10 +1713,7 @@ async function adminUpdateMarketplaceProduct(
   return { product };
 }
 
-async function adminDeleteMarketplaceProduct(
-  context: AuthContext,
-  input: unknown,
-) {
+async function adminDeleteMarketplaceProduct(context: AuthContext, input: unknown) {
   const adminId = await assertAdmin(context);
   const data = z.object({ product_id: z.string().uuid() }).parse(input);
   const { error } = await context.admin
@@ -1856,9 +1741,7 @@ async function adminListMarketplaceOrders(context: AuthContext) {
     context.admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
   ]);
   if (ordersResult.error) throw ordersResult.error;
-  const emails = new Map(
-    (usersResult.data?.users ?? []).map((user: any) => [user.id, user.email]),
-  );
+  const emails = new Map((usersResult.data?.users ?? []).map((user: any) => [user.id, user.email]));
   return {
     orders: (ordersResult.data ?? []).map((row: any) => ({
       id: row.id,
@@ -1876,10 +1759,7 @@ async function adminListMarketplaceOrders(context: AuthContext) {
   };
 }
 
-async function adminUpdateMarketplaceOrder(
-  context: AuthContext,
-  input: unknown,
-) {
+async function adminUpdateMarketplaceOrder(context: AuthContext, input: unknown) {
   const adminId = await assertAdmin(context);
   const data = z
     .object({
@@ -1891,9 +1771,7 @@ async function adminUpdateMarketplaceOrder(
 
   const { data: order, error } = await context.admin
     .from("marketplace_orders")
-    .select(
-      "*, marketplace_products(delivery_type, delivery_content, stock, id)",
-    )
+    .select("*, marketplace_products(delivery_type, delivery_content, stock, id)")
     .eq("id", data.order_id)
     .maybeSingle();
   if (error) throw error;
@@ -1903,8 +1781,7 @@ async function adminUpdateMarketplaceOrder(
 
   const product: any = order.marketplace_products ?? {};
   let status = data.status;
-  let delivered_content = data.delivered_content ?? order.delivered_content ??
-    null;
+  let delivered_content = data.delivered_content ?? order.delivered_content ?? null;
   let delivered_at = order.delivered_at;
   let unitContent: string | null = null;
 
@@ -1918,8 +1795,7 @@ async function adminUpdateMarketplaceOrder(
       if (claimed.error) throw claimed.error;
       unitContent = (claimed.data as string | null) ?? null;
     }
-    delivered_content = delivered_content ?? unitContent ??
-      product.delivery_content ?? null;
+    delivered_content = delivered_content ?? unitContent ?? product.delivery_content ?? null;
     if (delivered_content) status = "delivered";
   }
   if (status === "delivered") {
@@ -1932,7 +1808,9 @@ async function adminUpdateMarketplaceOrder(
     }
     delivered_at = delivered_at ?? new Date().toISOString();
     if (
-      !unitContent && order.status !== "delivered" && product.id &&
+      !unitContent &&
+      order.status !== "delivered" &&
+      product.id &&
       typeof product.stock === "number"
     ) {
       await context.admin
@@ -1960,11 +1838,7 @@ async function adminUpdateMarketplaceOrder(
   return { order: { id: updated.id, status: updated.status } };
 }
 
-async function dispatch(
-  action: string,
-  input: unknown,
-  context: AuthContext,
-): Promise<unknown> {
+async function dispatch(action: string, input: unknown, context: AuthContext): Promise<unknown> {
   switch (action) {
     case "getMyAccessContext":
       return getMyAccessContext(context);
@@ -2047,16 +1921,10 @@ Deno.serve(async (request) => {
     assertAllowedOrigin(http);
     if (request.method === "OPTIONS") return options(http);
     if (request.method !== "POST") {
-      throw new ApiHttpError(
-        405,
-        "METHOD_NOT_ALLOWED",
-        "Método não permitido.",
-      );
+      throw new ApiHttpError(405, "METHOD_NOT_ALLOWED", "Método não permitido.");
     }
     const body = await readJson(request);
-    const record = body && typeof body === "object"
-      ? (body as Record<string, unknown>)
-      : null;
+    const record = body && typeof body === "object" ? (body as Record<string, unknown>) : null;
     const action = record?.action;
     if (typeof action !== "string" || action.length > 80) {
       throw new ApiHttpError(400, "ACTION_REQUIRED", "Ação obrigatória.");

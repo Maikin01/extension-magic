@@ -79,10 +79,7 @@ export const listMarketplaceProducts = () =>
   backendApi.invoke<{ products: MarketplaceProduct[] }>("listMarketplaceProducts");
 
 export const createMarketplaceOrder = (data: { product_id: string; buyer_note?: string }) =>
-  backendApi.invoke<{ order: { id: string; status: OrderStatus } }>(
-    "createMarketplaceOrder",
-    data,
-  );
+  backendApi.invoke<{ order: { id: string; status: OrderStatus } }>("createMarketplaceOrder", data);
 
 export const listMyMarketplaceOrders = () =>
   backendApi.invoke<{ orders: MyOrder[] }>("listMyMarketplaceOrders");
@@ -110,10 +107,11 @@ export const adminUpdateMarketplaceOrder = (data: {
   order_id: string;
   status: OrderStatus;
   delivered_content?: string | null;
-}) => backendApi.invoke<{ order: { id: string; status: OrderStatus } }>(
-  "adminUpdateMarketplaceOrder",
-  data,
-);
+}) =>
+  backendApi.invoke<{ order: { id: string; status: OrderStatus } }>(
+    "adminUpdateMarketplaceOrder",
+    data,
+  );
 
 export const DELIVERY_LABELS: Record<DeliveryType, string> = {
   link: "Link de acesso",

@@ -182,7 +182,12 @@ export function ImageDropzone({ value, onChange }: Props) {
           </Button>
         )}
         {!value && (
-          <Button type="button" variant="outline" size="icon" onClick={() => inputRef.current?.click()}>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => inputRef.current?.click()}
+          >
             <ImagePlus className="h-4 w-4" />
           </Button>
         )}
