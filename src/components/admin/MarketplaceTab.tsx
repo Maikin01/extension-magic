@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QueryErrorState } from "@/components/QueryErrorState";
+import { ImageDropzone } from "@/components/admin/ImageDropzone";
 import { formatPrice } from "@/lib/license-utils";
 import { translateError } from "@/lib/translate-error";
 import {
@@ -223,178 +224,256 @@ function ProductsPanel() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{form.id ? "Editar produto" : "Novo produto"}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label>Nome</Label>
-              <Input
-                value={form.name}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    name: e.target.value,
-                    slug: f.id
-                      ? f.slug
-                      : e.target.value
-                          .toLowerCase()
-                          .normalize("NFD")
-                          .replace(/[\u0300-\u036f]/g, "")
-                          .replace(/[^a-z0-9]+/g, "-")
-                          .replace(/^-|-$/g, ""),
-                  }))
-                }
-              />
+          <div className="grid gap-6 md:grid-cols-[280px_1fr]">
+            {/* Coluna esquerda: imagem + preview */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Imagem de capa
+                </Label>
+                <ImageDropzone
+                  value={form.cover_url ?? ""}
+                  onChange={(url) => setForm((f) => ({ ...f, cover_url: url }))}
+                />
+              </div>
+
+              <div className="rounded-xl border border-border/60 p-3">
+                <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
+                  Prévia do card
+                </p>
+                <div className="overflow-hidden rounded-lg border border-border/60">
+                  <div className="aspect-[4/3] bg-muted/40">
+                    {form.cover_url ? (
+                      <img
+                        src={form.cover_url}
+                        alt="Prévia"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <Package className="h-7 w-7 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1 p-3">
+                    <p className="truncate text-sm font-semibold">
+                      {form.name || "Nome do produto"}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {form.tagline || "Chamada curta"}
+                    </p>
+                    <p className="pt-1 text-sm font-bold text-primary">
+                      Comprar por {formatPrice(toCents(form.priceReais))}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label>Identificador (slug)</Label>
-              <Input
-                value={form.slug}
-                onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1 sm:col-span-2">
-              <Label>Chamada curta</Label>
-              <Input
-                value={form.tagline ?? ""}
-                onChange={(e) => setForm((f) => ({ ...f, tagline: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1 sm:col-span-2">
-              <Label>Descrição completa</Label>
-              <Textarea
-                rows={4}
-                value={form.description ?? ""}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Categoria</Label>
-              <Select
-                value={form.category}
-                onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="IA">IA</SelectItem>
-                  <SelectItem value="Ferramentas">Ferramentas</SelectItem>
-                  <SelectItem value="Assinaturas">Assinaturas</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Imagem de capa (URL)</Label>
-              <Input
-                value={form.cover_url ?? ""}
-                onChange={(e) => setForm((f) => ({ ...f, cover_url: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Preço (R$)</Label>
-              <Input
-                value={form.priceReais}
-                onChange={(e) => setForm((f) => ({ ...f, priceReais: e.target.value }))}
-                placeholder="49,90"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Preço antigo (R$, opcional)</Label>
-              <Input
-                value={form.oldPriceReais}
-                onChange={(e) => setForm((f) => ({ ...f, oldPriceReais: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Tipo de entregável</Label>
-              <Select
-                value={form.delivery_type}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, delivery_type: v as DeliveryType }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(DELIVERY_LABELS).map(([k, label]) => (
-                    <SelectItem key={k} value={k}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Estoque (vazio = ilimitado)</Label>
-              <Input
-                type="number"
-                value={form.stock ?? ""}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    stock: e.target.value === "" ? null : Number(e.target.value),
-                  }))
-                }
-              />
-            </div>
-            <div className="space-y-1 sm:col-span-2">
-              <Label>
-                Entregável{" "}
-                {form.delivery_type === "manual"
-                  ? "(opcional — você entrega manualmente em cada pedido)"
-                  : "(link, chave ou texto enviado ao comprador)"}
-              </Label>
-              <Textarea
-                rows={3}
-                value={form.delivery_content ?? ""}
-                onChange={(e) => setForm((f) => ({ ...f, delivery_content: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1 sm:col-span-2">
-              <Label>Instruções de uso (aparecem junto ao entregável)</Label>
-              <Textarea
-                rows={2}
-                value={form.delivery_instructions ?? ""}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, delivery_instructions: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Ordem</Label>
-              <Input
-                type="number"
-                value={form.sort_order}
-                onChange={(e) => setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Avaliação (0–5)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                value={form.rating}
-                onChange={(e) => setForm((f) => ({ ...f, rating: Number(e.target.value) }))}
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <Switch
-                checked={form.is_active}
-                onCheckedChange={(v) => setForm((f) => ({ ...f, is_active: v }))}
-              />
-              <Label>Ativo</Label>
-            </div>
-            <div className="flex items-center gap-3">
-              <Switch
-                checked={form.featured}
-                onCheckedChange={(v) => setForm((f) => ({ ...f, featured: v }))}
-              />
-              <Label>Destaque</Label>
+
+            {/* Coluna direita: campos */}
+            <div className="space-y-6">
+              <section className="space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Informações
+                </h4>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label>Nome</Label>
+                    <Input
+                      value={form.name}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          name: e.target.value,
+                          slug: f.id
+                            ? f.slug
+                            : e.target.value
+                                .toLowerCase()
+                                .normalize("NFD")
+                                .replace(/[\u0300-\u036f]/g, "")
+                                .replace(/[^a-z0-9]+/g, "-")
+                                .replace(/^-|-$/g, ""),
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Identificador (slug)</Label>
+                    <Input
+                      value={form.slug}
+                      onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label>Chamada curta</Label>
+                    <Input
+                      value={form.tagline ?? ""}
+                      placeholder="Ex.: Conta com 300 créditos, entrega imediata"
+                      onChange={(e) => setForm((f) => ({ ...f, tagline: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label>Descrição completa</Label>
+                    <Textarea
+                      rows={5}
+                      value={form.description ?? ""}
+                      placeholder="Explique o que o comprador recebe, condições e prazos."
+                      onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Categoria</Label>
+                    <Select
+                      value={form.category}
+                      onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="IA">IA</SelectItem>
+                        <SelectItem value="Ferramentas">Ferramentas</SelectItem>
+                        <SelectItem value="Assinaturas">Assinaturas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Estoque (vazio = ilimitado)</Label>
+                    <Input
+                      type="number"
+                      value={form.stock ?? ""}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          stock: e.target.value === "" ? null : Number(e.target.value),
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Preço
+                </h4>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label>Preço (R$)</Label>
+                    <Input
+                      value={form.priceReais}
+                      onChange={(e) => setForm((f) => ({ ...f, priceReais: e.target.value }))}
+                      placeholder="49,90"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Preço antigo (R$, opcional)</Label>
+                    <Input
+                      value={form.oldPriceReais}
+                      onChange={(e) => setForm((f) => ({ ...f, oldPriceReais: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Entrega
+                </h4>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label>Tipo de entregável</Label>
+                    <Select
+                      value={form.delivery_type}
+                      onValueChange={(v) =>
+                        setForm((f) => ({ ...f, delivery_type: v as DeliveryType }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(DELIVERY_LABELS).map(([k, label]) => (
+                          <SelectItem key={k} value={k}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label>
+                      Entregável{" "}
+                      {form.delivery_type === "manual"
+                        ? "(opcional — você entrega manualmente em cada pedido)"
+                        : "(link, chave ou texto enviado ao comprador)"}
+                    </Label>
+                    <Textarea
+                      rows={3}
+                      value={form.delivery_content ?? ""}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, delivery_content: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label>Instruções de uso (aparecem junto ao entregável)</Label>
+                    <Textarea
+                      rows={2}
+                      value={form.delivery_instructions ?? ""}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, delivery_instructions: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Exibição
+                </h4>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label>Ordem</Label>
+                    <Input
+                      type="number"
+                      value={form.sort_order}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Avaliação (0–5)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={form.rating}
+                      onChange={(e) => setForm((f) => ({ ...f, rating: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2">
+                    <Switch
+                      checked={form.is_active}
+                      onCheckedChange={(v) => setForm((f) => ({ ...f, is_active: v }))}
+                    />
+                    <Label>Ativo</Label>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2">
+                    <Switch
+                      checked={form.featured}
+                      onCheckedChange={(v) => setForm((f) => ({ ...f, featured: v }))}
+                    />
+                    <Label>Destaque</Label>
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
 
@@ -408,6 +487,7 @@ function ProductsPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </Card>
   );
 }
