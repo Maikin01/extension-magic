@@ -79,10 +79,7 @@ export const listMarketplaceProducts = () =>
   backendApi.invoke<{ products: MarketplaceProduct[] }>("listMarketplaceProducts");
 
 export const createMarketplaceOrder = (data: { product_id: string; buyer_note?: string }) =>
-  backendApi.invoke<{ order: { id: string; status: OrderStatus } }>(
-    "createMarketplaceOrder",
-    data,
-  );
+  backendApi.invoke<{ order: { id: string; status: OrderStatus } }>("createMarketplaceOrder", data);
 
 export const listMyMarketplaceOrders = () =>
   backendApi.invoke<{ orders: MyOrder[] }>("listMyMarketplaceOrders");
@@ -90,16 +87,15 @@ export const listMyMarketplaceOrders = () =>
 export const adminListMarketplaceProducts = () =>
   backendApi.invoke<{ products: AdminProduct[] }>("adminListMarketplaceProducts");
 
-export const adminUploadMarketplaceImage = (data_url: string) =>
-  backendApi.invoke<{ url: string }>("adminUploadMarketplaceImage", { data_url }, {
+export const adminCreateMarketplaceProduct = (data: ProductInput) =>
+  backendApi.invoke<{ product: AdminProduct }>("adminCreateMarketplaceProduct", data, {
     timeoutMs: 45_000,
   });
 
-export const adminCreateMarketplaceProduct = (data: ProductInput) =>
-  backendApi.invoke<{ product: AdminProduct }>("adminCreateMarketplaceProduct", data);
-
 export const adminUpdateMarketplaceProduct = (data: ProductInput & { id: string }) =>
-  backendApi.invoke<{ product: AdminProduct }>("adminUpdateMarketplaceProduct", data);
+  backendApi.invoke<{ product: AdminProduct }>("adminUpdateMarketplaceProduct", data, {
+    timeoutMs: 45_000,
+  });
 
 export const adminDeleteMarketplaceProduct = (product_id: string) =>
   backendApi.invoke<{ ok: true }>("adminDeleteMarketplaceProduct", { product_id });
@@ -111,10 +107,11 @@ export const adminUpdateMarketplaceOrder = (data: {
   order_id: string;
   status: OrderStatus;
   delivered_content?: string | null;
-}) => backendApi.invoke<{ order: { id: string; status: OrderStatus } }>(
-  "adminUpdateMarketplaceOrder",
-  data,
-);
+}) =>
+  backendApi.invoke<{ order: { id: string; status: OrderStatus } }>(
+    "adminUpdateMarketplaceOrder",
+    data,
+  );
 
 export const DELIVERY_LABELS: Record<DeliveryType, string> = {
   link: "Link de acesso",

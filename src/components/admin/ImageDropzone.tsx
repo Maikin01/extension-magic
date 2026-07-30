@@ -3,7 +3,6 @@ import { ImagePlus, Loader2, Trash2, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { adminUploadMarketplaceImage } from "@/lib/api/marketplace-api";
 import { cn } from "@/lib/utils";
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -98,9 +97,8 @@ export function ImageDropzone({ value, onChange }: Props) {
         return;
       }
       const optimized = await optimizeImage(file);
-      const { url } = await adminUploadMarketplaceImage(optimized);
-      onChange(url);
-      toast.success("Imagem enviada!");
+      onChange(optimized);
+      toast.success("Imagem pronta para salvar com o produto.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao enviar a imagem.");
     } finally {
@@ -184,7 +182,12 @@ export function ImageDropzone({ value, onChange }: Props) {
           </Button>
         )}
         {!value && (
-          <Button type="button" variant="outline" size="icon" onClick={() => inputRef.current?.click()}>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => inputRef.current?.click()}
+          >
             <ImagePlus className="h-4 w-4" />
           </Button>
         )}
