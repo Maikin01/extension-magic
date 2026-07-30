@@ -37,7 +37,9 @@ function discountPercent(price: number, old: number | null) {
 }
 
 const COVER_FALLBACKS: { match: RegExp; url: string }[] = [
+  { match: /youtube/i, url: youtubeCover.url },
   { match: /lovable/i, url: lovableCover.url },
+
 ];
 
 function resolveCover(product: MarketplaceProduct) {
