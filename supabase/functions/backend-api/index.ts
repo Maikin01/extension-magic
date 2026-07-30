@@ -1650,13 +1650,7 @@ async function adminDeleteMarketplaceProduct(
     .from("marketplace_products")
     .delete()
     .eq("id", data.product_id);
-  if (error) {
-    throw new ApiHttpError(
-      409,
-      "PRODUCT_IN_USE",
-      "Não é possível excluir: este produto já possui pedidos. Desative-o.",
-    );
-  }
+  if (error) throw error;
   await context.admin.from("admin_audit_log").insert({
     admin_id: adminId,
     action: "delete_marketplace_product",
