@@ -29,6 +29,7 @@ import {
   applyProviderPaymentStatus,
   finalizePaymentIfApproved,
   finalizePaymentLicenses,
+  reconcilePendingPayments,
 } from "../_shared/payments.ts";
 import { enforceRateLimit, sha256Hex } from "../_shared/rate-limit.ts";
 import { deliverMarketplaceOrder } from "../_shared/marketplace.ts";
