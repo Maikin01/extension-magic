@@ -223,7 +223,7 @@ function ProductsPanel() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => remove.mutate(p.id)}
+                      onClick={() => setPendingDelete(p)}
                       disabled={remove.isPending}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
