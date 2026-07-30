@@ -50,6 +50,7 @@ function normalizeErrorPayload(payload: unknown): ErrorPayload {
       code: record.code,
       message: nested,
       requestId: record.requestId,
+      fields: record.fields,
     };
   }
   return record as ErrorPayload;
