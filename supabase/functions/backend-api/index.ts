@@ -220,6 +220,8 @@ async function getMyAccessContext(context: AuthContext) {
 
 async function getMyDashboard(context: AuthContext) {
   const { admin, userId } = context;
+  // Rede de segurança: se o webhook falhou, aprova aqui e gera a chave.
+  await reconcilePendingPayments(admin, { userId, limit: 10 });
   const [licensesResult, profileResult, trialClaimResult] = await Promise.all([
     admin
       .from("licenses")
