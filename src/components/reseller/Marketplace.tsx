@@ -23,6 +23,7 @@ import { QueryErrorState } from "@/components/QueryErrorState";
 import { MarketplacePixDialog } from "@/components/checkout/MarketplacePixDialog";
 import lovableCover from "@/assets/lovable-12-meses.png.asset.json";
 import youtubeCover from "@/assets/youtube-premium.png.asset.json";
+import nordVpnCover from "@/assets/nord-vpn.png.asset.json";
 
 const CATEGORIES = ["Todos", "IA", "Ferramentas", "Assinaturas"] as const;
 
@@ -37,9 +38,9 @@ function discountPercent(price: number, old: number | null) {
 }
 
 const COVER_FALLBACKS: { match: RegExp; url: string }[] = [
+  { match: /nord\s*vpn/i, url: nordVpnCover.url },
   { match: /youtube/i, url: youtubeCover.url },
   { match: /lovable/i, url: lovableCover.url },
-
 ];
 
 function resolveCover(product: MarketplaceProduct) {
