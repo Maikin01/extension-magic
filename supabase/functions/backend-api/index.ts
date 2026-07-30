@@ -1712,7 +1712,11 @@ async function adminCreateMarketplaceProduct(
   input: unknown,
 ) {
   const adminId = await assertAdmin(context);
-  const { stock_items, ...data } = productSchema.parse(input);
+  const { stock_items, ...parsed } = productSchema.parse(input);
+  const data = {
+    ...parsed,
+    cover_url: await persistMarketplaceImage(context, parsed.cover_url),
+  };
   const { data: product, error } = await context.admin
     .from("marketplace_products")
     .insert(
@@ -1741,7 +1745,17 @@ async function adminUploadMarketplaceImage(
   const { data_url } = z.object({
     data_url: z.string().max(650_000, "A imagem excede o limite permitido."),
   }).parse(input);
-  const match = /^data:image\/(webp);base64,([a-z0-9+/=]+)$/i.exec(data_url);
+  return { url: await persistMarketplaceImage(context, data_url) };
+}
+
+async function persistMarketplaceImage(
+  context: AuthContext,
+  value: string | null | undefined,
+): Promise<string | null> {
+  if (!value) return null;
+  if (!value.startsWith("data:image/")) return value;
+
+  const match = /^data:image\/(webp);base64,([a-z0-9+/=]+)$/i.exec(value);
   if (!match) {
     throw new ApiHttpError(400, "INVALID_IMAGE", "A imagem enviada é inválida.");
   }
@@ -1780,7 +1794,7 @@ async function adminUploadMarketplaceImage(
       { cause: signError },
     );
   }
-  return { url: signed.signedUrl };
+  return signed.signedUrl;
 }
 
 async function adminUpdateMarketplaceProduct(
@@ -1790,6 +1804,7 @@ async function adminUpdateMarketplaceProduct(
   const adminId = await assertAdmin(context);
   const data = productSchema.extend({ id: z.string().uuid() }).parse(input);
   const { id, stock_items, ...updates } = data;
+  updates.cover_url = await persistMarketplaceImage(context, updates.cover_url);
   if (stock_items) {
     await replaceStockItems(context.admin, id, stock_items);
     (updates as any).stock = stock_items.length;

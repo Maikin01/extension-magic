@@ -90,16 +90,15 @@ export const listMyMarketplaceOrders = () =>
 export const adminListMarketplaceProducts = () =>
   backendApi.invoke<{ products: AdminProduct[] }>("adminListMarketplaceProducts");
 
-export const adminUploadMarketplaceImage = (data_url: string) =>
-  backendApi.invoke<{ url: string }>("adminUploadMarketplaceImage", { data_url }, {
+export const adminCreateMarketplaceProduct = (data: ProductInput) =>
+  backendApi.invoke<{ product: AdminProduct }>("adminCreateMarketplaceProduct", data, {
     timeoutMs: 45_000,
   });
 
-export const adminCreateMarketplaceProduct = (data: ProductInput) =>
-  backendApi.invoke<{ product: AdminProduct }>("adminCreateMarketplaceProduct", data);
-
 export const adminUpdateMarketplaceProduct = (data: ProductInput & { id: string }) =>
-  backendApi.invoke<{ product: AdminProduct }>("adminUpdateMarketplaceProduct", data);
+  backendApi.invoke<{ product: AdminProduct }>("adminUpdateMarketplaceProduct", data, {
+    timeoutMs: 45_000,
+  });
 
 export const adminDeleteMarketplaceProduct = (product_id: string) =>
   backendApi.invoke<{ ok: true }>("adminDeleteMarketplaceProduct", { product_id });
