@@ -371,7 +371,15 @@ function ProductsPanel() {
                 </Label>
                 <ImageDropzone
                   value={form.cover_url ?? ""}
-                  onChange={(url) => setForm((f) => ({ ...f, cover_url: url }))}
+                  onChange={(url) => {
+                    setForm((f) => ({ ...f, cover_url: url }));
+                    setFieldErrors((current) => {
+                      if (!current.cover_url) return current;
+                      const next = { ...current };
+                      delete next.cover_url;
+                      return next;
+                    });
+                  }}
                 />
                 {fieldError("cover_url")}
               </div>

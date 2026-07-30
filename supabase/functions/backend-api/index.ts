@@ -1302,8 +1302,18 @@ const productSchema = z.object({
   price_cents: z.coerce.number().int().min(0).max(100_000_000),
   old_price_cents: z.coerce.number().int().min(0).max(100_000_000).optional()
     .nullable(),
-  cover_url: z.string().max(1_500_000).refine(
-    (value) => /^data:image\/[a-z0-9.+-]+;base64,/i.test(value) || URL.canParse(value),
+  cover_url: z.string().max(1_500_000, "A imagem excede o limite permitido.").refine(
+    (value) => {
+      if (/^data:image\/(?:png|jpe?g|webp|gif|avif);base64,[a-z0-9+/=\s]+$/i.test(value)) {
+        return true;
+      }
+      try {
+        const url = new URL(value);
+        return url.protocol === "http:" || url.protocol === "https:";
+      } catch {
+        return false;
+      }
+    },
     "Envie uma imagem válida ou uma URL http(s).",
   ).optional().nullable().or(z.literal("").transform(() => null)),
   delivery_type: z.enum(["link", "text", "file", "manual"]),
