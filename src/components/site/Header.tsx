@@ -68,7 +68,7 @@ export function SiteHeader({ theme, onToggleTheme }: HeaderProps) {
               </Link>
               {isReseller && (
                 <Link
-                  to="/reseller"
+                  to="/revenda"
                   className="rounded-md px-3 py-2 text-sm font-medium text-[var(--rv-text-muted,#a1a1aa)] transition-colors hover:bg-white/5 hover:text-white"
                 >
                   Revendedor

@@ -18,7 +18,6 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RevendaEntrarRouteImport } from './routes/revenda_.entrar'
 import { Route as RevendaCriarContaRouteImport } from './routes/revenda_.criar-conta'
-import { Route as AuthenticatedResellerRouteImport } from './routes/_authenticated/reseller'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
@@ -72,11 +71,6 @@ const RevendaCriarContaRoute = RevendaCriarContaRouteImport.update({
   id: '/revenda_/criar-conta',
   path: '/revenda/criar-conta',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedResellerRoute = AuthenticatedResellerRouteImport.update({
-  id: '/reseller',
-  path: '/reseller',
-  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
@@ -141,7 +135,6 @@ export interface FileRoutesByFullPath {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/reseller': typeof AuthenticatedResellerRoute
   '/revenda/criar-conta': typeof RevendaCriarContaRoute
   '/revenda/entrar': typeof RevendaEntrarRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -161,7 +154,6 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/reseller': typeof AuthenticatedResellerRoute
   '/revenda/criar-conta': typeof RevendaCriarContaRoute
   '/revenda/entrar': typeof RevendaEntrarRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -183,7 +175,6 @@ export interface FileRoutesById {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/reseller': typeof AuthenticatedResellerRoute
   '/revenda_/criar-conta': typeof RevendaCriarContaRoute
   '/revenda_/entrar': typeof RevendaEntrarRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -205,7 +196,6 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/admin'
     | '/dashboard'
-    | '/reseller'
     | '/revenda/criar-conta'
     | '/revenda/entrar'
     | '/.lovable/oauth/consent'
@@ -225,7 +215,6 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/admin'
     | '/dashboard'
-    | '/reseller'
     | '/revenda/criar-conta'
     | '/revenda/entrar'
     | '/.lovable/oauth/consent'
@@ -246,7 +235,6 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
-    | '/_authenticated/reseller'
     | '/revenda_/criar-conta'
     | '/revenda_/entrar'
     | '/.lovable/oauth/consent'
@@ -340,13 +328,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RevendaCriarContaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/reseller': {
-      id: '/_authenticated/reseller'
-      path: '/reseller'
-      fullPath: '/reseller'
-      preLoaderRoute: typeof AuthenticatedResellerRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -416,13 +397,11 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedResellerRoute: typeof AuthenticatedResellerRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedResellerRoute: AuthenticatedResellerRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
