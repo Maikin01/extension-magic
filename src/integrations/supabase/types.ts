@@ -260,7 +260,7 @@ export type Database = {
           expires_at: string | null
           id: string
           paid_at: string | null
-          product_id: string
+          product_id: string | null
           provider: string
           provider_payment_id: string | null
           qr_code: string | null
@@ -284,7 +284,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           paid_at?: string | null
-          product_id: string
+          product_id?: string | null
           provider?: string
           provider_payment_id?: string | null
           qr_code?: string | null
@@ -308,7 +308,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           paid_at?: string | null
-          product_id?: string
+          product_id?: string | null
           provider?: string
           provider_payment_id?: string | null
           qr_code?: string | null

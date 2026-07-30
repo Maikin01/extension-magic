@@ -17,6 +17,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -112,10 +122,13 @@ function ProductsPanel() {
     onError: (e) => toast.error(translateError(e)),
   });
 
+  const [pendingDelete, setPendingDelete] = useState<AdminProduct | null>(null);
+
   const remove = useMutation({
     mutationFn: adminDeleteMarketplaceProduct,
     onSuccess: () => {
       toast.success("Produto excluído.");
+      setPendingDelete(null);
       void qc.invalidateQueries({ queryKey: ["admin", "marketplace"] });
     },
     onError: (e) => toast.error(translateError(e)),
@@ -210,7 +223,7 @@ function ProductsPanel() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => remove.mutate(p.id)}
+                      onClick={() => setPendingDelete(p)}
                       disabled={remove.isPending}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -222,6 +235,33 @@ function ProductsPanel() {
           </table>
         </div>
       )}
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => !o && setPendingDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir produto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir “{pendingDelete?.name}”? Essa ação não pode
+              ser desfeita. Os pedidos já realizados continuam no histórico.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={remove.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={remove.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (pendingDelete) remove.mutate(pendingDelete.id);
+              }}
+            >
+              {remove.isPending ? "Excluindo…" : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-3xl">
