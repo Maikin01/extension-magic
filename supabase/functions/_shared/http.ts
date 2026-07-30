@@ -12,17 +12,24 @@ const EXPOSED_HEADERS = "x-request-id, retry-after";
 const ALLOWED_HEADERS =
   "authorization, x-client-info, apikey, content-type, x-request-id";
 
+export type FieldIssue = { field: string; message: string };
+
 export class ApiHttpError extends Error {
   readonly status: number;
   readonly code: string;
   readonly publicMessage: string;
   readonly retryAfterSeconds?: number;
+  readonly fields?: FieldIssue[];
 
   constructor(
     status: number,
     code: string,
     publicMessage: string,
-    options: { cause?: unknown; retryAfterSeconds?: number } = {},
+    options: {
+      cause?: unknown;
+      retryAfterSeconds?: number;
+      fields?: FieldIssue[];
+    } = {},
   ) {
     super(
       publicMessage,
@@ -33,6 +40,7 @@ export class ApiHttpError extends Error {
     this.code = code;
     this.publicMessage = publicMessage;
     this.retryAfterSeconds = options.retryAfterSeconds;
+    this.fields = options.fields;
   }
 }
 
