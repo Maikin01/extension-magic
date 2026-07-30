@@ -82,6 +82,7 @@ const ADMIN_MUTATION_ACTIONS = new Set([
   "adminSetUserRole",
   "adminDeleteUser",
   "createMarketplaceOrder",
+  "createMarketplacePixCheckout",
   "adminCreateMarketplaceProduct",
   "adminUpdateMarketplaceProduct",
   "adminDeleteMarketplaceProduct",
@@ -114,6 +115,8 @@ const BACKEND_ACTIONS = new Set([
   "getAdminAccessStatus",
   "listMarketplaceProducts",
   "createMarketplaceOrder",
+  "createMarketplacePixCheckout",
+  "getMarketplaceOrderStatus",
   "listMyMarketplaceOrders",
   "adminListMarketplaceProducts",
   "adminCreateMarketplaceProduct",
@@ -164,7 +167,8 @@ async function enforceBackendRateLimit(
   action: string,
   requestId: string,
 ): Promise<void> {
-  const bucket = action === "createPixCheckout"
+  const bucket = (action === "createPixCheckout" ||
+      action === "createMarketplacePixCheckout")
     ? { scope: "backend-payment", limit: 10, windowSeconds: 600 }
     : ADMIN_MUTATION_ACTIONS.has(action)
     ? { scope: "backend-admin-mutation", limit: 60, windowSeconds: 60 }
@@ -1863,6 +1867,10 @@ async function dispatch(
       return listMarketplaceProducts(context);
     case "createMarketplaceOrder":
       return createMarketplaceOrder(context, input);
+    case "createMarketplacePixCheckout":
+      return createMarketplacePixCheckout(context, input);
+    case "getMarketplaceOrderStatus":
+      return getMarketplaceOrderStatus(context, input);
     case "listMyMarketplaceOrders":
       return listMyMarketplaceOrders(context);
     case "adminListMarketplaceProducts":
