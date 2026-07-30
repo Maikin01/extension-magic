@@ -129,6 +129,11 @@ async function request<T>(options: {
             : `O backend respondeu com HTTP ${response.status}.`,
         code: typeof details.code === "string" ? details.code : `HTTP_${response.status}`,
         status: response.status,
+        fields: Array.isArray(details.fields)
+          ? (details.fields as FieldIssue[]).filter(
+              (f) => f && typeof f.message === "string",
+            )
+          : [],
         requestId:
           typeof details.requestId === "string"
             ? details.requestId
