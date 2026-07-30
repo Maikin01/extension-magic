@@ -418,6 +418,7 @@ function ProductsPanel() {
                   <div className="space-y-1">
                     <Label>Nome</Label>
                     <Input
+                      className={invalid("name")}
                       value={form.name}
                       onChange={(e) =>
                         setForm((f) => ({
@@ -434,13 +435,16 @@ function ProductsPanel() {
                         }))
                       }
                     />
+                    {fieldError("name")}
                   </div>
                   <div className="space-y-1">
                     <Label>Identificador (slug)</Label>
                     <Input
+                      className={invalid("slug")}
                       value={form.slug}
                       onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
                     />
+                    {fieldError("slug")}
                   </div>
                   <div className="space-y-1 sm:col-span-2">
                     <Label>Chamada curta</Label>
