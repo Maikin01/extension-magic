@@ -8,7 +8,6 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
-  Store,
   Trophy,
   BarChart3,
   Coins,
@@ -55,7 +54,7 @@ export const Route = createFileRoute("/revenda")({
   component: ResellerPanelPage,
 });
 
-type Tab = "chaves" | "minhas" | "marketplace" | "ranking" | "tutorial" | "suporte";
+type Tab = "chaves" | "minhas" | "ranking" | "tutorial" | "suporte";
 type ThemeMode = "dark" | "light";
 
 function getUserInitials(email?: string): string {
@@ -94,7 +93,6 @@ function ResellerPanelPage() {
     {
       title: "REDE & MERCADO",
       items: [
-        { key: "marketplace", label: "Marketplace VIP", icon: Store },
         { key: "ranking", label: "Ranking & Níveis", icon: Trophy, badge: "Em breve" },
       ],
     },
@@ -285,14 +283,12 @@ function ResellerPanelPage() {
                 <div className="space-y-8">
                   <AccountOverviewBanner userEmail={user?.email} />
                   <KeyStore />
+                  <Marketplace />
                 </div>
               )}
 
               {/* ABA 2: MINHAS LICENÇAS */}
               {tab === "minhas" && <MyKeys />}
-
-              {/* ABA 3: MARKETPLACE */}
-              {tab === "marketplace" && <Marketplace />}
 
               {tab === "ranking" && (
                 <ComingSoonCard
