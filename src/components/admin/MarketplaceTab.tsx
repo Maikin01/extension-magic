@@ -511,10 +511,12 @@ function ProductsPanel() {
                   <div className="space-y-1">
                     <Label>Preço (R$)</Label>
                     <Input
+                      className={invalid("price_cents")}
                       value={form.priceReais}
                       onChange={(e) => setForm((f) => ({ ...f, priceReais: e.target.value }))}
                       placeholder="49,90"
                     />
+                    {fieldError("price_cents")}
                   </div>
                   <div className="space-y-1">
                     <Label>Preço antigo (R$, opcional)</Label>
