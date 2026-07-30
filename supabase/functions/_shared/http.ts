@@ -240,6 +240,7 @@ export function errorResponse(error: unknown, context?: HttpContext): Response {
     {
       error: normalized.publicMessage,
       code: normalized.code,
+      fields: normalized.fields ?? undefined,
       requestId: context?.requestId ?? crypto.randomUUID(),
     },
     normalized.status,
