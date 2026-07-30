@@ -3,23 +3,34 @@ import { getSupabasePublicConfig } from "@/integrations/supabase/public-config";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 
+export type FieldIssue = { field: string; message: string };
+
 type ErrorPayload = {
   code?: unknown;
   message?: unknown;
   requestId?: unknown;
+  fields?: unknown;
 };
 
 export class BackendApiError extends Error {
   readonly code: string;
   readonly status: number;
   readonly requestId: string;
+  readonly fields: FieldIssue[];
 
-  constructor(options: { message: string; code?: string; status?: number; requestId: string }) {
+  constructor(options: {
+    message: string;
+    code?: string;
+    status?: number;
+    requestId: string;
+    fields?: FieldIssue[];
+  }) {
     super(options.message);
     this.name = "BackendApiError";
     this.code = options.code ?? "BACKEND_ERROR";
     this.status = options.status ?? 500;
     this.requestId = options.requestId;
+    this.fields = options.fields ?? [];
   }
 }
 
