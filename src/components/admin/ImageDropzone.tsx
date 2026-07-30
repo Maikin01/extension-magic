@@ -124,6 +124,9 @@ export function ImageDropzone({ value, onChange }: Props) {
             <p className="text-xs text-muted-foreground">
               ou clique para escolher • PNG, JPG ou WEBP até 5 MB
             </p>
+            <p className="text-xs font-medium text-primary">
+              Proporção obrigatória 1:1 (quadrada) — recomendado 1000x1000 px
+            </p>
           </>
         )}
         <input
