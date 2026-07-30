@@ -11,6 +11,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
 const MIN_SIDE = 600;
 const RATIO_TOLERANCE = 0.03;
 const OUTPUT_SIDE = 1000;
+const MAX_DATA_URL_BYTES = 900_000;
 
 function readDimensions(file: File) {
   return new Promise<{ width: number; height: number }>((resolve, reject) => {
@@ -28,6 +29,10 @@ function readDimensions(file: File) {
   });
 }
 
+function canvasToDataUrl(canvas: HTMLCanvasElement, quality: number) {
+  return canvas.toDataURL("image/webp", quality);
+}
+
 function optimizeImage(file: File) {
   return new Promise<string>((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -43,7 +48,15 @@ function optimizeImage(file: File) {
         return;
       }
       context.drawImage(img, 0, 0, OUTPUT_SIDE, OUTPUT_SIDE);
-      resolve(canvas.toDataURL("image/webp", 0.82));
+      const qualities = [0.82, 0.72, 0.62, 0.52];
+      const optimized = qualities
+        .map((quality) => canvasToDataUrl(canvas, quality))
+        .find((dataUrl) => dataUrl.length <= MAX_DATA_URL_BYTES);
+      if (!optimized) {
+        reject(new Error("Não foi possível reduzir a imagem. Use uma imagem menos detalhada."));
+        return;
+      }
+      resolve(optimized);
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
@@ -85,16 +98,20 @@ export function ImageDropzone({ value, onChange }: Props) {
         toast.error(`Imagem pequena demais. Mínimo de ${MIN_SIDE}x${MIN_SIDE} px.`);
         return;
       }
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `products/${crypto.randomUUID()}.${ext}`;
+      const optimized = await optimizeImage(file);
+      const response = await fetch(optimized);
+      const optimizedFile = await response.blob();
+      const path = `products/${crypto.randomUUID()}.webp`;
       const { error } = await supabase.storage
         .from("marketplace")
-        .upload(path, file, { cacheControl: "31536000", upsert: false });
+        .upload(path, optimizedFile, {
+          cacheControl: "31536000",
+          contentType: "image/webp",
+          upsert: false,
+        });
 
       if (error) {
-        const normalizedMessage = error.message.toLowerCase();
-        if (!normalizedMessage.includes("bucket not found")) throw error;
-        onChange(await optimizeImage(file));
+        onChange(optimized);
         toast.success("Imagem processada e adicionada ao produto!");
         return;
       }
