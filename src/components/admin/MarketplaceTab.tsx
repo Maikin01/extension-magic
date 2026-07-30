@@ -52,8 +52,15 @@ import {
   type OrderStatus,
   type ProductInput,
 } from "@/lib/api/marketplace-api";
+import { StockItemsEditor } from "@/components/admin/StockItemsEditor";
 
-type Form = ProductInput & { id?: string; priceReais: string; oldPriceReais: string };
+type Form = ProductInput & {
+  id?: string;
+  priceReais: string;
+  oldPriceReais: string;
+  stockItems: string[];
+  stockUsed: number;
+};
 
 const emptyForm: Form = {
   slug: "",
@@ -74,6 +81,8 @@ const emptyForm: Form = {
   sort_order: 0,
   priceReais: "",
   oldPriceReais: "",
+  stockItems: [],
+  stockUsed: 0,
 };
 
 const toCents = (value: string) => Math.round(Number(value.replace(",", ".") || "0") * 100);
@@ -103,7 +112,12 @@ function ProductsPanel() {
         delivery_type: form.delivery_type,
         delivery_content: form.delivery_content?.trim() || null,
         delivery_instructions: form.delivery_instructions?.trim() || null,
-        stock: form.stock === null || Number.isNaN(form.stock) ? null : Number(form.stock),
+        stock: form.stockItems.length
+          ? form.stockItems.length
+          : form.stock === null || Number.isNaN(form.stock)
+            ? null
+            : Number(form.stock),
+        stock_items: form.stockItems.map((item) => item.trim()).filter(Boolean),
         rating: Number(form.rating) || 5,
         is_active: form.is_active,
         featured: form.featured,
@@ -155,6 +169,8 @@ function ProductsPanel() {
       sort_order: p.sort_order,
       priceReais: (p.price_cents / 100).toFixed(2),
       oldPriceReais: p.old_price_cents ? (p.old_price_cents / 100).toFixed(2) : "",
+      stockItems: p.stock_items ?? [],
+      stockUsed: p.stock_items_used ?? 0,
     });
     setOpen(true);
   };
@@ -386,7 +402,10 @@ function ProductsPanel() {
                     <Label>Estoque (vazio = ilimitado)</Label>
                     <Input
                       type="number"
-                      value={form.stock ?? ""}
+                      disabled={form.stockItems.length > 0}
+                      value={
+                        form.stockItems.length > 0 ? form.stockItems.length : (form.stock ?? "")
+                      }
                       onChange={(e) =>
                         setForm((f) => ({
                           ...f,
@@ -394,6 +413,11 @@ function ProductsPanel() {
                         }))
                       }
                     />
+                    {form.stockItems.length > 0 && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Controlado pelas unidades cadastradas na seção Entrega.
+                      </p>
+                    )}
                   </div>
                 </div>
               </section>
@@ -451,7 +475,7 @@ function ProductsPanel() {
                       Entregável{" "}
                       {form.delivery_type === "manual"
                         ? "(opcional — você entrega manualmente em cada pedido)"
-                        : "(link, chave ou texto enviado ao comprador)"}
+                        : "(usado apenas quando não há estoque por unidade)"}
                     </Label>
                     <Textarea
                       rows={3}
@@ -461,6 +485,16 @@ function ProductsPanel() {
                       }
                     />
                   </div>
+                  {form.delivery_type !== "manual" && (
+                    <div className="space-y-1 sm:col-span-2">
+                      <StockItemsEditor
+                        items={form.stockItems}
+                        used={form.stockUsed}
+                        onChange={(stockItems) => setForm((f) => ({ ...f, stockItems }))}
+                        label="Estoque por unidade (1 entregável por venda)"
+                      />
+                    </div>
+                  )}
                   <div className="space-y-1 sm:col-span-2">
                     <Label>Instruções de uso (aparecem junto ao entregável)</Label>
                     <Textarea
