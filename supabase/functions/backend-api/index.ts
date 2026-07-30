@@ -1824,14 +1824,21 @@ async function adminUpdateMarketplaceOrder(
   let delivered_content = data.delivered_content ?? order.delivered_content ??
     null;
   let delivered_at = order.delivered_at;
+  let unitContent: string | null = null;
 
-  // Pagamento confirmado: entrega automática quando o produto tem entregável salvo.
-  if (
-    status === "paid" && product.delivery_type !== "manual" &&
-    product.delivery_content
-  ) {
-    delivered_content = product.delivery_content;
-    status = "delivered";
+  // Pagamento confirmado: entrega automática (uma unidade do estoque por pedido).
+  if (status === "paid" && product.delivery_type !== "manual") {
+    if (!delivered_content && product.id) {
+      const claimed = await context.admin.rpc("claim_marketplace_stock_item", {
+        p_product_id: product.id,
+        p_order_id: order.id,
+      });
+      if (claimed.error) throw claimed.error;
+      unitContent = (claimed.data as string | null) ?? null;
+    }
+    delivered_content = delivered_content ?? unitContent ??
+      product.delivery_content ?? null;
+    if (delivered_content) status = "delivered";
   }
   if (status === "delivered") {
     if (!delivered_content) {
@@ -1843,7 +1850,7 @@ async function adminUpdateMarketplaceOrder(
     }
     delivered_at = delivered_at ?? new Date().toISOString();
     if (
-      order.status !== "delivered" && product.id &&
+      !unitContent && order.status !== "delivered" && product.id &&
       typeof product.stock === "number"
     ) {
       await context.admin
