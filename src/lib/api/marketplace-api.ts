@@ -121,3 +121,37 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   delivered: "Entregue",
   cancelled: "Cancelado",
 };
+
+export type MarketplacePixResponse = {
+  order_id: string;
+  status: OrderStatus;
+  qr_code: string | null;
+  qr_code_base64: string | null;
+  ticket_url: string | null;
+  expires_at: string | null;
+  amount_cents: number;
+  product_name: string | null;
+};
+
+export type MarketplaceOrderStatusResponse = {
+  status: OrderStatus;
+  delivered_content: string | null;
+  delivery_instructions: string | null;
+  product_name: string | null;
+};
+
+export const createMarketplacePixCheckout = (data: {
+  product_id: string;
+  buyer_name: string;
+  buyer_whatsapp: string;
+  buyer_cpf?: string;
+  idempotency_key: string;
+}) =>
+  backendApi.invoke<MarketplacePixResponse>("createMarketplacePixCheckout", data, {
+    timeoutMs: 45_000,
+  });
+
+export const getMarketplaceOrderStatus = (order_id: string) =>
+  backendApi.invoke<MarketplaceOrderStatusResponse>("getMarketplaceOrderStatus", {
+    order_id,
+  });
