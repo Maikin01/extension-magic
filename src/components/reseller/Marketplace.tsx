@@ -22,6 +22,7 @@ import {
 import { QueryErrorState } from "@/components/QueryErrorState";
 import { MarketplacePixDialog } from "@/components/checkout/MarketplacePixDialog";
 import lovableCover from "@/assets/lovable-12-meses.png.asset.json";
+import youtubeCover from "@/assets/youtube-premium.png.asset.json";
 
 const CATEGORIES = ["Todos", "IA", "Ferramentas", "Assinaturas"] as const;
 
