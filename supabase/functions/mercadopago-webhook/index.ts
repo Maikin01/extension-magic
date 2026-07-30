@@ -16,6 +16,7 @@ import {
   finalizePaymentIfApproved,
 } from "../_shared/payments.ts";
 import { clientIp, enforceRateLimit } from "../_shared/rate-limit.ts";
+import { deliverMarketplaceOrder } from "../_shared/marketplace.ts";
 
 Deno.serve(async (request) => {
   const http = createHttpContext(request, "public");
@@ -90,6 +91,31 @@ Deno.serve(async (request) => {
     const externalReference = remote.external_reference
       ? String(remote.external_reference)
       : null;
+    if (externalReference && externalReference.startsWith("mkt_")) {
+      const orderId = externalReference.slice(4);
+      const { data: order, error: orderError } = await admin
+        .from("marketplace_orders")
+        .select("id, status, amount_cents")
+        .eq("id", orderId)
+        .maybeSingle();
+      if (orderError) throw orderError;
+      if (!order) return json({ ok: true, ignored: "order_not_found" }, 200, http);
+      if (String(remote.status) === "approved") {
+        await deliverMarketplaceOrder(admin, order.id);
+      } else if (
+        ["cancelled", "rejected", "refunded", "charged_back"].includes(
+          String(remote.status),
+        )
+      ) {
+        await admin
+          .from("marketplace_orders")
+          .update({ status: "cancelled" })
+          .eq("id", order.id)
+          .eq("status", "pending");
+      }
+      return json({ ok: true, marketplace: true }, 200, http);
+    }
+
     const query = admin.from("payments").select("*");
     const { data: payment, error } = externalReference
       ? await query.eq("id", externalReference).maybeSingle()
