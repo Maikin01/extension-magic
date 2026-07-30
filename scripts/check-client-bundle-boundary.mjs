@@ -96,7 +96,10 @@ async function scanSource() {
     }
 
     // Array.from/Buffer.from não são consultas ao banco e não entram na regra.
-    const sourceWithoutNativeFrom = source.replace(/\b(?:Array|Buffer)\.from\s*\(/g, "");
+    // storage.from() é bucket de Storage (não tabela) e também é permitido.
+    const sourceWithoutNativeFrom = source
+      .replace(/\b(?:Array|Buffer)\.from\s*\(/g, "")
+      .replace(/\bstorage\s*\.\s*from\s*\(/g, "");
     if (/\.from\s*\(/.test(sourceWithoutNativeFrom)) {
       violations.push(`${relativeFile}: acesso direto .from() proibido no frontend`);
     }
