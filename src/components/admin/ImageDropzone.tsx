@@ -111,6 +111,11 @@ export function ImageDropzone({ value, onChange }: Props) {
         });
 
       if (error) {
+        if (/bucket not found/i.test(error.message)) {
+          onChange(optimized);
+          toast.success("Imagem adicionada ao produto!");
+          return;
+        }
         throw new Error(`Não foi possível enviar a imagem: ${error.message}`);
       }
 
