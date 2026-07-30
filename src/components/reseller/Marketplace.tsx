@@ -21,6 +21,7 @@ import {
 } from "@/lib/api/marketplace-api";
 import { QueryErrorState } from "@/components/QueryErrorState";
 import { MarketplacePixDialog } from "@/components/checkout/MarketplacePixDialog";
+import lovableCover from "@/assets/lovable-12-meses.png.asset.json";
 
 const CATEGORIES = ["Todos", "IA", "Ferramentas", "Assinaturas"] as const;
 
@@ -34,6 +35,15 @@ function discountPercent(price: number, old: number | null) {
   return Math.round(((old - price) / old) * 100);
 }
 
+const COVER_FALLBACKS: { match: RegExp; url: string }[] = [
+  { match: /lovable/i, url: lovableCover.url },
+];
+
+function resolveCover(product: MarketplaceProduct) {
+  if (product.cover_url) return product.cover_url;
+  return COVER_FALLBACKS.find((f) => f.match.test(product.name))?.url ?? null;
+}
+
 function ProductCover({
   product,
   className = "",
@@ -41,10 +51,11 @@ function ProductCover({
   product: MarketplaceProduct;
   className?: string;
 }) {
-  if (product.cover_url) {
+  const cover = resolveCover(product);
+  if (cover) {
     return (
       <img
-        src={product.cover_url}
+        src={cover}
         alt={product.name}
         loading="lazy"
         className={`h-full w-full object-cover ${className}`}
