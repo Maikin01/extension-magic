@@ -77,7 +77,16 @@ export async function reconcilePendingPayments(
     .select(
       "id, user_id, quantity, amount_cents, buyer_email, provider_payment_id, status",
     )
-    .in("status", ["pending", "in_process", "authorized"])
+    .in("status", [
+      "pending",
+      "in_process",
+      "authorized",
+      "in_mediation",
+      // cancelado/rejeitado pode ser um evento fora de ordem de um Pix pago:
+      // reconsultamos no provedor para não deixar cliente sem chave.
+      "cancelled",
+      "rejected",
+    ])
     .not("provider_payment_id", "is", null)
     .gte("created_at", since)
     .order("created_at", { ascending: false })
