@@ -122,10 +122,13 @@ function ProductsPanel() {
     onError: (e) => toast.error(translateError(e)),
   });
 
+  const [pendingDelete, setPendingDelete] = useState<AdminProduct | null>(null);
+
   const remove = useMutation({
     mutationFn: adminDeleteMarketplaceProduct,
     onSuccess: () => {
       toast.success("Produto excluído.");
+      setPendingDelete(null);
       void qc.invalidateQueries({ queryKey: ["admin", "marketplace"] });
     },
     onError: (e) => toast.error(translateError(e)),
