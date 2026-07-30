@@ -56,3 +56,65 @@ export async function finalizePaymentIfApproved(
   return keys[0] ?? null;
 }
 
+
+/**
+ * Rede de segurança: reconsulta no Mercado Pago os Pix ainda pendentes e,
+ * quando aprovados, aprova o pagamento e gera as chaves. Usado quando o
+ * webhook falha ou nunca chega.
+ */
+export async function reconcilePendingPayments(
+  admin: SupabaseClient,
+  options: { userId?: string; limit?: number; sinceHours?: number } = {},
+): Promise<number> {
+  const { getPayment, assertMercadoPagoPaymentContract } = await import(
+    "./mercadopago.ts"
+  );
+  const since = new Date(
+    Date.now() - (options.sinceHours ?? 24 * 7) * 3600_000,
+  ).toISOString();
+  let query = admin
+    .from("payments")
+    .select(
+      "id, user_id, quantity, amount_cents, buyer_email, provider_payment_id, status",
+    )
+    .in("status", ["pending", "in_process", "authorized"])
+    .not("provider_payment_id", "is", null)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(Math.min(options.limit ?? 25, 100));
+  if (options.userId) query = query.eq("user_id", options.userId);
+  const { data, error } = await query;
+  if (error || !data?.length) return 0;
+
+  let approved = 0;
+  for (const payment of data) {
+    try {
+      const remote = await getPayment(String(payment.provider_payment_id));
+      const verified = assertMercadoPagoPaymentContract(remote, {
+        paymentId: payment.id,
+        providerPaymentId: payment.provider_payment_id,
+        amountCents: payment.amount_cents,
+        buyerEmail: payment.buyer_email,
+      });
+      const status = await applyProviderPaymentStatus(admin, {
+        paymentId: payment.id,
+        providerPaymentId: verified.providerId,
+        status: verified.status,
+        raw: remote,
+      });
+      if (status === "approved") {
+        await finalizePaymentLicenses(admin, payment.id, payment.quantity ?? 1);
+        approved += 1;
+      }
+    } catch (err) {
+      console.warn(
+        "[reconcile-payments]",
+        JSON.stringify({
+          paymentId: payment.id,
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
+  }
+  return approved;
+}

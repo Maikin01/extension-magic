@@ -29,6 +29,7 @@ import {
   applyProviderPaymentStatus,
   finalizePaymentIfApproved,
   finalizePaymentLicenses,
+  reconcilePendingPayments,
 } from "../_shared/payments.ts";
 import { enforceRateLimit, sha256Hex } from "../_shared/rate-limit.ts";
 import { deliverMarketplaceOrder } from "../_shared/marketplace.ts";
@@ -220,6 +221,8 @@ async function getMyAccessContext(context: AuthContext) {
 
 async function getMyDashboard(context: AuthContext) {
   const { admin, userId } = context;
+  // Rede de segurança: se o webhook falhou, aprova aqui e gera a chave.
+  await reconcilePendingPayments(admin, { userId, limit: 10 });
   const [licensesResult, profileResult, trialClaimResult] = await Promise.all([
     admin
       .from("licenses")
@@ -704,6 +707,8 @@ async function adminGetAuditLog(context: AuthContext) {
 
 async function adminListPayments(context: AuthContext) {
   await assertAdmin(context);
+  // Reconcilia pendentes antes de listar: nada fica "pendente" se já foi pago.
+  await reconcilePendingPayments(context.admin, { limit: 40 });
   const { data, error } = await context.admin
     .from("payments")
     .select(
