@@ -80,7 +80,6 @@ const ADMIN_MUTATION_ACTIONS = new Set([
   "adminSetUserRole",
   "adminDeleteUser",
   "createMarketplaceOrder",
-  "createMarketplacePixCheckout",
   "adminCreateMarketplaceProduct",
   "adminUploadMarketplaceImage",
   "adminUpdateMarketplaceProduct",
