@@ -1,38 +1,36 @@
-## Causa raiz encontrada
+# Plano: Consolidar tudo no Supabase externo (LOVABLE EXTENSION)
 
-A extensão está falando com **outro backend**, não com o do site atual.
+## Contexto confirmado (leituras já feitas)
+- Projeto externo `paokcsxuxipnbnbgnlzs` está vivo e acessível (planos lidos via API anônima; Edge Functions respondendo).
+- As credenciais nativas injetadas no sandbox ainda apontam para o projeto **Lovable Cloud `wjkohjslyzogffunfgim`**, que está **pausado**. É a causa raiz do "racha": o app chama o externo, mas migrações/deploys/reconciliação iam para o pausado.
+- `psql` está disponível no sandbox, mas não é necessário se o rebind funcionar — as ferramentas nativas (migração, read_query, deploy) cobrem tudo.
 
-- `extension/license.js` chama `https://paokcsxuxipnbnbgnlzs.supabase.co/functions/v1/public-api` (projeto antigo).
-- O backend real deste site é outro (`.env` aponta para outro projeto).
-- Resultado: nenhuma chave gerada aqui existe lá → toda ativação volta como `not_found` → "Chave não encontrada".
+## Passo 1 — Re-vincular as credenciais ao seu Supabase externo
+- Executar `supabase--rebind_secrets`. Ele busca a service role key via autorização do seu workspace e atualiza `SUPABASE_URL`, publishable key e service role key no sandbox para o projeto conectado por você (`paokcsxuxipnbnbgnlzs`).
+- Se falhar (autorização revogada), peço para você reconectar o Supabase nas configurações do projeto e re-tento.
+- Após o rebind, confirmar com `supabase--project_info` que o projeto ativo passou a ser `paokcsxuxipnbnbgnlzs` (org LOVABLE EXTENSION), não mais o pausado.
 
-O site já expõe rotas próprias que encaminham para o backend certo, com a chave de API correta:
-`/api/public/license/activate` e `/api/public/license/validate`.
+## Passo 2 — Auditar o estado real do banco externo
+- `supabase--read_query` em tabelas-chave: `plans`, `payments` (status pendente vs approved), `licenses`, `marketplace_products`, `marketplace_stock_items`, `trial_license_claims`, `user_roles`, `profiles`.
+- Confirmar presença das funções RPC: `finalize_approved_payment`, `finalize_approved_payment_bulk`, `claim_marketplace_stock_item`, `apply_payment_status`.
+- Listar buckets de storage (`marketplace`) e políticas RLS relevantes.
+- Mapear a "defasagem": o que existe no externo vs o que o código espera.
 
-## O que vou fazer
+## Passo 3 — Reconciliar pagamentos aprovados travados como "pending"
+- Query: `SELECT id, status, amount, provider_id, plan_id, quantity, created_at FROM payments WHERE status='approved' OR (status='pending' AND ...) ORDER BY created_at DESC LIMIT 50`.
+- Para cada `approved` sem licença gerada, chamar `finalize_approved_payment` / `finalize_approved_payment_bulk` (são idempotentes).
+- Para `pending` que o Mercado Pago já aprovou (verificar via API do MP), marcar `approved` e disparar a geração da licença.
+- Confirmar que as chaves/chaves-estoque foram entregues aos usuários.
 
-1. **Apontar a extensão para o site, não para um projeto fixo**
-   - Em `extension/license.js`, trocar o endereço fixo por `https://riselovable.lovable.app/api/public/license`.
-   - Assim, se o backend mudar de novo, a extensão continua funcionando sem novo pacote.
+## Passo 4 — Corrigir gaps de schema/RLS no externo (se existirem)
+- Garantir que toda tabela pública tem `GRANT` + `ENABLE ROW LEVEL SECURITY` + políticas.
+- Se faltar `marketplace_stock_items` ou `trial_license_claims`, criar via `supabase--migration` seguindo a estrutura já usada no código.
+- Garantir que o webhook do Mercado Pago no externo processe `approved` corretamente (re-deploy de `mercadopago-webhook` se necessário via `supabase--deploy_edge_functions`).
 
-2. **Atualizar permissões da extensão**
-   - Em `extension/manifest.json`, remover o domínio antigo e manter/garantir `https://riselovable.lovable.app/*`.
-   - Subir a versão (1.0.2).
+## Passo 5 — Verificação final
+- `supabase--curl_edge_functions` no webhook para simular notificação `approved` e confirmar liberação automática da licença.
+- Conferir no painel admin/revenda que produtos aparecem e Pix do marketplace gera.
+- Relatório final do que estava quebrado e do que foi corrigido.
 
-3. **Conferir os outros pontos de rede da extensão**
-   - Varrer `background.js`, `popup.js`, `content-*.js` e `history.js` atrás de qualquer outro endereço antigo e corrigir.
-
-4. **Validar de ponta a ponta**
-   - Testar `POST /api/public/license/activate` e `/validate` com uma chave real do banco, confirmando resposta de sucesso (e que o tempo só começa na 1ª ativação, como combinado).
-   - Confirmar que a função `public-api` está publicada no backend atual; se não estiver, publicar.
-
-5. **"Algumas partes não carregam" no site**
-   - Abrir a página no navegador de teste, capturar erros de console e requisições falhando, e corrigir o que aparecer (provavelmente chamadas apontando para o backend antigo ou recurso 404).
-   - Reporto o que encontrei junto com a correção.
-
-6. **Reempacotar o ZIP** da extensão e te mandar o link atualizado para baixar e testar.
-
-## Detalhes técnicos
-
-- Arquivos tocados: `extension/license.js`, `extension/manifest.json`, ZIP em `public/rise-lovable-extension.zip`, e o que aparecer no passo 5.
-- Nenhuma mudança na lógica de envio de mensagem da extensão (`send-core.js`, popup, background) — só endereço/permissão, conforme a regra do projeto.
+## Nota
+Nenhuma mudança de código no app é esperada neste plano — `.env.production` e `public-config.ts` já apontam para o externo. O foco é alinhar as ferramentas/admin ao mesmo banco que o app já usa e resolver os dados travados. Se algo de código precisar mudar após a auditoria, trato em passo separado.
