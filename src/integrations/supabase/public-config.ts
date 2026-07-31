@@ -20,10 +20,14 @@ function required(value: string | undefined, name: string): string {
  * navegador e as server functions usem o mesmo projeto Supabase.
  */
 export function getSupabasePublicConfig(): SupabasePublicConfig {
-  const url = required(import.meta.env.VITE_SUPABASE_URL, "VITE_SUPABASE_URL").replace(/\/$/, "");
+  const url = required(
+    import.meta.env.VITE_RISE_BACKEND_URL ?? import.meta.env.VITE_SUPABASE_URL,
+    "VITE_RISE_BACKEND_URL",
+  ).replace(/\/$/, "");
   const publishableKey = required(
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    "VITE_SUPABASE_PUBLISHABLE_KEY",
+    import.meta.env.VITE_RISE_BACKEND_PUBLISHABLE_KEY ??
+      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    "VITE_RISE_BACKEND_PUBLISHABLE_KEY",
   );
 
   return { url, publishableKey };
