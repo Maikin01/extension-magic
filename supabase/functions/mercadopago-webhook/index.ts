@@ -51,8 +51,13 @@ Deno.serve(async (request) => {
     } catch {
       body = {};
     }
+    const rawResource = body?.resource;
+    const resourcePaymentId = typeof rawResource === "string"
+      ? rawResource.match(/(?:payments|notifications)\/([0-9]+)(?:\?.*)?$/i)?.[1] ??
+        (/^[0-9]+$/.test(rawResource) ? rawResource : null)
+      : null;
     const paymentId = body?.data?.id ??
-      body?.resource ??
+      resourcePaymentId ??
       url.searchParams.get("id") ??
       url.searchParams.get("data.id");
     const topic = body?.type ?? body?.topic ?? url.searchParams.get("topic") ??
@@ -66,10 +71,9 @@ Deno.serve(async (request) => {
       );
     }
 
-    const signature = await verifyMercadoPagoWebhookSignature(
-      request,
-      String(paymentId),
-    );
+    const hasSignatureHeaders = !!request.headers.get("x-signature") &&
+      !!request.headers.get("x-request-id");
+    const signature = await verifyMercadoPagoWebhookSignature(request, String(paymentId));
     if (!signature.configured) {
       console.warn(
         "[mercadopago-webhook]",
@@ -78,11 +82,22 @@ Deno.serve(async (request) => {
           code: "WEBHOOK_SECRET_NOT_CONFIGURED",
         }),
       );
-    } else if (!signature.valid) {
+    } else if (hasSignatureHeaders && !signature.valid) {
       throw new ApiHttpError(
         401,
         "INVALID_WEBHOOK_SIGNATURE",
         "Assinatura inválida.",
+      );
+    } else if (!hasSignatureHeaders) {
+      // Notificações IPN legadas não incluem estes cabeçalhos. O ID recebido
+      // não é confiado: abaixo sempre buscamos o pagamento pela API autenticada
+      // do Mercado Pago e validamos referência, valor, moeda, método e pagador.
+      console.warn(
+        "[mercadopago-webhook]",
+        JSON.stringify({
+          requestId: http.requestId,
+          code: "LEGACY_UNSIGNED_NOTIFICATION",
+        }),
       );
     }
 
