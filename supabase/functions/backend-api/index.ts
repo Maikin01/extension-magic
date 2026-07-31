@@ -1406,48 +1406,70 @@ async function createMarketplacePixCheckout(context: AuthContext, input: unknown
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "");
   if (!supabaseUrl) throw new Error("SUPABASE_URL não configurada.");
-  const pix = await createPixPayment({
-    amountCents: order.amount_cents,
-    description: label,
-    buyerName,
-    buyerEmail: context.email,
-    buyerWhatsapp: buyerWhatsapp || undefined,
-    buyerCpf: buyerCpf || undefined,
-    externalReference: `mkt_${order.id}`,
-    notificationUrl: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
-    idempotencyKey: order.id,
-    expiresInMinutes: 30,
-  });
 
-  const { error: updateError } = await context.admin
-    .from("marketplace_orders")
-    .update({
-      provider_payment_id: String(pix.raw?.id ?? ""),
+  try {
+    const pix = await createPixPayment({
+      amountCents: order.amount_cents,
+      description: label,
+      buyerName,
+      buyerEmail: context.email,
+      buyerWhatsapp: buyerWhatsapp || undefined,
+      buyerCpf: buyerCpf || undefined,
+      externalReference: `mkt_${order.id}`,
+      notificationUrl: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
+      idempotencyKey: order.id,
+      expiresInMinutes: 30,
+    });
+
+    if (!pix.qr_code && !pix.qr_code_base64) {
+      throw new ApiHttpError(
+        502,
+        "PIX_UNAVAILABLE",
+        "O provedor não retornou o QR Code do Pix. Tente novamente em instantes.",
+      );
+    }
+
+    const { error: updateError } = await context.admin
+      .from("marketplace_orders")
+      .update({
+        provider_payment_id: String(pix.raw?.id ?? ""),
+        qr_code: pix.qr_code,
+        qr_code_base64: pix.qr_code_base64,
+        ticket_url: pix.ticket_url,
+        expires_at: pix.date_of_expiration,
+        raw: pix.raw ?? null,
+      })
+      .eq("id", order.id);
+    if (updateError) throw updateError;
+
+    let status = order.status;
+    if (pix.raw?.status === "approved") {
+      const delivered = await deliverMarketplaceOrder(context.admin, order.id);
+      status = delivered?.status ?? status;
+    }
+
+    return {
+      order_id: order.id,
+      status,
       qr_code: pix.qr_code,
       qr_code_base64: pix.qr_code_base64,
       ticket_url: pix.ticket_url,
       expires_at: pix.date_of_expiration,
-    })
-    .eq("id", order.id);
-  if (updateError) throw updateError;
-
-  let status = order.status;
-  if (pix.raw?.status === "approved") {
-    const delivered = await deliverMarketplaceOrder(context.admin, order.id);
-    status = delivered?.status ?? status;
+      amount_cents: order.amount_cents,
+      product_name: label,
+    };
+  } catch (error) {
+    console.error("[marketplace-pix]", order.id, error instanceof Error ? error.message : error);
+    await context.admin
+      .from("marketplace_orders")
+      .update({ raw: { error: error instanceof Error ? error.message : String(error) } })
+      .eq("id", order.id)
+      .eq("status", "pending")
+      .is("provider_payment_id", null);
+    throw error;
   }
-
-  return {
-    order_id: order.id,
-    status,
-    qr_code: pix.qr_code,
-    qr_code_base64: pix.qr_code_base64,
-    ticket_url: pix.ticket_url,
-    expires_at: pix.date_of_expiration,
-    amount_cents: order.amount_cents,
-    product_name: label,
-  };
 }
+
 
 async function getMarketplaceOrderStatus(context: AuthContext, input: unknown) {
   const data = z.object({ order_id: z.string().uuid() }).parse(input);
