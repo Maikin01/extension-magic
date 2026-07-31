@@ -1,8 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import type { ToolContext } from "@lovable.dev/mcp-js";
+import { getSupabasePublicConfig } from "@/integrations/supabase/public-config";
 
 export function supabaseForUser(ctx: ToolContext) {
-  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+  // Use the VITE_-fixed config (see public-config.ts) instead of process.env.SUPABASE_*,
+  // which is reserved/injected by Lovable Cloud and can point at a stale backend.
+  const { url, publishableKey } = getSupabasePublicConfig();
+  return createClient(url, publishableKey, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
